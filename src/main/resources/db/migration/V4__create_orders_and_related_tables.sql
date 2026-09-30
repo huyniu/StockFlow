@@ -10,6 +10,7 @@ CREATE TABLE orders (
  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 -- Giá và thành tiền được chụp lúc đặt hàng, không phụ thuộc giá catalog về sau.
 CREATE TABLE order_items (
  id BIGSERIAL PRIMARY KEY,
@@ -20,6 +21,7 @@ CREATE TABLE order_items (
  line_total NUMERIC(12,2) NOT NULL CHECK (line_total >= 0),
  CONSTRAINT uq_order_product UNIQUE(order_id, product_id)
 );
+
 -- Một đơn chỉ có một bản ghi thanh toán để bảo đảm gọi lặp không thu tiền nhiều lần.
 CREATE TABLE payments (
  id BIGSERIAL PRIMARY KEY,
@@ -29,6 +31,7 @@ CREATE TABLE payments (
  method VARCHAR(50) NOT NULL,
  paid_at TIMESTAMPTZ
 );
+
 -- Mỗi đơn có tối đa một vận đơn trong phạm vi MVP.
 CREATE TABLE shipments (
  id BIGSERIAL PRIMARY KEY,
@@ -38,11 +41,13 @@ CREATE TABLE shipments (
  shipped_at TIMESTAMPTZ,
  delivered_at TIMESTAMPTZ
 );
+
 -- Các chỉ mục phục vụ lịch sử khách hàng, công việc tại kho và quét đơn hết hạn.
 CREATE INDEX idx_orders_customer_created ON orders(customer_id, created_at DESC);
 CREATE INDEX idx_orders_warehouse_status_created ON orders(warehouse_id, status, created_at DESC);
 CREATE INDEX idx_orders_status_expiry ON orders(status, reservation_expires_at);
 CREATE INDEX idx_order_items_product ON order_items(product_id);
+
 -- Tác vụ hết hạn dùng actor hệ thống riêng, không gán nhầm hành động tự động cho khách hàng.
 -- Chuỗi password_hash không phải BCrypt hợp lệ nên tài khoản này không thể đăng nhập bằng mật khẩu.
 INSERT INTO users(email, password_hash, full_name, role_id, status)

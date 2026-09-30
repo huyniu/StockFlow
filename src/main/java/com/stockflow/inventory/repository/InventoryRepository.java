@@ -4,6 +4,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.*;
+
 /** Truy vấn tồn kho theo cặp sản phẩm/kho và hỗ trợ phân trang bộ lọc. */
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
  /** Giữ hàng bằng một UPDATE SQL có điều kiện; CURRENT_TIMESTAMP của database tránh xung đột kiểu JPQL Timestamp/Instant. */
