@@ -1,0 +1,27 @@
+CREATE TABLE categories (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    slug VARCHAR(180) NOT NULL UNIQUE
+);
+
+CREATE TABLE products (
+    id BIGSERIAL PRIMARY KEY,
+    category_id BIGINT NOT NULL REFERENCES categories(id),
+    sku VARCHAR(80) NOT NULL UNIQUE,
+    name VARCHAR(200) NOT NULL,
+    unit_price NUMERIC(12, 2) NOT NULL CHECK (unit_price >= 0),
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT products_status_check CHECK (status IN ('ACTIVE', 'INACTIVE'))
+);
+
+CREATE INDEX idx_products_category_status ON products(category_id, status);
+
+CREATE TABLE warehouses (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(80) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    CONSTRAINT warehouses_status_check CHECK (status IN ('ACTIVE', 'INACTIVE'))
+);
