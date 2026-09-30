@@ -1,0 +1,5 @@
+<!-- Biểu tượng StockFlow dạng SVG nội bộ, dùng cho favicon và nhận diện giao diện. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="16" fill="#123c36"/>
+    <path d="m32 13 20 11-20 11-20-11 20-11Z M12 24v20l20 11 20-11V24 M32 35v20 M22 18.5l20 11" fill="none" stroke="#b6eacb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

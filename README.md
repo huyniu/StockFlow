@@ -30,7 +30,7 @@ The application is a modular monolith. Controllers handle HTTP and role checks, 
 
 ```mermaid
 flowchart LR
-    Client["Swagger UI / API client"] --> Security["Spring Security · JWT"]
+    Client["Web dashboard / Swagger UI / API client"] --> Security["Spring Security · JWT"]
     Security --> API["REST controllers"]
     API --> Services["Auth · Catalog · Warehouse<br/>Inventory · Order · Report services"]
     Services --> Persistence["JPA repositories / JDBC report queries"]
@@ -206,6 +206,7 @@ docker compose up --build
 
 Compose builds the application with Java 17 and the Maven Wrapper, starts PostgreSQL, waits for its health check, and starts the API with the `demo` profile.
 
+- Web demo dashboard: [http://localhost:8080/](http://localhost:8080/)
 - Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 - Health: [http://localhost:8080/api/v1/health](http://localhost:8080/api/v1/health)
@@ -236,6 +237,23 @@ Compose reads an optional `.env` file; use [.env.example](.env.example) as its t
 
 The `demo` profile supplies a local JWT key and seeds demo data. When running without this profile, set `JWT_SECRET` to a private key of at least 32 bytes. Demo credentials and the demo JWT key are intended for local evaluation.
 
+## Web demo dashboard
+
+Open **[http://localhost:8080/](http://localhost:8080/)** after starting Spring Boot. The Vietnamese dashboard is served directly from `src/main/resources/static/` with HTML, CSS, and vanilla JavaScript. No Node.js installation or separate frontend build is needed.
+
+- Switch between **Admin, Manager, Staff Kho HN, and Customer** using the demo login buttons; each performs a real JWT login. Manual login and customer registration are also available.
+- Browse/filter/paginate products, build a multi-product cart, select an active warehouse, and create a 15-minute reservation as Customer.
+- View your orders or look up an order ID, confirm simulated payment, cancel eligible orders, and inspect item price snapshots/countdowns.
+- Inspect available/reserved/physical inventory, receive stock as Admin/assigned Staff, and read immutable before/after balances as Manager/Admin.
+- Inspect order status totals, day/month revenue, top products, and low-stock alerts with filters and pagination.
+- API banners/toasts show actual backend responses, including **409 Conflict** for insufficient stock and **403 Forbidden** for denied access. Permission cards include a button to demonstrate the server's access check.
+
+The authenticated endpoint `GET /api/v1/warehouses/order-options` supplies only active warehouse IDs, codes, and names for order selection. The operational `GET /api/v1/warehouses` endpoint retains its existing role restrictions. No warehouse IDs are hard-coded in the frontend.
+
+JWTs are kept in the tab's sessionStorage; passwords entered manually are not persisted. Logging out or switching demo accounts clears cart/private results and cancels old requests. On refresh, the role is validated again with `users/me`. Role-based UI controls supplement server authorization.
+
+For an existing PostgreSQL installation in IntelliJ, use Active profiles `demo` and set `DB_PORT`, `DB_USERNAME`, and `DB_PASSWORD` to that installation's credentials (for example, port 5432 and user postgres). This runs the demo seed in the selected database. The Compose database defaults to host port 5433.
+
 ## Demo data and accounts
 
 A fresh demo database contains three warehouses:
@@ -261,7 +279,7 @@ Revenue and top-product reports populate as you create and pay demo orders. The 
 
 1. Open Swagger UI and execute `POST /api/v1/auth/login` with a demo email and password.
 2. Copy `access_token`, click **Authorize**, and paste the token without the `Bearer ` prefix.
-3. Browse `GET /api/v1/products`. Use the admin account to retrieve warehouse IDs through `GET /api/v1/warehouses`.
+3. Browse `GET /api/v1/products`. Retrieve active warehouse IDs through authenticated `GET /api/v1/warehouses/order-options`.
 4. Authorize as the customer and create an order with `POST /api/v1/orders`:
 
 ```json
@@ -282,7 +300,8 @@ Use IDs returned by your own database; the example IDs are placeholders.
 
 ### Endpoint permissions
 
-- **Public:** health, registration/login, category/product reads, Swagger UI, OpenAPI documents.
+- **Public:** web dashboard/static assets, health, registration/login, category/product reads, Swagger UI, OpenAPI documents.
+- **Authenticated users:** minimal active warehouse choices for order creation (`/api/v1/warehouses/order-options`).
 - **ADMIN:** category/product writes and warehouse creation; stock-in across warehouses.
 - **WAREHOUSE_STAFF:** stock-in and inventory/order reads within assigned warehouses. Inventory requests must include an assigned `warehouseId`.
 - **CUSTOMER:** create orders, read own orders, pay own orders, cancel own pending orders.
@@ -309,7 +328,9 @@ Windows PowerShell:
 
 If your environment requires an explicit Maven cache, append `'-Dmaven.repo.local=C:/Users/Admin/.m2/repository'` on Windows.
 
-The suite covers authentication, role/ownership checks, stock-in transactions, immutable ledger enforcement, order lifecycle, concurrency, report aggregates/pagination, OpenAPI access, and repeatable demo seeding.
+The suite covers authentication, role/ownership checks, stock-in transactions, immutable ledger enforcement, order lifecycle, concurrency, report aggregates/pagination, OpenAPI access, repeatable demo seeding, public web resource delivery, and warehouse order-option permissions.
+
+See [Web demo verification](docs/web-demo-verification.md) for the changed files, 89-test result, and frontend checks against a separate PostgreSQL database.
 
 GitHub Actions runs `./mvnw test` on pushes and pull requests targeting `main`, using Ubuntu and Temurin Java 17. It then packages and uploads the application JAR. The database tests use H2 and do not require a database service in CI.
 
@@ -323,6 +344,6 @@ java -jar target/stockflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=demo
 
 The current API includes catalog administration, warehouse-scoped inventory, stock receipts, reservations, simulated payments, cancellation/refund, reservation expiry, and business reports. Shipment entities/statuses are modeled; packing, shipping, delivery, and customer return endpoints remain future extensions. Payment is a simulation.
 
-The backend is ready for local API evaluation. A public deployment, a recorded walkthrough, and a thin frontend can be added for the final CV presentation.
+The Vietnamese thin frontend is ready for local walkthroughs. A public deployment and a recorded demo can be added for the final CV presentation.
 
 Integration references: [SpringDoc v2](https://springdoc.org/v2/), [GitHub Actions Java/Maven](https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-maven), [Compose startup dependencies](https://docs.docker.com/compose/how-tos/startup-order/).

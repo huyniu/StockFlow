@@ -67,6 +67,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        // Giao diện tĩnh được mở công khai; API vẫn kiểm tra JWT và quyền ở controller/service.
+                        .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/favicon.ico", "/assets/**").permitAll()
                         // Cho phép đọc tài liệu công khai; các API nghiệp vụ vẫn giữ kiểm tra JWT và role.
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()

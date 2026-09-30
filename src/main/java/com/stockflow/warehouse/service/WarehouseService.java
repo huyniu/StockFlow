@@ -2,7 +2,9 @@ package com.stockflow.warehouse.service;
 
 import com.stockflow.common.exception.ConflictException;
 import com.stockflow.warehouse.domain.Warehouse;
+import com.stockflow.warehouse.domain.WarehouseStatus;
 import com.stockflow.warehouse.dto.CreateWarehouseRequest;
+import com.stockflow.warehouse.dto.WarehouseOrderOptionResponse;
 import com.stockflow.warehouse.dto.WarehouseResponse;
 import com.stockflow.warehouse.repository.WarehouseRepository;
 import java.util.List;
@@ -31,6 +33,14 @@ public class WarehouseService {
     public List<WarehouseResponse> listWarehouses() {
         return warehouseRepository.findAll().stream()
                 .map(WarehouseResponse::from)
+                .toList();
+    }
+
+    /** Lựa chọn kho đang hoạt động phục vụ đặt hàng; không thay đổi quyền xem danh sách kho nội bộ. */
+    @Transactional(readOnly = true)
+    public List<WarehouseOrderOptionResponse> orderOptions() {
+        return warehouseRepository.findByStatusOrderByIdAsc(WarehouseStatus.ACTIVE).stream()
+                .map(WarehouseOrderOptionResponse::from)
                 .toList();
     }
 

@@ -1,6 +1,7 @@
 package com.stockflow.warehouse.api;
 
 import com.stockflow.warehouse.dto.CreateWarehouseRequest;
+import com.stockflow.warehouse.dto.WarehouseOrderOptionResponse;
 import com.stockflow.warehouse.dto.WarehouseResponse;
 import com.stockflow.warehouse.service.WarehouseService;
 import jakarta.validation.Valid;
@@ -43,6 +44,14 @@ public class WarehouseController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
     public List<WarehouseResponse> listWarehouses() {
         return warehouseService.listWarehouses();
+    }
+
+    /** Khách đã đăng nhập chọn kho hoạt động để đặt đơn; DTO tối thiểu không mở dữ liệu vận hành nội bộ. */
+    @GetMapping("/order-options")
+    @Operation(summary = "List active warehouse choices for authenticated order creation")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
+    public List<WarehouseOrderOptionResponse> orderOptions() {
+        return warehouseService.orderOptions();
     }
 
     /**
