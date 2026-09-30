@@ -9,14 +9,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stockflow.auth.security.JwtTokenProvider;
+import com.stockflow.user.domain.User;
+import com.stockflow.user.repository.RoleRepository;
+import com.stockflow.user.repository.UserRepository;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -35,6 +43,21 @@ class AuthIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private UserRepository users;
+
+    @Autowired
+    private RoleRepository roles;
+
+    @Autowired
+    private JwtTokenProvider jwt;
+
+    @Autowired
+    private PasswordEncoder passwords;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     /**
      * Kiểm tra đăng ký thành công phải tạo user CUSTOMER, trả về Bearer token và không làm lộ password hash.
@@ -112,9 +135,47 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.status").value(401));
     }
 
-    /**
-     * Helper đăng ký user và trả về access token để các test khác dùng lại.
-     */
+    /** Tài khoản INACTIVE không được phát token dù mật khẩu đúng; lỗi giống đăng nhập sai. */
+    @Test
+    void inactiveAccountCannotLogin() throws Exception {
+        String email = uniqueEmail();
+        registerUser(email, "secret123");
+        jdbc.update("""
+                UPDATE users
+                SET status = 'INACTIVE'
+                WHERE email = ?
+                """, email);
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(loginPayload(email, "secret123"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Email hoặc mật khẩu không đúng."))
+                .andExpect(jsonPath("$.access_token").doesNotExist());
+    }
+
+    /** JWT đã phát cho mọi role mất quyền trên API bảo vệ khi tài khoản bị vô hiệu hóa. */
+    @ParameterizedTest
+    @ValueSource(strings = {"ADMIN", "MANAGER", "WAREHOUSE_STAFF", "CUSTOMER"})
+    void issuedTokenCannotAuthenticateInactiveAccount(String role) throws Exception {
+        User actor = users.save(new User(
+                uniqueEmail(), passwords.encode("secret123"), "Tài khoản kiểm thử trạng thái",
+                roles.findByName(role).orElseThrow()));
+        String token = "Bearer " + jwt.generateToken(actor);
+        mockMvc.perform(get("/api/v1/users/me").header("Authorization", token))
+                .andExpect(status().isOk());
+        jdbc.update("""
+                UPDATE users
+                SET status = 'INACTIVE'
+                WHERE id = ?
+                """, actor.getId());
+        String operationalPath = role.equals("CUSTOMER") ? "/api/v1/orders/my" : "/api/v1/orders";
+        mockMvc.perform(get("/api/v1/users/me").header("Authorization", token))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get(operationalPath).header("Authorization", token))
+                .andExpect(status().isUnauthorized());
+    }
+
+    /** Helper đăng ký user và trả về access token để các test khác dùng lại. */
     private String registerUser(String email, String password) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

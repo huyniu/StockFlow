@@ -1,7 +1,11 @@
-<!-- Tài liệu showcase mô tả đúng nghiệp vụ đã triển khai, cách chạy demo và bằng chứng kiểm thử/SQL. -->
-# StockFlow – Multi-Warehouse Order and Inventory Management System
+<!-- Tài liệu mô tả cửa hàng nhiều kho, phân biệt tính năng hiện có với lộ trình storefront và dashboard. -->
+# StockFlow – Retail Storefront & Multi-Warehouse Management
 
-A Java backend portfolio project for a retailer managing products, orders, and inventory across multiple warehouses. StockFlow focuses on transactional correctness: concurrent customers cannot oversell stock, every inventory change produces an immutable audit entry, and reports aggregate actual order data.
+A shopping website for **one retailer owning multiple warehouses**, developed as a Java Backend Developer portfolio project. Customers browse products, build a cart, place orders, and follow their own purchases; administrators and warehouse staff manage catalog, inventory, fulfillment, and business reports. StockFlow focuses on transactional correctness: concurrent customers cannot oversell stock, every inventory change produces an immutable audit entry, and reports aggregate actual order data.
+
+The existing backend and Vietnamese demo dashboard are implemented. The final product will have two interfaces: a **customer storefront** and an **operations dashboard**. They will share the current modular backend. The demo page currently combines roles for walkthroughs; separate storefront screens and the complete fulfillment lifecycle remain planned work. This is a single-store system, with no seller/tenant marketplace model.
+
+See [the product audit and phased roadmap](docs/storefront-roadmap.md) and [the current handoff](ANTIGRAVITY_HANDOFF.md) for implemented scope, pending business decisions, and acceptance criteria.
 
 ## Technical goals
 
@@ -30,10 +34,12 @@ The application is a modular monolith. Controllers handle HTTP and role checks, 
 
 ```mermaid
 flowchart LR
-    Client["Web dashboard / Swagger UI / API client"] --> Security["Spring Security · JWT"]
+    Client["Current demo dashboard / Swagger UI / API client"] --> Security["Spring Security · JWT"]
+    Storefront["Planned customer storefront"] -.-> Security
+    Dashboard["Planned operations dashboard"] -.-> Security
     Security --> API["REST controllers"]
     API --> Services["Auth · Catalog · Warehouse<br/>Inventory · Order · Report services"]
-    Services --> Persistence["JPA repositories / JDBC report queries"]
+    Services --> Persistence["JPA repositories / JDBC order and report queries"]
     Persistence --> DB[("PostgreSQL")]
     Flyway["Flyway migrations"] --> DB
     Scheduler["Reservation expiry scheduler"] --> Services
@@ -241,6 +247,8 @@ The `demo` profile supplies a local JWT key and seeds demo data. When running wi
 
 Open **[http://localhost:8080/](http://localhost:8080/)** after starting Spring Boot. The Vietnamese dashboard is served directly from `src/main/resources/static/` with HTML, CSS, and vanilla JavaScript. No Node.js installation or separate frontend build is needed.
 
+This combined demo remains available while shopping and operations APIs are completed. The new operations order list is available through Swagger/API; the existing demo page still uses order-ID lookup for staff and management.
+
 - Switch between **Admin, Manager, Staff Kho HN, and Customer** using the demo login buttons; each performs a real JWT login. Manual login and customer registration are also available.
 - Browse/filter/paginate products, build a multi-product cart, select an active warehouse, and create a 15-minute reservation as Customer.
 - View your orders or look up an order ID, confirm simulated payment, cancel eligible orders, and inspect item price snapshots/countdowns.
@@ -297,6 +305,9 @@ Use IDs returned by your own database; the example IDs are placeholders.
 6. Call `POST /api/v1/orders/{id}/payment-simulations/confirm`: the order becomes `CONFIRMED`, the payment becomes `PAID`, and reserved stock is dispatched. Repeating confirmation creates no extra payment or dispatch.
 7. Alternatively, cancel a pending order to release stock. Expired reservations are automatically released by the scheduled task.
 8. Authorize as manager to inspect inventory movements and the revenue/top-products reports. Reports use UTC order creation dates; use a date range covering the demo orders.
+9. Authorize as manager/admin or warehouse staff and call `GET /api/v1/orders?status=CONFIRMED&page=0&size=20`. Add `warehouseId` to filter a specific warehouse. Management can read all warehouses; staff only see assigned warehouses, including the pagination totals. Staff requests explicitly targeting an unassigned warehouse return `403`.
+
+The operations list returns order summaries including `warehouse_name`; use `GET /api/v1/orders/{id}` to read items. It uses a fixed newest-first order (`created_at DESC, id DESC`), zero-based `page`, and `size` from 1 to 100. A staff member without assignments receives an empty page. Customer order history remains at `/api/v1/orders/my`.
 
 ### Endpoint permissions
 
@@ -306,6 +317,8 @@ Use IDs returned by your own database; the example IDs are placeholders.
 - **WAREHOUSE_STAFF:** stock-in and inventory/order reads within assigned warehouses. Inventory requests must include an assigned `warehouseId`.
 - **CUSTOMER:** create orders, read own orders, pay own orders, cancel own pending orders.
 - **MANAGER / ADMIN:** cross-warehouse order reads, inventory, audit movements, and all four report endpoints; cancel paid orders before shipment with restocking/refund.
+
+Only `ACTIVE` accounts can log in or authenticate protected requests. Account status is reloaded from the database on every JWT request, so a previously issued token is denied while the account is `INACTIVE`. Refresh tokens and permanent per-token logout revocation are separate future work.
 
 Report endpoints: `/api/v1/reports/revenue`, `/top-products`, `/low-stock`, and `/order-summary`. Revenue supports day/month grouping; paginated reports accept `page` and `size`.
 
@@ -322,15 +335,17 @@ chmod +x mvnw
 Windows PowerShell:
 
 ```powershell
-.\mvnw.cmd test
-.\mvnw.cmd package
+.\mvnw.cmd '-Dmaven.repo.local=C:/Users/Admin/.m2/repository' test
+.\mvnw.cmd '-Dmaven.repo.local=C:/Users/Admin/.m2/repository' package
 ```
 
-If your environment requires an explicit Maven cache, append `'-Dmaven.repo.local=C:/Users/Admin/.m2/repository'` on Windows.
+The explicit Maven repository above is required on the current Windows development machine.
 
-The suite covers authentication, role/ownership checks, stock-in transactions, immutable ledger enforcement, order lifecycle, concurrency, report aggregates/pagination, OpenAPI access, repeatable demo seeding, public web resource delivery, and warehouse order-option permissions.
+The suite covers authentication and disabled accounts, role/ownership checks, warehouse-scoped order lists and pagination, stock-in transactions, immutable ledger enforcement, order lifecycle, concurrency, report aggregates/pagination, OpenAPI access, repeatable demo seeding, public web resource delivery, and warehouse order-option permissions.
 
 See [Web demo verification](docs/web-demo-verification.md) for the changed files, 89-test result, and frontend checks against a separate PostgreSQL database.
+
+That report describes the earlier frontend milestone. Current API-phase verification and remaining limitations are recorded in [the storefront roadmap](docs/storefront-roadmap.md).
 
 GitHub Actions runs `./mvnw test` on pushes and pull requests targeting `main`, using Ubuntu and Temurin Java 17. It then packages and uploads the application JAR. The database tests use H2 and do not require a database service in CI.
 
@@ -342,8 +357,10 @@ java -jar target/stockflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=demo
 
 ## Scope and trade-offs
 
-The current API includes catalog administration, warehouse-scoped inventory, stock receipts, reservations, simulated payments, cancellation/refund, reservation expiry, and business reports. Shipment entities/statuses are modeled; packing, shipping, delivery, and customer return endpoints remain future extensions. Payment is a simulation.
+The current API includes catalog administration, warehouse-scoped inventory, stock receipts, reservations, simulated payments, cancellation/refund, reservation expiry, scoped operations order lists, and business reports. Shipment entities/statuses are modeled; packing, shipping with tracking codes, delivery, and customer return endpoints remain future work. Payment and shipping stay simulated in the MVP.
 
-The Vietnamese thin frontend is ready for local walkthroughs. A public deployment and a recorded demo can be added for the final CV presentation.
+The next API phase is fulfillment, followed by shopping catalog/checkout contracts, then separate storefront and dashboard screens. Warehouse allocation, delivery-address snapshots, and the timing of stock dispatch must be agreed before dependent lifecycle/schema changes. The existing checkout explicitly accepts a warehouse and dispatches stock at payment confirmation; this phase preserves that behavior.
+
+Keep the browser cart for the first storefront version; do not add a `carts` table without a persistence requirement. Keep applied Flyway migrations unchanged, add new migrations only for required schema changes, and preserve the atomic reservations and immutable ledger. PostgreSQL Testcontainers in CI, token refresh/revocation, and operational observability are later hardening tasks. A public deployment or recorded demo can follow the completed shopping flow.
 
 Integration references: [SpringDoc v2](https://springdoc.org/v2/), [GitHub Actions Java/Maven](https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-maven), [Compose startup dependencies](https://docs.docker.com/compose/how-tos/startup-order/).

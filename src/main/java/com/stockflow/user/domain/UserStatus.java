@@ -10,7 +10,7 @@ public enum UserStatus {
     ACTIVE,
 
     /**
-     * Tài khoản bị vô hiệu hóa và có thể bị chặn trong các bước authorization sau này.
+     * Tài khoản bị vô hiệu hóa, không được đăng nhập hoặc xác thực bằng JWT đã phát.
      */
     INACTIVE
 }

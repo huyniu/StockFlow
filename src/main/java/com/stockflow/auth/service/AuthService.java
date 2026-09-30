@@ -9,6 +9,7 @@ import com.stockflow.common.exception.ResourceNotFoundException;
 import com.stockflow.common.exception.UnauthorizedException;
 import com.stockflow.user.domain.Role;
 import com.stockflow.user.domain.User;
+import com.stockflow.user.domain.UserStatus;
 import com.stockflow.user.dto.UserResponse;
 import com.stockflow.user.repository.RoleRepository;
 import com.stockflow.user.repository.UserRepository;
@@ -67,7 +68,8 @@ public class AuthService {
     }
 
     /**
-     * Đăng nhập bằng email/password. Khi sai credential, response luôn giống nhau để không tiết lộ email có tồn tại hay không.
+     * Đăng nhập bằng email/password và chỉ phát JWT cho tài khoản ACTIVE.
+     * Sai mật khẩu hoặc tài khoản bị khóa trả cùng thông điệp để không tiết lộ trạng thái tài khoản.
      */
     @Transactional(readOnly = true) // readOnly = true: Báo DB là tôi chỉ đọc dữ liệu, giúp truy vấn nhanh hơn
     public AuthResponse login(LoginRequest request) {
@@ -78,10 +80,11 @@ public class AuthService {
 
         // Bước 2: Dùng PasswordEncoder so sánh mật khẩu khách vừa gõ với mật khẩu băm trong DB
         // matches(mật_khẩu_gốc, mật_khẩu_đã_băm)
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())
+                || user.getStatus() != UserStatus.ACTIVE) {
             throw new UnauthorizedException("Email hoặc mật khẩu không đúng.");
         }
-        // Bước 3: Đúng cả email và pass -> In vé (Token) trao cho khách
+        // Chỉ phát token sau khi xác minh mật khẩu và trạng thái hoạt động của tài khoản.
         return buildAuthResponse(user);
     }
 

@@ -1,3 +1,4 @@
+<!-- Bàn giao cập nhật ngày 30/09/2026: mục tiêu cửa hàng nhiều kho và trạng thái source thực tế. -->
 # StockFlow — Handoff cho Antigravity
 
 > Mục đích: đọc file này trước khi tư vấn, viết prompt, review hoặc đề xuất thay đổi cho project. Ưu tiên yêu cầu của người dùng nếu có mâu thuẫn với file này.
@@ -10,11 +11,13 @@ Người dùng đang định hướng ứng tuyển vị trí **Java Backend Dev
 2. Một dự án theo hướng nghiên cứu kỹ thuật.
 3. Một dự án thương mại có người dùng, nghiệp vụ và quy trình rõ ràng.
 
-**StockFlow** là dự án thứ ba và là dự án thương mại chính. Mục tiêu không phải làm một ứng dụng CRUD đơn thuần, mà là thể hiện năng lực backend Java, thiết kế database, transaction, SQL, test và tài liệu dự án.
+**StockFlow** là dự án thứ ba và là dự án thương mại chính: **website bán hàng cho một cửa hàng/doanh nghiệp sở hữu nhiều kho**. Bản hoàn thiện có storefront cho khách và dashboard cho admin/nhân viên. Không làm marketplace, nhiều người bán hoặc hệ thống tenant. Project vẫn thể hiện năng lực backend Java, thiết kế database, transaction, SQL, test và tài liệu dự án.
 
 Tên dự án dùng trên CV:
 
-> **StockFlow – Multi-Warehouse Order and Inventory Management System**
+> **StockFlow – Retail Storefront & Multi-Warehouse Management**
+
+Dashboard demo hiện có vẫn được giữ để trình diễn. Ưu tiên hoàn thiện API trước khi tách hai nhóm giao diện. Đánh giá hiện trạng và lộ trình mới nằm tại [docs/storefront-roadmap.md](docs/storefront-roadmap.md).
 
 ## 2. Mô hình phối hợp
 
@@ -40,20 +43,22 @@ Khi nhận một yêu cầu code, Antigravity nên:
 | Database | PostgreSQL |
 | ORM | Spring Data JPA / Hibernate |
 | Migration | Flyway |
-| Authentication | Spring Security + JWT (chưa triển khai) |
-| API docs | Swagger / OpenAPI (sẽ thêm sau authentication foundation) |
-| Test | JUnit 5, Mockito, Testcontainers |
+| Authentication | Spring Security + JWT + BCrypt, đã triển khai |
+| API docs | SpringDoc 2.8.5, Swagger / OpenAPI, đã triển khai |
+| Test | JUnit 5, Spring Boot Test, MockMvc, H2; Testcontainers PostgreSQL chưa triển khai |
 | Local infrastructure | Docker Compose |
-| CI | GitHub Actions (giai đoạn hoàn thiện) |
-| Frontend | Làm sau backend; chỉ cần giao diện mỏng cho demo |
+| CI | GitHub Actions test/package trên Java 17, đã có workflow |
+| Frontend | Demo HTML/CSS/JS hiện có; storefront và dashboard riêng triển khai sau API |
 
 Không dùng microservices, Kafka, payment gateway thật, carrier API thật hoặc frontend lớn trong MVP.
 
 ## 4. Bài toán sản phẩm
 
-StockFlow giúp một retailer nhỏ quản lý sản phẩm, tồn kho ở nhiều kho, đơn hàng và lịch sử biến động tồn kho.
+StockFlow bán hàng trực tiếp cho khách và giúp một retailer quản lý sản phẩm, tồn kho nhiều kho, đơn hàng, giao nhận và lịch sử biến động tồn kho. Giỏ hàng có thể nằm ở frontend trong phiên bản đầu; chưa có nhu cầu thêm bảng carts.
 
 ### Vai trò
+
+Bảng dưới mô tả quyền mục tiêu. Đóng gói/giao nhận, quản trị user/role và điều chỉnh tồn chưa có API; không được mô tả như đã triển khai. API thực tế và quyền hiện tại xem README và mục 9.
 
 | Role | Quyền chính |
 | --- | --- |
@@ -63,6 +68,8 @@ StockFlow giúp một retailer nhỏ quản lý sản phẩm, tồn kho ở nhi�
 | `ADMIN` | Quản lý user, role, catalog, warehouse và stock adjustment. |
 
 ### Luồng đơn hàng
+
+Luồng mục tiêu dưới đây chưa hoàn thiện sau CONFIRMED. Source hiện giảm reserved và ghi DISPATCH ngay khi thanh toán; thời điểm xuất kho trong luồng mới cần người dùng chốt trước khi sửa nghiệp vụ phụ thuộc.
 
 ```text
 Tạo đơn (PENDING, giữ hàng 15 phút)
@@ -84,7 +91,10 @@ DELIVERED → RETURNED: tạo movement nhập lại hàng
 4. Đơn `PENDING` hết thời hạn 15 phút phải tự chuyển `EXPIRED` và release stock.
 5. Hủy đơn phải release đúng số lượng đã reserve; return phải tạo inbound movement mới.
 6. Customer chỉ truy cập order của họ. Warehouse staff chỉ thao tác kho được phân công.
-7. Payment chỉ là simulation trong MVP nhưng phải idempotent: một order không được tạo nhiều payment `PAID`.
+7. Payment và shipping chỉ mô phỏng trong MVP nhưng phải idempotent: một order không được tạo nhiều payment `PAID`, vận đơn hoặc movement xuất/hoàn kho trùng.
+8. Không sửa migration Flyway đã áp dụng; chỉ thêm migration mới khi schema thực sự cần thay đổi.
+9. Không xóa/viết lại phần đang hoạt động nếu không có lý do cụ thể. Giữ phạm vi mỗi giai đoạn đủ nhỏ để kiểm thử và build xong.
+10. Khi quyết định có nhiều cách hiểu và ảnh hưởng lớn đến schema/vòng đời đơn, hỏi người dùng trước khi triển khai phần phụ thuộc. Phần độc lập vẫn có thể tiếp tục.
 
 ## 6. Quy tắc transaction và concurrency
 
@@ -105,9 +115,12 @@ WHERE id = :inventoryId
 - Affected row count `0` nghĩa là không đủ stock tại thời điểm update; request phải thất bại với lỗi nghiệp vụ rõ ràng.
 - Với order nhiều sản phẩm, xử lý inventory theo thứ tự tăng dần của `inventory_id` trong cùng transaction để giảm nguy cơ deadlock.
 - `@Version` vẫn hữu ích cho entity update nói chung, nhưng atomic conditional update là cơ chế chính của reserve inventory.
-- Chỉ cân nhắc pessimistic locking sau này nếu phải chọn/allocate stock động giữa nhiều warehouse trong một critical section.
+- Vòng đời thanh toán/hủy/hết hạn hiện khóa dòng order bằng PESSIMISTIC_WRITE và kiểm tra lại trạng thái để chống xử lý lặp; giữ cơ chế này khi mở rộng fulfillment.
+- Phần reserve inventory vẫn dùng atomic conditional update, không thay bằng kiểm tra số tồn tại Java.
 
-## 7. Data model dự kiến
+## 7. Data model nền tảng đã có
+
+Schema hiện tại do V1–V5 quản lý, có bản migration PostgreSQL và H2 riêng. Chưa có ảnh/mô tả sản phẩm, địa chỉ giao hàng chụp tại thời điểm đặt, hoặc bảng giỏ hàng. Các bảng shipment/payment đã có nhưng shipment chưa được sử dụng qua API fulfillment.
 
 ```text
 roles
@@ -115,6 +128,7 @@ users
 categories
 products
 warehouses
+warehouse_staff_assignments
 inventories
 inventory_movements
 orders
@@ -147,7 +161,7 @@ reference_type, reference_id, note, created_at
 
 ```text
 id, order_code, customer_id, warehouse_id, status,
-subtotal, total_amount, reservation_expires_at, created_at
+total_amount, reservation_expires_at, created_at, updated_at
 ```
 
 ### Initial indexes
@@ -161,6 +175,7 @@ subtotal, total_amount, reservation_expires_at, created_at
 | `order_items` | `(product_id)` | Báo cáo sản phẩm bán chạy. |
 | `inventory_movements` | `(inventory_id, created_at DESC)` | Lịch sử kho. |
 | `products` | `(category_id, status)` | Filter catalog. |
+| `orders` | `created_at` với điều kiện trạng thái doanh thu (V5) | Báo cáo theo khoảng ngày, đã có đo PostgreSQL. |
 
 Không thêm index report theo cảm tính. Khi đã có seed data, dùng `EXPLAIN ANALYZE` đo query trước/sau index và ghi lại kết quả trong README.
 
@@ -178,11 +193,16 @@ GET  /api/v1/users/me
 
 ```text
 GET   /api/v1/products
+GET   /api/v1/products/{id}
 POST  /api/v1/products
 PATCH /api/v1/products/{id}
 
+GET   /api/v1/categories
+POST  /api/v1/categories
+
 GET   /api/v1/warehouses
 POST  /api/v1/warehouses
+GET   /api/v1/warehouses/order-options
 ```
 
 ### Inventory
@@ -197,13 +217,14 @@ GET  /api/v1/inventories/movements
 
 ```text
 POST /api/v1/orders
+GET  /api/v1/orders
 GET  /api/v1/orders/my
 GET  /api/v1/orders/{id}
 POST /api/v1/orders/{id}/cancel
 POST /api/v1/orders/{id}/payment-simulations/confirm
 ```
 
-### Reports (giai đoạn sau)
+### Reports (đã có)
 
 ```text
 GET /api/v1/reports/revenue
@@ -220,83 +241,53 @@ Project hiện được người dùng mở và chạy trong IntelliJ tại:
 D:\IdeaProjects\Stockflow
 ```
 
-Foundation đã có:
+Các milestone backend nền tảng 0–6 đã có source và integration test: auth/JWT, catalog, warehouse, inventory/ledger, order/reserve/payment/cancel/expiry, reports/SQL, Swagger, seed demo và CI. Giao diện demo chạy cùng Spring Boot tại `/`.
 
-- `pom.xml` với Spring Web, Data JPA, Security, Validation, Flyway, PostgreSQL, Lombok, test dependencies.
-- `compose.yaml` chạy PostgreSQL local.
-- `application.yml` cấu hình datasource bằng environment variables có default local.
-- `V1__create_users_and_roles.sql` tạo `roles`, `users`, seed bốn role.
-- `StockflowApplication`.
-- `HealthController` tại `GET /api/v1/health`.
-- `README.md`, `.env.example`, `.gitignore`.
+- Demo seed thực tế: 3 kho, 4 danh mục, 24 sản phẩm, 72 inventory và 72 movement GOODS_RECEIPT; không seed đơn giả để tạo doanh thu.
+- PostgreSQL có trigger cấm UPDATE/DELETE ledger; H2 có Java trigger tương ứng và test bất biến. Chưa có suite Testcontainers chạy migration PostgreSQL tự động trong CI.
+- Scheduler hết hạn đã khóa/recheck order và chạy từng đơn trong transaction riêng; chưa có distributed scheduler lock.
+- JWT mặc định một giờ. Tài khoản INACTIVE bị chặn cả đăng nhập và xác thực token đã phát; chưa có refresh token hoặc thu hồi từng token khi logout.
+- Mục tiêu cũ chỉ làm dashboard trình diễn được thay bằng storefront và dashboard riêng. `.env` chỉ được Compose đọc; Spring Boot chạy trực tiếp dùng environment variables/IDE configuration.
 
-### Các foundation fixes đang chờ thực hiện
+Giai đoạn API đầu tiên cho mục tiêu mới bổ sung `GET /api/v1/orders`: lọc trạng thái/kho, phân trang 0-based, size 1–100, thứ tự created_at/id giảm dần. ADMIN/MANAGER xem mọi kho; staff chỉ thấy kho được phân công, kể cả tổng số đơn. Staff chọn kho ngoài phạm vi trả 403; không có phân công trả trang rỗng. CUSTOMER vẫn dùng `/orders/my` và kiểm tra chủ đơn ở API chi tiết.
 
-1. Thêm Flyway database module dành cho PostgreSQL, tương thích dependency management của Spring Boot 3.4.5.
-2. Thêm `SecurityFilterChain` tạm thời:
-   - `GET /api/v1/health` được `permitAll()`.
-   - Các endpoint khác `authenticated()`.
-   - Chưa triển khai JWT ở bước này.
-3. Sửa README: Spring Boot không tự đọc `.env`; phải export environment variables qua IDE/run config hoặc dùng cơ chế config được hỗ trợ.
-4. Thêm Maven Wrapper (`mvnw`, `mvnw.cmd`, `.mvn/wrapper`) nếu IntelliJ/môi trường hỗ trợ generate.
-5. Chạy build/test sau thay đổi và báo cáo rõ kết quả.
+Chưa có API đóng gói, tạo vận đơn, giao thành công hoặc nhận trả hàng. Enum/entity không đồng nghĩa với nghiệp vụ đã triển khai.
 
-## 10. Thứ tự triển khai
+## 10. Lộ trình theo mục tiêu cửa hàng mới
 
-### Milestone 0 — Hoàn thiện foundation
+### Giai đoạn 1 — Danh sách đơn vận hành và trạng thái tài khoản
 
-Thực hiện năm foundation fixes ở mục 9. Không thêm feature nghiệp vụ mới.
+- Thêm API danh sách đơn theo role/phạm vi kho/trạng thái và phân trang tại database.
+- Chặn INACTIVE khi login hoặc khi dùng JWT đã phát; giữ các contract auth hiện có.
+- Giữ toàn bộ schema V1–V5, tạo/giữ/thanh toán/hủy/hết hạn và giao diện demo.
+- Test quyền, metadata phân trang, thu hồi phân công kho, tài khoản bị khóa và regression toàn bộ suite.
 
-**Definition of done:** application khởi động, Flyway migration chạy trên PostgreSQL, health endpoint trả `200`, các endpoint chưa public trả `401`, Maven Wrapper hoạt động, build/test pass.
+### Giai đoạn 2 — Fulfillment theo kho
 
-### Milestone 1 — Authentication và authorization
+- Chốt thời điểm DISPATCH trước khi sửa luồng tồn kho; không xuất hai lần khi thanh toán và khi ship.
+- Chia lượt nhỏ: CONFIRMED → PACKED; PACKED → SHIPPED với tracking_code duy nhất; SHIPPED → DELIVERED; DELIVERED → RETURNED với hoàn kho và hoàn tiền mô phỏng.
+- Dùng khóa dòng order, kiểm tra role/phạm vi kho, state transition và idempotency. Return phải có movement mới, không sửa movement cũ.
+- Quyền xác nhận giao/nhận trả hàng và hoàn toàn bộ/một phần cần được chốt trước phần phụ thuộc.
 
-- User entity/repository/service.
-- Register/login với password hash BCrypt.
-- JWT access token.
-- Role-based authorization bốn role.
-- Standard API error response và request validation.
-- Test login, token invalid/expired, permission denied.
+### Giai đoạn 3 — API mua hàng và checkout
 
-**Definition of done:** protected endpoint nhận JWT hợp lệ; sai role trả `403`; không token trả `401`.
+- Tìm kiếm catalog, contract public chỉ sản phẩm đang bán; bổ sung ảnh/mô tả khi có yêu cầu cụ thể.
+- Chốt thông tin người nhận/địa chỉ và khách chọn kho hay server chọn kho đủ toàn bộ giỏ. Chưa tự làm split order.
+- Nếu cần schema mới, thêm migration kế tiếp cho PostgreSQL/H2; giữ snapshot giá và reserve nhiều sản phẩm trong một transaction.
+- Giữ giỏ ở frontend cho MVP; ownership đơn vẫn bắt buộc.
 
-### Milestone 2 — Catalog và warehouse
+### Giai đoạn 4 — Hai nhóm giao diện
 
-- Categories, products, warehouses.
-- CRUD có validation và pagination/filter hợp lý.
-- Admin tạo/sửa catalog; manager/staff read theo quyền.
-- Flyway migrations mới, không sửa migration đã chạy trong môi trường khác.
+- Storefront: danh mục/chi tiết, giỏ, checkout, theo dõi đơn và vận đơn.
+- Dashboard: catalog, stock-in, danh sách xử lý đơn theo kho, fulfillment và reports.
+- Tái sử dụng API; UI không tự suy luận quyền hay cập nhật số tồn/trạng thái đơn.
 
-### Milestone 3 — Inventory và immutable movements
+### Giai đoạn 5 — Củng cố portfolio và vận hành
 
-- Inventory per product + warehouse.
-- Stock-in với movement, balance before/after và actor.
-- Query stock, low-stock, movement history.
-- Test constraint `(product_id, warehouse_id)` và audit movement.
-
-### Milestone 4 — Order, reserve và concurrency
-
-- Create order với nhiều line items.
-- Atomic conditional update để reserve.
-- Cancel, expire scheduler, confirm payment simulation.
-- Shipment/return theo scope MVP.
-- Integration test với concurrent requests chứng minh không oversell.
-
-### Milestone 5 — Reports và SQL optimization
-
-- Revenue theo ngày/tháng/kho.
-- Top products.
-- Low stock.
-- Order summary theo status.
-- Query dùng `JOIN`, `GROUP BY`, pagination; đo `EXPLAIN ANALYZE` và thêm index có chứng cứ.
-
-### Milestone 6 — Portfolio finish
-
-- Swagger/OpenAPI và Postman collection.
-- Seed: khoảng 3 warehouses, 100 products, 1.000–5.000 orders.
-- Docker Compose, test automation, GitHub Actions.
-- README có ERD, architecture, setup, API flow, trade-off concurrency/index.
-- Sau backend, làm frontend mỏng: dashboard, products/inventory, create order, order detail/movement history.
+- Ưu tiên Testcontainers PostgreSQL để CI kiểm tra migration/trigger thật và concurrency trên DB đích.
+- Refresh token/revocation, correlation ID/Actuator; distributed task lock hoặc cache chỉ khi có nhu cầu và test tương ứng.
+- Chuyển kho và kiểm kê là mở rộng WMS sau MVP bán hàng; không chen vào luồng checkout hiện tại.
+- Deploy/video demo sau khi luồng mua hàng và fulfillment đã được nghiệm thu.
 
 ## 11. Tiêu chuẩn chất lượng
 
@@ -307,6 +298,8 @@ Thực hiện năm foundation fixes ở mục 9. Không thêm feature nghiệp v
 - Chỉ dùng Flyway cho schema evolution; `spring.jpa.hibernate.ddl-auto=validate`.
 - Viết test có giá trị cho business rule và integration test cho transaction/concurrency; không viết test chỉ để tăng coverage.
 - Không tự biến MVP thành microservices hay thêm feature không được yêu cầu.
+- Mọi file mới/sửa có JavaDoc/comment tiếng Việt có dấu, mã hóa UTF-8. SQL mới dùng Java Text Block hoặc file SQL thụt lề nhiều dòng; không viết các câu SQL dài trên một dòng.
+- Máy Windows này bắt buộc chạy Maven với `-Dmaven.repo.local=C:/Users/Admin/.m2/repository`; báo cáo test/package, file thay đổi và điểm chưa xác minh.
 
 ## 12. Yêu cầu để đưa vào CV
 
@@ -322,5 +315,6 @@ Project hoàn thành cần có:
 
 CV description dự kiến:
 
-> Developed StockFlow, a Spring Boot and PostgreSQL multi-warehouse order and inventory management API. Implemented role-based access, transactional stock reservation to prevent overselling, immutable inventory audit trails, sales reporting, Dockerized local setup, and automated integration tests.
+> Developed StockFlow for a retailer operating multiple warehouses, using Spring Boot and PostgreSQL. Implemented scoped authorization, transactional stock reservation to prevent overselling, immutable inventory audit trails, sales reporting, a runnable demo, and automated integration tests.
 
+Chỉ bổ sung storefront/fulfillment vào mô tả CV sau khi các phần đó được triển khai và kiểm thử; không coi lộ trình là thành tích đã hoàn thành.

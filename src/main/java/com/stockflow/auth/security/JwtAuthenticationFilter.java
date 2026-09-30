@@ -1,6 +1,7 @@
 package com.stockflow.auth.security;
 
 import com.stockflow.user.domain.User;
+import com.stockflow.user.domain.UserStatus;
 import com.stockflow.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -44,10 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String token = extractBearerToken(request);
-        if (token != null && jwtTokenProvider.validateToken(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (token != null
+                && jwtTokenProvider.validateToken(token)
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
             String email = jwtTokenProvider.extractUsername(token);
-            // Chỉ đặt Authentication khi token trỏ tới user còn tồn tại trong database.
-            userRepository.findByEmail(email).ifPresent(user -> authenticateRequest(request, user));
+            // Nạp lại trạng thái mỗi request: JWT đã phát cũng mất quyền khi tài khoản chuyển INACTIVE.
+            userRepository.findByEmail(email)
+                    .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+                    .ifPresent(user -> authenticateRequest(request, user));
         }
         filterChain.doFilter(request, response);
     }
