@@ -1,0 +1,10 @@
+# Loại dữ liệu local, bí mật và sản phẩm build khỏi Docker context.
+.git
+.github
+.idea
+.vscode
+target
+.env
+.env.*
+*.iml
+docs

@@ -1,0 +1,9 @@
+# Giữ script Linux ở LF để Maven Wrapper hoạt động trong CI và Docker.
+* text=auto
+mvnw text eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.java text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+Dockerfile text eol=lf

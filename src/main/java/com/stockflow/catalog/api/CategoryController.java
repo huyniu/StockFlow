@@ -4,6 +4,9 @@ import com.stockflow.catalog.dto.CategoryResponse;
 import com.stockflow.catalog.dto.CreateCategoryRequest;
 import com.stockflow.catalog.service.CategoryService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  * REST controller cho danh mục sản phẩm. GET được public, còn POST chỉ dành cho ADMIN.
  */
 @RestController
+@Tag(name = "Categories", description = "Public catalog categories; ADMIN manages them")
 @RequestMapping("/api/v1/categories")
 public class CategoryController {
 
@@ -34,6 +38,7 @@ public class CategoryController {
      * Trả về danh sách danh mục để mọi client có thể dùng làm bộ lọc catalog.
      */
     @GetMapping
+    @Operation(summary = "List catalog categories")
     public List<CategoryResponse> listCategories() {
         return categoryService.listCategories();
     }
@@ -42,6 +47,8 @@ public class CategoryController {
      * Tạo danh mục mới. Chỉ ADMIN được phép thay đổi catalog để tránh user thường tự ý tạo dữ liệu lõi.
      */
     @PostMapping
+    @Operation(summary = "Create a category (ADMIN)")
+    @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.createCategory(request));

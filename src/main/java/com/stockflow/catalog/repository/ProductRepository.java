@@ -10,6 +10,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
  */
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
+    /** Tìm SKU để khởi động lại demo không tạo thêm sản phẩm trùng hoặc đổi giá cũ. */
+    java.util.Optional<Product> findBySku(String sku);
+
     /**
      * Kiểm tra SKU đã tồn tại hay chưa vì SKU phải là mã sản phẩm duy nhất.
      */

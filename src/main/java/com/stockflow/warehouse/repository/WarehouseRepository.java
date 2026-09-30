@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface WarehouseRepository extends JpaRepository<Warehouse, Long> {
 
+    /** Tìm mã kho ổn định để seed chỉ tạo kho chưa tồn tại. */
+    java.util.Optional<Warehouse> findByCode(String code);
+
     /**
      * Kiểm tra mã kho đã tồn tại hay chưa vì code là định danh duy nhất của kho.
      */

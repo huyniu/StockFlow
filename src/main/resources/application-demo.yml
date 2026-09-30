@@ -1,0 +1,5 @@
+# Chỉ profile demo nạp tài khoản mẫu và dùng secret local để chạy portfolio ngay.
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:stockflow-demo-secret-for-local-use-only-2026}
