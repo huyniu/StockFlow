@@ -51,7 +51,6 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         // Bước 1: Xóa khoảng trắng thừa và đổi email về chữ thường
-        // Ví dụ: "  NguyenVanA@GMAIL.COM  " -> "nguyenvana@gmail.com"
         String normalizedEmail = request.email().trim().toLowerCase();
         // Bước 2: Kiểm tra email này đã có ai dùng chưa
         if (userRepository.existsByEmail(normalizedEmail)) {

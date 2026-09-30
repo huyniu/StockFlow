@@ -9,6 +9,7 @@ import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Xử lý exception tập trung để mọi lỗi API trả về cùng một cấu trúc JSON.
@@ -16,6 +17,19 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** Tham số ngày, số hoặc enum sai định dạng phải trả 400 thay vì rơi vào lỗi hệ thống 500. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleParameterTypeMismatch(
+            MethodArgumentTypeMismatchException exception,
+            HttpServletRequest request) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(buildResponse(
+                status,
+                "Tham số " + exception.getName() + " không đúng định dạng.",
+                request.getRequestURI(),
+                null));
+    }
 
     /**
      * Chuyển custom {@link AppException} thành response với HTTP status đã định nghĩa trong exception.
