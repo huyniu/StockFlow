@@ -3,7 +3,7 @@
 
 A shopping website for **one retailer owning multiple warehouses**, developed as a Java Backend Developer portfolio project. Customers browse products, build a cart, place orders, and follow their own purchases; administrators and warehouse staff manage catalog, inventory, fulfillment, and business reports. StockFlow focuses on transactional correctness: concurrent customers cannot oversell stock, every inventory change produces an immutable audit entry, and reports aggregate actual order data.
 
-The existing backend and Vietnamese demo dashboard are implemented. The final product will have two interfaces: a **customer storefront** and an **operations dashboard**. They will share the current modular backend. The demo page currently combines roles for walkthroughs; separate storefront screens and the complete fulfillment lifecycle remain planned work. This is a single-store system, with no seller/tenant marketplace model.
+The existing backend, fulfillment APIs, and Vietnamese demo dashboard are implemented. The final product will have two interfaces: a **customer storefront** and an **operations dashboard**. They will share the current modular backend. The demo page currently combines roles for walkthroughs; separate storefront screens and dashboard fulfillment controls remain planned work. This is a single-store system, with no seller/tenant marketplace model.
 
 See [the product audit and phased roadmap](docs/storefront-roadmap.md) and [the current handoff](ANTIGRAVITY_HANDOFF.md) for implemented scope, pending business decisions, and acceptance criteria.
 
@@ -309,14 +309,38 @@ Use IDs returned by your own database; the example IDs are placeholders.
 
 The operations list returns order summaries including `warehouse_name`; use `GET /api/v1/orders/{id}` to read items. It uses a fixed newest-first order (`created_at DESC, id DESC`), zero-based `page`, and `size` from 1 to 100. A staff member without assignments receives an empty page. Customer order history remains at `/api/v1/orders/my`.
 
+### Fulfillment and tracking
+
+Customers continue to choose a warehouse/serving branch at checkout. Each order belongs to one warehouse. Inventory is dispatched at **payment confirmation**, so fulfillment never deducts stock a second time.
+
+As **ADMIN, MANAGER, or assigned WAREHOUSE_STAFF**, call these endpoints in order:
+
+```http
+POST /api/v1/orders/{id}/pack
+POST /api/v1/orders/{id}/ship
+POST /api/v1/orders/{id}/deliver
+POST /api/v1/orders/{id}/return
+```
+
+- **pack:** CONFIRMED → PACKED; creates/reuses one PREPARING shipment and allocates a unique `SF-TRACK-...` code. The existing schema requires a non-null code at this stage.
+- **ship:** PACKED → SHIPPED; records `shipped_at`, using the allocated code or an optional custom code. Omit the body, send `{}`, or send `{"tracking_code":"DEMO-TRACK-001"}`. Codes accept letters, digits, dots, underscores, and hyphens, up to 100 characters; `trackingCode` is also accepted as an input alias.
+- **deliver:** SHIPPED → DELIVERED; records `delivered_at` and preserves the shipping timestamp/code.
+- **return:** DELIVERED → RETURNED means the whole order has been received back. Restocks all items in inventory-ID order, creates one RETURN_RESTOCK movement per item, and changes simulated payment to REFUNDED in the same transaction.
+
+Detail/mutation responses and `/orders/my` now include `shipment` with `tracking_code`, `status`, `shipped_at`, and `delivered_at`; it is null before packing. Customer ownership checks still apply. The operations summary list stays compact; read details to obtain shipment/items.
+
+Each action locks the order and checks warehouse access before changing state. Repeating an action at its exact target state returns 200 without extra writes. Skipping steps, calling an earlier step after later progress, changing an already shipped code, or reusing another order's tracking code returns 409. Bad tracking/body data returns 400. Customers cannot operate fulfillment; unassigned/out-of-scope staff receive 403. Cancellation is allowed before shipping for eligible management actions, and blocked after SHIPPED. A cancelled PACKED order keeps its PREPARING shipment as history and cannot be shipped.
+
+The current demo frontend does not yet have these operation buttons; use Swagger/API for this phase. See [fulfillment verification](docs/fulfillment-verification.md) for transaction/concurrency coverage and limitations.
+
 ### Endpoint permissions
 
 - **Public:** web dashboard/static assets, health, registration/login, category/product reads, Swagger UI, OpenAPI documents.
 - **Authenticated users:** minimal active warehouse choices for order creation (`/api/v1/warehouses/order-options`).
 - **ADMIN:** category/product writes and warehouse creation; stock-in across warehouses.
-- **WAREHOUSE_STAFF:** stock-in and inventory/order reads within assigned warehouses. Inventory requests must include an assigned `warehouseId`.
+- **WAREHOUSE_STAFF:** stock-in, inventory/order reads, and pack/ship/deliver/receive-return within assigned warehouses. Inventory requests must include an assigned `warehouseId`.
 - **CUSTOMER:** create orders, read own orders, pay own orders, cancel own pending orders.
-- **MANAGER / ADMIN:** cross-warehouse order reads, inventory, audit movements, and all four report endpoints; cancel paid orders before shipment with restocking/refund.
+- **MANAGER / ADMIN:** cross-warehouse order reads, inventory, audit movements, all four report endpoints, and all fulfillment actions; cancel paid orders before shipment with restocking/refund.
 
 Only `ACTIVE` accounts can log in or authenticate protected requests. Account status is reloaded from the database on every JWT request, so a previously issued token is denied while the account is `INACTIVE`. Refresh tokens and permanent per-token logout revocation are separate future work.
 
@@ -341,11 +365,13 @@ Windows PowerShell:
 
 The explicit Maven repository above is required on the current Windows development machine.
 
-The suite covers authentication and disabled accounts, role/ownership checks, warehouse-scoped order lists and pagination, stock-in transactions, immutable ledger enforcement, order lifecycle, concurrency, report aggregates/pagination, OpenAPI access, repeatable demo seeding, public web resource delivery, and warehouse order-option permissions.
+The suite covers authentication and disabled accounts, role/ownership checks, warehouse-scoped order lists and pagination, stock-in transactions, immutable ledger enforcement, order lifecycle and fulfillment, shipment tracking, restock rollback, concurrent pack/return, ship/cancel and tracking-code races, report aggregates/pagination, OpenAPI access, repeatable demo seeding, public web resource delivery, and warehouse order-option permissions.
 
 See [Web demo verification](docs/web-demo-verification.md) for the changed files, 89-test result, and frontend checks against a separate PostgreSQL database.
 
 That report describes the earlier frontend milestone. Current API-phase verification and remaining limitations are recorded in [the storefront roadmap](docs/storefront-roadmap.md).
+
+The next API milestone is recorded in [fulfillment verification](docs/fulfillment-verification.md); it preserves the existing checkout/reservation/payment rules.
 
 GitHub Actions runs `./mvnw test` on pushes and pull requests targeting `main`, using Ubuntu and Temurin Java 17. It then packages and uploads the application JAR. The database tests use H2 and do not require a database service in CI.
 
@@ -357,9 +383,9 @@ java -jar target/stockflow-0.0.1-SNAPSHOT.jar --spring.profiles.active=demo
 
 ## Scope and trade-offs
 
-The current API includes catalog administration, warehouse-scoped inventory, stock receipts, reservations, simulated payments, cancellation/refund, reservation expiry, scoped operations order lists, and business reports. Shipment entities/statuses are modeled; packing, shipping with tracking codes, delivery, and customer return endpoints remain future work. Payment and shipping stay simulated in the MVP.
+The current API includes catalog administration, warehouse-scoped inventory, stock receipts, reservations, simulated payments, cancellation/refund, reservation expiry, scoped operations order lists, packing, shipping with tracking codes, delivery, full-order returns/restocking/refund, and business reports. Payment and shipping stay simulated in the MVP; no real gateway/carrier calls occur.
 
-The next API phase is fulfillment, followed by shopping catalog/checkout contracts, then separate storefront and dashboard screens. Warehouse allocation, delivery-address snapshots, and the timing of stock dispatch must be agreed before dependent lifecycle/schema changes. The existing checkout explicitly accepts a warehouse and dispatches stock at payment confirmation; this phase preserves that behavior.
+The next API phase is shopping catalog/checkout contracts, then separate storefront and dashboard screens. Customers choose the serving branch/warehouse, one order uses one warehouse, and stock dispatch remains at payment confirmation. Delivery-address snapshots still need an agreed contract before schema changes. Partial returns, customer return-request workflows, and real shipping integrations are outside this fulfillment MVP.
 
 Keep the browser cart for the first storefront version; do not add a `carts` table without a persistence requirement. Keep applied Flyway migrations unchanged, add new migrations only for required schema changes, and preserve the atomic reservations and immutable ledger. PostgreSQL Testcontainers in CI, token refresh/revocation, and operational observability are later hardening tasks. A public deployment or recorded demo can follow the completed shopping flow.
 

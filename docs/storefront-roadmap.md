@@ -1,6 +1,8 @@
 <!-- Đánh giá source và bàn giao giai đoạn API đầu tiên cho mục tiêu cửa hàng nhiều kho, ngày 30/09/2026. -->
 # StockFlow: cửa hàng nhiều kho và lộ trình API
 
+> Cập nhật giai đoạn 2: khách chọn kho/chi nhánh và DISPATCH lúc payment đã được chốt. Fulfillment PACKED/SHIPPED/DELIVERED/RETURNED và shipment tracking đã có API; xem [báo cáo kiểm chứng](fulfillment-verification.md). Các mục hiện trạng/kiểm thử giai đoạn 1 dưới đây giữ lại như lịch sử; không coi các khoảng trống tại mốc đó là trạng thái hiện tại.
+
 ## Mục tiêu sản phẩm
 
 Một cửa hàng/doanh nghiệp sở hữu nhiều kho, bán trực tiếp cho khách. Bản hoàn thiện có storefront cho khách và dashboard cho admin/nhân viên; cùng dùng backend Java 17, Spring Boot 3.4.5, PostgreSQL và Flyway hiện tại. Không thêm seller, tenant hoặc marketplace.
@@ -63,17 +65,17 @@ Login chỉ phát JWT cho ACTIVE. JWT filter nạp trạng thái DB mỗi reques
 
 Không thay migration V1–V5 hoặc schema, không thêm bảng carts/sellers. Không sửa reserve, stock-in, movement, expiry, payment/cancel/refund hoặc tính toán báo cáo. Frontend demo và contract `/orders/my`, tạo đơn/chi tiết/thanh toán/hủy được giữ. OrderController chỉ được định dạng lại và thêm GET danh sách, cùng mô tả Swagger.
 
-## Quyết định cần chốt trước phần phụ thuộc
+## Quyết định đã chốt sau nghiệm thu giai đoạn 1
 
-1. **Chọn kho:** giữ khách chọn warehouse_id, hay server chọn một kho đủ toàn bộ giỏ? Nếu tự chọn cần tiêu chí chọn kho và contract thông tin nhận hàng; chưa làm split order hoặc định tuyến bằng khoảng cách giả.
-2. **Thời điểm xuất:** hiện payment chuyển reserved sang DISPATCH và giảm physical. Nếu chuyển xuất sang SHIPPED, CONFIRMED/PACKED phải tiếp tục giữ hàng, không bị scheduler nhả; cancel trước ship sẽ release thay vì restock. Cần xử lý tương thích các đơn CONFIRMED cũ đã DISPATCH, không sửa ledger lịch sử.
-3. **Giao/hoàn:** role nào xác nhận DELIVERED/nhận trả hàng, trả toàn bộ hay từng mặt hàng, và thời điểm hoàn tiền mô phỏng? Return chỉ ghi RESTOCK khi hàng thực sự được nhận lại, không khi khách vừa gửi yêu cầu.
+1. **Chọn kho:** khách chọn warehouse_id/chi nhánh Hà Nội, Đà Nẵng hoặc TP.HCM; một đơn thuộc một kho. Không làm allocation hoặc split order tự động.
+2. **Thời điểm xuất:** payment CONFIRMED giảm reserved và ghi DISPATCH. Pack/ship/deliver không đổi tồn; cancel trước ship restock/refund. Không cần chuyển đổi đơn cũ hoặc sửa ledger lịch sử.
+3. **Giao/hoàn:** ADMIN/MANAGER hoặc staff kho đó xác nhận DELIVERED và nhận trả toàn bộ đơn DELIVERED; RETURN_RESTOCK và REFUNDED trong cùng transaction. Chưa có customer return-request hoặc partial return.
 
-Hai quyết định đầu đã được hỏi trong lượt triển khai. Chưa sửa nghiệp vụ phụ thuộc khi chưa có câu trả lời. Có thể làm PACKED độc lập với thời điểm xuất; không tự triển khai toàn bộ fulfillment trong cùng lượt.
+Thông tin người nhận/địa chỉ checkout còn cần được chốt trước phần schema phụ thuộc, nhưng không cản trở fulfillment giai đoạn này.
 
 ## Lộ trình còn lại và tiêu chí nghiệm thu
 
-1. **Fulfillment API theo kho:** từng lượt nhỏ cho pack, ship/tracking, deliver, receive return/refund. Giữ row lock của order, kiểm tra transition, role/phạm vi kho, idempotency và rollback nếu movement lỗi. Ship/return cạnh tranh với cancel phải có test. Chốt các quyết định phía trên trước thay đổi phụ thuộc.
+1. **Fulfillment API theo kho đã triển khai:** pack, ship/tracking, deliver, receive return/refund. Giữ row lock, kiểm tra transition, role/phạm vi kho, idempotency và rollback toàn bộ return. Có test concurrent pack/return, ship/cancel và trùng tracking giữa hai đơn; xem báo cáo giai đoạn 2.
 2. **Catalog/checkout storefront:** tìm kiếm và public visibility, chi tiết sản phẩm, snapshot người nhận/địa chỉ khi đã chốt, allocation toàn giỏ nếu được chọn. Thêm migration mới khi cần; giữ transaction/atomic update và snapshot giá. Customer không thể xem hoặc thao tác đơn khác.
 3. **Storefront/dashboard riêng:** giỏ frontend, checkout, lịch sử đơn/vận đơn cho khách; catalog, nhập kho, danh sách xử lý đơn theo kho và báo cáo cho nhân viên. Mọi hành động gọi API đã nghiệm thu; UI không quyết định số tồn hay quyền.
 4. **Củng cố kiểm thử/vận hành:** Testcontainers PostgreSQL cho migration/trigger/concurrency, rồi auth refresh/revocation và request tracing/metrics. Cache/distributed scheduler lock có yêu cầu rõ ràng và test trước khi thêm. Chuyển kho/kiểm kê để sau MVP bán hàng.
@@ -115,4 +117,4 @@ Test mới phủ management đọc nhiều kho, staff một/nhiều/không có p
 
 Suite tự động vẫn dùng H2, chưa chạy trong GitHub Actions ở lượt này, chưa có Testcontainers. PostgreSQL được kiểm chứng cục bộ trên 13.2; chưa chạy lại Docker Compose/PostgreSQL 17 trong lượt này. Flyway hiện cảnh báo phiên bản H2 2.3 mới hơn mức hỗ trợ đã kiểm chứng; suite vẫn PASS, chưa đổi dependency ngoài phạm vi. Giao diện không sửa nên không có kiểm chứng trình duyệt mới. Không có public deployment. Luồng fulfillment, checkout/địa chỉ và thay đổi thời điểm DISPATCH còn chờ giai đoạn sau; không coi chúng là đã hoàn thành.
 
-Lượt tiếp theo nên triển khai **CONFIRMED → PACKED** với kiểm thử quyền/phạm vi kho và thao tác lặp, sau đó mở ship/tracking khi chính sách xuất kho được chốt. Không thêm đồng thời chuyển kho, kiểm kê, cache hoặc refresh token vào lượt fulfillment.
+Sau giai đoạn 2, lượt tiếp theo nên hoàn thiện **catalog storefront và contract thông tin nhận hàng**. Giữ khách chọn kho/DISPATCH lúc payment; chốt địa chỉ/snapshot trước migration mới. Sau API mới tách storefront/dashboard. Không thêm chuyển kho, kiểm kê, cache hoặc refresh token vào lượt checkout.

@@ -1,4 +1,4 @@
-<!-- Bàn giao cập nhật ngày 30/09/2026: mục tiêu cửa hàng nhiều kho và trạng thái source thực tế. -->
+<!-- Bàn giao cập nhật ngày 30/09/2026: quyết định kho/DISPATCH đã chốt và API fulfillment giai đoạn 2. -->
 # StockFlow — Handoff cho Antigravity
 
 > Mục đích: đọc file này trước khi tư vấn, viết prompt, review hoặc đề xuất thay đổi cho project. Ưu tiên yêu cầu của người dùng nếu có mâu thuẫn với file này.
@@ -58,7 +58,7 @@ StockFlow bán hàng trực tiếp cho khách và giúp một retailer quản l�
 
 ### Vai trò
 
-Bảng dưới mô tả quyền mục tiêu. Đóng gói/giao nhận, quản trị user/role và điều chỉnh tồn chưa có API; không được mô tả như đã triển khai. API thực tế và quyền hiện tại xem README và mục 9.
+Bảng dưới mô tả quyền mục tiêu. Đóng gói/giao nhận/nhận trả hàng đã có API cho ADMIN/MANAGER và staff đúng kho. Quản trị user/role và điều chỉnh tồn chưa có API; không được mô tả như đã triển khai. API thực tế xem README và mục 9.
 
 | Role | Quyền chính |
 | --- | --- |
@@ -69,7 +69,7 @@ Bảng dưới mô tả quyền mục tiêu. Đóng gói/giao nhận, quản tr�
 
 ### Luồng đơn hàng
 
-Luồng mục tiêu dưới đây chưa hoàn thiện sau CONFIRMED. Source hiện giảm reserved và ghi DISPATCH ngay khi thanh toán; thời điểm xuất kho trong luồng mới cần người dùng chốt trước khi sửa nghiệp vụ phụ thuộc.
+Luồng dưới đây đã có API fulfillment. Người dùng đã chốt: khách chọn kho/chi nhánh phục vụ, một đơn thuộc một kho; DISPATCH giảm reserved/tồn vật lý ngay khi thanh toán. PACKED/SHIPPED/DELIVERED chỉ thay đổi trạng thái đơn/vận đơn, không trừ kho lần hai.
 
 ```text
 Tạo đơn (PENDING, giữ hàng 15 phút)
@@ -79,8 +79,8 @@ Tạo đơn (PENDING, giữ hàng 15 phút)
   → hoàn tất (DELIVERED)
 
 PENDING → CANCELLED hoặc EXPIRED: giải phóng hàng đã giữ
-CONFIRMED → CANCELLED: chỉ trước khi SHIPPED
-DELIVERED → RETURNED: tạo movement nhập lại hàng
+CONFIRMED hoặc PACKED → CANCELLED: chỉ trước SHIPPED; RETURN_RESTOCK và REFUNDED
+DELIVERED → RETURNED: nhận trả toàn bộ hàng; RETURN_RESTOCK và hoàn tiền mô phỏng
 ```
 
 ## 5. Quy tắc nghiệp vụ bắt buộc
@@ -120,7 +120,7 @@ WHERE id = :inventoryId
 
 ## 7. Data model nền tảng đã có
 
-Schema hiện tại do V1–V5 quản lý, có bản migration PostgreSQL và H2 riêng. Chưa có ảnh/mô tả sản phẩm, địa chỉ giao hàng chụp tại thời điểm đặt, hoặc bảng giỏ hàng. Các bảng shipment/payment đã có nhưng shipment chưa được sử dụng qua API fulfillment.
+Schema hiện tại do V1–V5 quản lý, có bản migration PostgreSQL và H2 riêng. Chưa có ảnh/mô tả sản phẩm, địa chỉ giao hàng chụp tại thời điểm đặt, hoặc bảng giỏ hàng. Giai đoạn 2 dùng bảng shipment/payment hiện có, không sửa/thêm migration.
 
 ```text
 roles
@@ -222,6 +222,10 @@ GET  /api/v1/orders/my
 GET  /api/v1/orders/{id}
 POST /api/v1/orders/{id}/cancel
 POST /api/v1/orders/{id}/payment-simulations/confirm
+POST /api/v1/orders/{id}/pack
+POST /api/v1/orders/{id}/ship
+POST /api/v1/orders/{id}/deliver
+POST /api/v1/orders/{id}/return
 ```
 
 ### Reports (đã có)
@@ -251,7 +255,9 @@ Các milestone backend nền tảng 0–6 đã có source và integration test: 
 
 Giai đoạn API đầu tiên cho mục tiêu mới bổ sung `GET /api/v1/orders`: lọc trạng thái/kho, phân trang 0-based, size 1–100, thứ tự created_at/id giảm dần. ADMIN/MANAGER xem mọi kho; staff chỉ thấy kho được phân công, kể cả tổng số đơn. Staff chọn kho ngoài phạm vi trả 403; không có phân công trả trang rỗng. CUSTOMER vẫn dùng `/orders/my` và kiểm tra chủ đơn ở API chi tiết.
 
-Chưa có API đóng gói, tạo vận đơn, giao thành công hoặc nhận trả hàng. Enum/entity không đồng nghĩa với nghiệp vụ đã triển khai.
+Giai đoạn 2 có API pack/ship/deliver/return. Chỉ ADMIN/MANAGER và staff được phân công kho thao tác; CUSTOMER bị chặn. OrderResponse và /orders/my có shipment (tracking_code/status/shipped_at/delivered_at), null trước đóng gói. Ship nhận body tùy chọn với tracking_code; pack cấp sẵn SF-TRACK-UUID vì schema tracking_code NOT NULL. Mã không được đổi sau ship, có UNIQUE chống trùng giữa hai đơn.
+
+Fulfillment dùng khóa dòng order chung với cancel/payment/expiry, kiểm tra chuyển trạng thái và idempotency tại trạng thái đích. Return nhận lại toàn bộ hàng theo inventoryId tăng dần, ghi movement mới và hoàn tiền mô phỏng cùng transaction; lỗi một mặt hàng phải rollback tất cả. Hủy sau SHIPPED bị chặn; đơn PACKED bị hủy giữ shipment PREPARING như lịch sử. Chi tiết kiểm chứng: [docs/fulfillment-verification.md](docs/fulfillment-verification.md).
 
 ## 10. Lộ trình theo mục tiêu cửa hàng mới
 
@@ -262,17 +268,17 @@ Chưa có API đóng gói, tạo vận đơn, giao thành công hoặc nhận tr
 - Giữ toàn bộ schema V1–V5, tạo/giữ/thanh toán/hủy/hết hạn và giao diện demo.
 - Test quyền, metadata phân trang, thu hồi phân công kho, tài khoản bị khóa và regression toàn bộ suite.
 
-### Giai đoạn 2 — Fulfillment theo kho
+### Giai đoạn 2 — Fulfillment theo kho đã triển khai
 
-- Chốt thời điểm DISPATCH trước khi sửa luồng tồn kho; không xuất hai lần khi thanh toán và khi ship.
-- Chia lượt nhỏ: CONFIRMED → PACKED; PACKED → SHIPPED với tracking_code duy nhất; SHIPPED → DELIVERED; DELIVERED → RETURNED với hoàn kho và hoàn tiền mô phỏng.
+- Giữ DISPATCH lúc xác nhận payment theo quyết định người dùng; không xuất lần hai khi ship.
+- API CONFIRMED → PACKED → SHIPPED → DELIVERED → RETURNED; tracking_code duy nhất, timestamp và response shipment.
 - Dùng khóa dòng order, kiểm tra role/phạm vi kho, state transition và idempotency. Return phải có movement mới, không sửa movement cũ.
-- Quyền xác nhận giao/nhận trả hàng và hoàn toàn bộ/một phần cần được chốt trước phần phụ thuộc.
+- ADMIN/MANAGER hoặc staff kho đó xác nhận giao/nhận trả; MVP nhận trả toàn bộ, chưa có partial return hoặc customer return-request.
 
 ### Giai đoạn 3 — API mua hàng và checkout
 
 - Tìm kiếm catalog, contract public chỉ sản phẩm đang bán; bổ sung ảnh/mô tả khi có yêu cầu cụ thể.
-- Chốt thông tin người nhận/địa chỉ và khách chọn kho hay server chọn kho đủ toàn bộ giỏ. Chưa tự làm split order.
+- Khách tiếp tục chọn kho/chi nhánh phục vụ, một đơn thuộc một kho. Chốt thông tin người nhận/địa chỉ trước khi thêm schema checkout. Không làm tự allocation/split order trong MVP này.
 - Nếu cần schema mới, thêm migration kế tiếp cho PostgreSQL/H2; giữ snapshot giá và reserve nhiều sản phẩm trong một transaction.
 - Giữ giỏ ở frontend cho MVP; ownership đơn vẫn bắt buộc.
 
@@ -315,6 +321,6 @@ Project hoàn thành cần có:
 
 CV description dự kiến:
 
-> Developed StockFlow for a retailer operating multiple warehouses, using Spring Boot and PostgreSQL. Implemented scoped authorization, transactional stock reservation to prevent overselling, immutable inventory audit trails, sales reporting, a runnable demo, and automated integration tests.
+> Developed StockFlow for a retailer operating multiple warehouses, using Spring Boot and PostgreSQL. Implemented scoped authorization, transactional stock reservation to prevent overselling, immutable inventory audit trails, shipment tracking and order fulfillment, sales reporting, a runnable demo, and automated integration tests.
 
-Chỉ bổ sung storefront/fulfillment vào mô tả CV sau khi các phần đó được triển khai và kiểm thử; không coi lộ trình là thành tích đã hoàn thành.
+Storefront riêng chưa hoàn thiện; chỉ bổ sung giao diện đó vào CV sau khi triển khai và kiểm thử. Không coi lộ trình là thành tích đã hoàn thành.

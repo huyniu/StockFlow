@@ -5,6 +5,7 @@ import com.stockflow.order.domain.OrderStatus;
 import com.stockflow.order.dto.CreateOrderRequest;
 import com.stockflow.order.dto.OrderListResponse;
 import com.stockflow.order.dto.OrderResponse;
+import com.stockflow.order.dto.ShipOrderRequest;
 import com.stockflow.order.service.OrderQueryService;
 import com.stockflow.order.service.OrderService;
 import com.stockflow.user.domain.User;
@@ -102,5 +103,40 @@ public class OrderController {
     @Operation(summary = "Xác nhận thanh toán mô phỏng có tính idempotent")
     public OrderResponse pay(@PathVariable Long id, @AuthenticationPrincipal User user) {
         return service.confirmPaymentSimulation(id, user.getId());
+    }
+
+    /** ADMIN/MANAGER hoặc staff kho được giao đóng gói đơn đã thanh toán. */
+    @PostMapping("/{id}/pack")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
+    @Operation(summary = "Đóng gói đơn CONFIRMED và chuẩn bị vận đơn")
+    public OrderResponse pack(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        return service.packOrder(id, user.getId());
+    }
+
+    /** Xuất giao đơn PACKED trong phạm vi kho; request/mã vận đơn tùy chọn, không xuất kho lần nữa. */
+    @PostMapping("/{id}/ship")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
+    @Operation(summary = "Xuất giao đơn PACKED bằng mã vận đơn có sẵn hoặc mã được truyền")
+    public OrderResponse ship(
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) ShipOrderRequest request,
+            @AuthenticationPrincipal User user) {
+        return service.shipOrder(id, request, user.getId());
+    }
+
+    /** Người vận hành đúng quyền xác nhận đơn SHIPPED đã giao thành công. */
+    @PostMapping("/{id}/deliver")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
+    @Operation(summary = "Xác nhận giao thành công đơn SHIPPED")
+    public OrderResponse deliver(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        return service.deliverOrder(id, user.getId());
+    }
+
+    /** Người vận hành đúng kho nhận trả toàn bộ đơn DELIVERED; hoàn kho/tiền trong một transaction. */
+    @PostMapping("/{id}/return")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
+    @Operation(summary = "Nhận trả toàn bộ đơn đã giao và hoàn kho/tiền mô phỏng")
+    public OrderResponse receiveReturn(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        return service.returnOrder(id, user.getId());
     }
 }

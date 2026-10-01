@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,6 +18,16 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** JSON không đọc được là lỗi request 400, không phải lỗi hệ thống 500 khi truyền mã vận đơn. */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadableBody(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(buildResponse(
+                status, "Nội dung JSON không hợp lệ.", request.getRequestURI(), null));
+    }
 
     /** Tham số ngày, số hoặc enum sai định dạng phải trả 400 thay vì rơi vào lỗi hệ thống 500. */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
