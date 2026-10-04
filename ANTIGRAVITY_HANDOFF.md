@@ -1,4 +1,4 @@
-<!-- Bàn giao ngày 02/10/2026: V12 có model/phiên bản/màu; trang bán lẻ và tín hiệu còn hàng giữ nguyên nghiệp vụ SKU. -->
+<!-- Bàn giao bổ sung ngày 05/10/2026: V16 có hồ sơ liên hệ; giữ model/phiên bản/màu và nghiệp vụ SKU. -->
 # StockFlow — Handoff cho Antigravity
 
 > Mục đích: đọc file này trước khi tư vấn, viết prompt, review hoặc đề xuất thay đổi cho project. Ưu tiên yêu cầu của người dùng nếu có mâu thuẫn với file này.
@@ -58,7 +58,7 @@ Không dùng microservices, Kafka, payment gateway thật, carrier API thật ho
 
 ## 4. Bài toán sản phẩm
 
-StockFlow Tech bán phụ kiện máy tính trực tiếp cho khách và giúp cửa hàng quản lý sản phẩm, tồn kho nhiều kho, đơn hàng, giao nhận và lịch sử biến động tồn kho. Giỏ hàng có thể nằm ở frontend trong phiên bản đầu; chưa có nhu cầu thêm bảng carts. Đã có mô tả văn bản và trang chi tiết công khai `/san-pham/{id}` cho khách; Admin nhập/sửa/xóa mô tả tối đa 5.000 ký tự. Bài tập lớn còn yêu cầu hồ sơ chỉnh sửa, đánh giá sau mua và tích hợp thanh toán; các phần này phải được nghiệm thu riêng, không coi mock giao diện hoặc nút thanh toán mô phỏng là đã đáp ứng.
+StockFlow Tech bán phụ kiện máy tính trực tiếp cho khách và giúp cửa hàng quản lý sản phẩm, tồn kho nhiều kho, đơn hàng, giao nhận và lịch sử biến động tồn kho. Giỏ hàng nằm ở frontend và giữ qua reload trong phiên tab; chưa có nhu cầu thêm bảng carts. Đã có mô tả văn bản và trang chi tiết công khai `/san-pham/{id}` cho khách; Admin nhập/sửa/xóa mô tả tối đa 5.000 ký tự. V16 đã bổ sung chỉnh sửa tên/số điện thoại liên hệ của chính tài khoản và trang `/#shop/account`. Sổ địa chỉ, đổi mật khẩu/email, đánh giá sau mua và tích hợp thanh toán vẫn là các lượt riêng; không coi mock giao diện hoặc nút thanh toán mô phỏng là đã đáp ứng.
 
 ### Vai trò
 
@@ -124,7 +124,7 @@ WHERE id = :inventoryId
 
 ## 7. Data model nền tảng đã có
 
-Schema hiện tại do V1–V15 quản lý, có migration PostgreSQL và H2 riêng. V6 thêm ảnh bìa, V7 thêm mô tả tối đa 5.000 ký tự, V8 thêm tối đa 8 ảnh bổ sung có thứ tự. V9 thêm brands/brand_categories/products.brand_id; V10 thêm categories.parent_id và nhóm/hãng tham chiếu. V11 thêm product_specifications/product_variants; V12 thêm product_versions/product_version_specifications và version_id trên mapping màu. Không sửa migration đã áp dụng. Thông số là bảng tên–giá trị, chưa có lọc RAM/chip/màn hình chuyên biệt. Upload file ảnh và bảng giỏ hàng chưa có. V15 thêm snapshot người nhận/điện thoại/địa chỉ/ghi chú trên orders, giữ đơn cũ chưa có thông tin nhận hàng. Fulfillment dùng shipment/payment hiện có; lượt hoàn thiện trang bán lẻ không thêm schema.
+Schema hiện tại do V1–V16 quản lý, có migration PostgreSQL và H2 riêng. V6 thêm ảnh bìa, V7 thêm mô tả tối đa 5.000 ký tự, V8 thêm tối đa 8 ảnh bổ sung có thứ tự. V9 thêm brands/brand_categories/products.brand_id; V10 thêm categories.parent_id và nhóm/hãng tham chiếu. V11 thêm product_specifications/product_variants; V12 thêm product_versions/product_version_specifications và version_id trên mapping màu. Không sửa migration đã áp dụng. Thông số là bảng tên–giá trị, chưa có lọc RAM/chip/màn hình chuyên biệt. Upload file ảnh và bảng giỏ hàng chưa có. V15 thêm snapshot người nhận/điện thoại/địa chỉ/ghi chú trên orders, giữ đơn cũ chưa có thông tin nhận hàng. V16 thêm users.phone tùy chọn để hỗ trợ hồ sơ và gợi ý checkout; không thay bản chụp đơn cũ. Fulfillment dùng shipment/payment hiện có.
 
 ```text
 roles
@@ -422,3 +422,35 @@ V15 PostgreSQL/H2 thêm recipient_name/recipient_phone/delivery_address/delivery
 Giỏ có form người nhận, phí giao hàng miễn phí và hướng dẫn hủy PENDING nếu cần đổi. Login checkout giữ giỏ/người nhận; lỗi 400/409 giữ dữ liệu để chỉnh, đặt xong/đăng xuất/đổi tài khoản xóa dữ liệu chưa gửi. Chi tiết khách/dashboard hiển thị người nhận và ghi chú dưới dạng văn bản đã escape, tương thích sáng/tối/mobile. Khách chỉ xem đơn mình, staff chỉ xem kho phân công; summary vận hành không trả địa chỉ.
 
 **526 test PASS** (498 baseline + 28 ca mới), test/package BUILD SUCCESS; **24 kiểm tra API PostgreSQL và 25 kiểm tra Chrome PASS**, 0 exception JavaScript. JAR V14→V15 trên PostgreSQL QA 13.2 giữ 19 bảng snapshot; hai CHECK thử bằng SQL thật đều chặn dữ liệu sai. 16 request tranh 5 chiếc chỉ tạo 5 đơn, tồn không âm và hủy hoàn đủ. Database sử dụng thực tế/app 8080 giữ nguyên; khởi động lại Spring Boot rồi Ctrl+F5 để áp dụng V15. 29 file, contract và giới hạn tại [docs/checkout-delivery.md](docs/checkout-delivery.md). Chưa có idempotency tạo đơn phía server, hồ sơ chỉnh sửa, đánh giá, refresh token hoặc Testcontainers; triển khai từng lượt riêng.
+
+<!-- Mốc V16 thay hiện trạng hồ sơ còn thiếu tại mốc V15; không thay lịch sử nghiệm thu trước. -->
+## Hồ sơ liên hệ V16 — ngày 05/10/2026
+
+Đã thêm PATCH `/api/v1/users/me` chỉnh tên và số điện thoại tùy chọn của chính người đăng nhập. ID lấy từ JWT, không tiếp nhận thay email/hash/role/status. Các role ACTIVE đều sửa được liên hệ của mình; giao diện `/#shop/account` dành cho CUSTOMER, dashboard vận hành giữ nguyên. Bỏ qua/null giữ giá trị cũ, phone rỗng xóa số; UPDATE theo từng trường không ghi đè credential/quyền hoặc làm mất cập nhật khác trường đang chạy đồng thời.
+
+V16 PostgreSQL/H2 thêm users.phone nullable và CHECK định dạng. Không sửa V1–V15, không suy đoán số của user cũ. Checkout chỉ gợi ý tên/số vào ô trống khi mở giỏ, giữ người nhận nhập tay và mọi snapshot đơn cũ. Không lưu liên hệ vào sessionStorage; đổi actor/đăng xuất xóa form và loại response cũ. Sửa thêm xử lý đường dẫn không tồn tại: trả 404 thay vì 500.
+
+**555 test PASS** (526 baseline + 29 ca mới), package BUILD SUCCESS. **40 kiểm chứng Chrome hồ sơ PASS**, **12 kiểm chứng API PostgreSQL và 7 CHECK SQL PASS** trên QA PostgreSQL 13.2 riêng; thêm **56 kiểm chứng hồi quy giỏ/đồng bộ đơn PASS** bằng API giả lập. Hồ sơ sáng/tối được kiểm tra 1440/390/375px, không tràn ngang; không exception JavaScript. Test Maven dùng H2, nâng V15→V16 bảo toàn user cũ được kiểm tra ở H2; PostgreSQL QA nạp V1–V16 và kiểm tra API/constraint thật. Chưa nâng database của người dùng hoặc khởi động lại app 8080. Khởi động lại Spring Boot và Ctrl+F5 để áp dụng V16/API/UI.
+
+18 file của lượt hồ sơ, contract và giới hạn ở [docs/customer-profile.md](docs/customer-profile.md). Giỏ/đơn từ lượt trước giữ nguyên, tài liệu tại [docs/cart-and-order-sync.md](docs/cart-and-order-sync.md). Tiếp theo ưu tiên idempotency tạo đơn phía server; sổ địa chỉ, đổi email/mật khẩu, đánh giá sau mua, thanh toán sandbox, refresh token và Testcontainers vẫn là các lượt riêng.
+
+<!-- Lựa chọn nhận diện mới độc lập với nghiệp vụ đã nghiệm thu. -->
+## Nhận diện xanh dương — ngày 05/10/2026
+
+Người dùng đã chọn xanh dương cho StockFlow: sáng `#2563EB`, hover `#1D4ED8`, nền nhấn `#EFF6FF`; tối `#60A5FA` trên navy. Đã đồng bộ storefront/dashboard, banner/logo/favicon, danh mục, nút mua và viền phiên bản/màu; các màu trạng thái kho/lỗi/cảnh báo và màu SKU/ảnh/logo hãng giữ nguyên. Không đổi API, database, JWT hoặc nghiệp vụ giỏ/đơn. Chi tiết token màu và kiểm chứng tại [docs/blue-theme.md](docs/blue-theme.md).
+
+**555 test PASS**, package BUILD SUCCESS; sau chỉnh nền danh mục tối chạy thêm 14 test tài nguyên web PASS. **85 kiểm chứng Chrome PASS** bằng API giả lập và server tài nguyên riêng, desktop 1440px/mobile 375px, sáng/tối; không exception JavaScript. Giữ logic theme.js, kích thước/bố cục và màu trạng thái; chỉ các cặp màu nút chính được đo tương phản, không coi là audit khả năng tiếp cận toàn website. 5 file tĩnh và 3 file tài liệu; không thêm dependency/runtime mới.
+
+<!-- Khu trưng bày mới chỉ lấy dữ liệu từ trang catalog hiện có, không sinh ưu đãi hoặc thay nghiệp vụ. -->
+## Khu trưng bày công nghệ — ngày 05/10/2026
+
+Thay banner SVG bằng nền navy và tối đa ba model có ảnh/giá/liên kết từ trang ACTIVE/grouped đang xem. Danh mục desktop cuộn riêng trong khung 420px; tablet/mobile đưa banner lên trước dải danh mục. Giữ mở menu tại ô ngoài, điều hướng `/san-pham/{id}`, giỏ/checkout và các API. Ảnh được chứa trọn trong khung; có trạng thái tải/rỗng/lỗi, hiệu ứng chuột nhẹ và hỗ trợ giảm chuyển động. Không tạo khuyến mãi, rating, lượt bán hoặc nhãn bán chạy giả.
+
+**555 test PASS**, thêm lượt **14 test tài nguyên web PASS**, package cuối BUILD SUCCESS. **85 kiểm chứng Chrome hồi quy và 52 kiểm chứng banner PASS** ở hai theme, 1440/1024/768/390/375px; không exception JavaScript. Hai nhóm chạy riêng và có kiểm tra chung. Chrome dùng API giả lập; chỉ đọc catalog/danh mục/hãng công khai của app đang chạy để chụp ảnh thật, không ghi vào database của người dùng. Maven dùng H2 hiện có; không thêm dependency, không sửa Java/migration/test trong lượt này. 7 file thay đổi và giới hạn tại [docs/storefront-showcase.md](docs/storefront-showcase.md).
+
+<!-- Bộ lọc giá giữ contract minPrice/maxPrice, các đầu mút thập phân và phạm vi catalog hiện có. -->
+## Thanh trượt lọc giá — ngày 05/10/2026
+
+Đã thêm thanh kéo hai đầu, nhãn VND, nút Đặt lại và đồng bộ ô nhập/chip chọn nhanh. Kéo chỉ xem trước; thả tay gửi một GET catalog. Giá nhập tay giữ hai chữ số thập phân, kiểm tra âm/vượt giới hạn/đảo hai đầu. Thang mặc định 0–50 triệu, đầu trên là “Không giới hạn”; nhập giá lớn tự mở rộng thang. Lọc mới về trang đầu, giữ danh mục/hãng/từ khóa/sắp xếp và URL; lỗi đọc cho phép thử lại cùng mức giá. Giữ nguyên API, giỏ, JWT, fulfillment và database.
+
+**555 test Maven PASS**, package BUILD SUCCESS. **85 kiểm chứng Chrome hồi quy và 56 kiểm chứng lọc giá PASS** ở sáng/tối, 1440/1024/768/390/375px, chuột/cảm ứng/bàn phím; không ngoại lệ JavaScript. Hai nhóm có kiểm tra chung; Chrome dùng API giả lập, Maven dùng H2 hiện có. Không ghi database hay khởi động lại app đang chạy. Bốn file tĩnh và ba file tài liệu; hướng dẫn, giới hạn và danh sách ở [docs/price-filter.md](docs/price-filter.md).

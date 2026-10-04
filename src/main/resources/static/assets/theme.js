@@ -1,4 +1,4 @@
-/* Điều khiển giao diện sáng/tối độc lập với đăng nhập, giỏ hàng và các API nghiệp vụ. */
+/* Điều khiển giao diện sáng/tối xanh dương, độc lập với đăng nhập, giỏ hàng và API nghiệp vụ. */
 (() => {
     'use strict';
 
@@ -28,7 +28,8 @@
         root.dataset.theme = theme;
         root.style.colorScheme = theme;
         const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.content = theme === 'dark' ? '#13251e' : '#edf2e9';
+        // Thanh trình duyệt dùng xanh nhận diện khi sáng và navy khi tối, không giữ màu xanh lá cũ.
+        if (meta) meta.content = theme === 'dark' ? '#0b1220' : '#2563eb';
 
         const button = document.getElementById('theme-toggle');
         if (!button) return;

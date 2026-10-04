@@ -149,4 +149,10 @@ Các mốc ảnh bìa/trang riêng/bộ ảnh/menu giá có 218/260/295 test PAS
 <!-- Checkout V15 nối tiếp các mốc lịch sử, không thay thời điểm DISPATCH hoặc quyền theo kho. -->
 Checkout **đã triển khai V15**: DTO bắt buộc người nhận/điện thoại/địa chỉ, ghi chú tùy chọn, snapshot trên order, form giỏ và hiển thị ở chi tiết cho khách/nhân viên. Đơn cũ vẫn hỗ trợ `delivery=null`. Giữ miễn phí giao hàng, khách chọn kho, DISPATCH lúc payment và rollback reserve nhiều mặt hàng. Xem [contract, file thay đổi và kiểm chứng](checkout-delivery.md).
 
-Lượt tiếp theo đề xuất hồ sơ khách hàng và lưu giỏ trong trình duyệt nếu cần giữ qua tải lại trang. Chống tạo đơn trùng bằng khóa idempotency phía server, đánh giá sau mua, thanh toán sandbox và Testcontainers PostgreSQL là các lượt riêng. Không coi việc khóa nút đặt hàng là đã hoàn thành idempotency tạo đơn. Upload file, merge SKU cũ và lọc RAM/chip/màn hình chuyên biệt vẫn là mở rộng sau.
+<!-- Hai cải thiện frontend đã triển khai ngày 04/10/2026, giữ nguyên API và schema hiện có. -->
+Giỏ và chi nhánh đã được giữ qua tải lại trong phiên tab, theo đúng danh tính được backend xác thực; giá/cấu hình đọc lại từ API. Màn hình đơn khách đã tự cập nhật trạng thái và vận đơn, dừng khi tab ẩn/rời màn hình, có retry/backoff và chống response cũ ghi đè thao tác tay. Xem [quy tắc, giới hạn và kiểm chứng](cart-and-order-sync.md).
+
+<!-- Hồ sơ V16 nối tiếp giỏ/đồng bộ đơn; không mở rộng sang sổ địa chỉ hoặc đổi credential. -->
+Hồ sơ khách hàng **đã triển khai V16**: trang `/#shop/account`, GET/PATCH `/users/me`, tên và điện thoại tùy chọn; thông tin định danh/quyền không nhận từ form. Checkout chỉ gợi ý vào ô trống, không thay người nhận nhập tay hoặc bản chụp của đơn cũ. Xem [contract và kiểm chứng hồ sơ](customer-profile.md).
+
+Lượt tiếp theo đề xuất chống tạo đơn trùng bằng khóa idempotency phía server. Đánh giá sau mua, thanh toán sandbox và Testcontainers PostgreSQL là các lượt riêng. Không coi việc khóa nút đặt hàng là đã hoàn thành idempotency tạo đơn. Đổi mật khẩu/email, sổ địa chỉ, upload file, giỏ lâu dài/đa thiết bị, merge SKU cũ và lọc RAM/chip/màn hình chuyên biệt vẫn là mở rộng sau.

@@ -1,9 +1,14 @@
 package com.stockflow.user.repository;
 
 import com.stockflow.user.domain.User;
+import com.stockflow.user.domain.UserStatus;
+import java.time.Instant;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Repository truy vấn bảng users, ưu tiên load kèm role cho các luồng authentication.
@@ -20,4 +25,26 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @EntityGraph(attributePaths = "role")
     Optional<User> findByEmail(String email);
+
+    /**
+     * Chỉ ghi các trường liên hệ được gửi; không ghi đè email, mật khẩu, role hoặc trạng thái từ entity cũ.
+     * Cờ riêng cho từng trường phân biệt bỏ qua với việc xóa số điện thoại bằng chuỗi rỗng.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            UPDATE User u
+            SET u.fullName = CASE WHEN :updateName = true THEN :fullName ELSE u.fullName END,
+                u.phone = CASE WHEN :updatePhone = true THEN :phone ELSE u.phone END,
+                u.updatedAt = :updatedAt
+            WHERE u.id = :userId
+              AND u.status = :activeStatus
+            """)
+    int updateProfile(
+            @Param("userId") Long userId,
+            @Param("updateName") boolean updateName,
+            @Param("fullName") String fullName,
+            @Param("updatePhone") boolean updatePhone,
+            @Param("phone") String phone,
+            @Param("updatedAt") Instant updatedAt,
+            @Param("activeStatus") UserStatus activeStatus);
 }

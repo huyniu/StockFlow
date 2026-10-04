@@ -3,7 +3,8 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#153e35" />
+        <!-- Xanh dương là màu nhận diện; theme.js đồng bộ thanh trình duyệt theo chế độ sáng/tối. -->
+        <meta name="theme-color" content="#2563eb" />
         <meta
             name="description"
             content="StockFlow Tech — Phụ kiện máy tính, thiết bị công nghệ và đặt hàng từ ba chi nhánh."
@@ -245,6 +246,10 @@
                     <button type="button" class="header-button" data-action="my-orders">
                         <svg class="icon"><use href="#i-order" /></svg><span>Đơn hàng của tôi</span>
                     </button>
+                    <!-- Hồ sơ khách hàng tách khỏi quyền quản trị; thông tin nhận hàng vẫn sửa riêng theo đơn. -->
+                    <button type="button" class="header-button" data-action="my-account" data-roles="CUSTOMER" hidden>
+                        <svg class="icon"><use href="#i-user" /></svg><span>Tài khoản</span>
+                    </button>
                     <button type="button" class="header-button" id="open-login" data-action="open-auth">
                         <svg class="icon"><use href="#i-user" /></svg><span>Đăng nhập / Đăng ký</span>
                     </button>
@@ -257,6 +262,9 @@
                 <div class="shop-nav-links">
                     <button type="button" class="active" data-shop-tab="catalog">Cửa hàng</button>
                     <button type="button" data-shop-tab="orders">Đơn hàng của tôi</button>
+                    <button type="button" data-shop-tab="account" data-roles="CUSTOMER" hidden>
+                        Tài khoản của tôi
+                    </button>
                 </div>
                 <button type="button" class="portal-link" data-action="open-portal">
                     👉 Chuyển sang Cổng Quản trị
@@ -287,7 +295,7 @@
                             >
                                 <p class="category-menu-message">Đang tải danh mục…</p>
                             </nav>
-                            <p class="home-categories-hint">Vuốt để xem thêm danh mục →</p>
+                            <p class="home-categories-hint">Cuộn để xem thêm danh mục</p>
                             <section
                                 id="home-category-detail"
                                 class="home-category-detail"
@@ -295,95 +303,72 @@
                                 hidden
                             ></section>
                         </aside>
-                        <div class="shop-hero">
+                        <!-- Khu trưng bày lấy ảnh, giá và liên kết từ catalog thật; các lớp sáng chỉ là trang trí CSS. -->
+                        <section class="shop-hero tech-hero" aria-labelledby="hero-title">
+                            <div class="hero-atmosphere" aria-hidden="true">
+                                <span class="hero-orbit hero-orbit-one"></span>
+                                <span class="hero-orbit hero-orbit-two"></span>
+                                <span class="hero-light-point"></span>
+                            </div>
                             <div class="hero-copy">
-                                <span class="eyebrow">PHỤ KIỆN MÁY TÍNH · THIẾT BỊ CÔNG NGHỆ</span>
-                                <h1>Trang bị góc làm việc.<br /><em>Theo cách của bạn.</em></h1>
+                                <span class="hero-label"
+                                    ><span aria-hidden="true"></span>THẾ GIỚI CÔNG NGHỆ CỦA BẠN</span
+                                >
+                                <h1 id="hero-title">Công nghệ bạn thích.<br /><em>Phong cách của bạn.</em></h1>
                                 <p>
-                                    Bàn phím, chuột, âm thanh và thiết bị kết nối cho học tập, làm việc và giải trí.
-                                    Chọn món bạn cần, chúng tôi chuẩn bị từ chi nhánh bạn chọn.
+                                    Từ thiết bị hằng ngày đến góc làm việc yêu thích. Khám phá, chọn phiên bản và tìm
+                                    màu sắc dành cho bạn.
                                 </p>
-                                <a class="button primary" href="#product-shelf"
-                                    >Khám phá sản phẩm <svg class="icon"><use href="#i-arrow" /></svg
-                                ></a>
+                                <a class="button primary hero-shop-button" href="#product-shelf">
+                                    Khám phá sản phẩm <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                                </a>
                                 <div class="hero-details">
-                                    <span>✦ Giá bán rõ ràng</span><span>✦ Theo dõi từng bước giao hàng</span>
+                                    <span>PHỤ KIỆN MÁY TÍNH & THIẾT BỊ CÔNG NGHỆ</span>
+                                    <span
+                                        ><svg class="icon" aria-hidden="true"><use href="#i-warehouse" /></svg>Chọn chi
+                                        nhánh. Mua sắm theo cách của bạn.</span
+                                    >
                                 </div>
                             </div>
-                            <!-- Minh họa góc làm việc bằng SVG: màn hình, bàn phím, tai nghe và chuột; ảnh card lấy từ API. -->
-                            <div class="hero-art" aria-hidden="true">
-                                <svg viewBox="0 0 470 330" fill="none">
-                                    <defs>
-                                        <linearGradient
-                                            id="tech-screen"
-                                            x1="192"
-                                            y1="65"
-                                            x2="371"
-                                            y2="161"
-                                            gradientUnits="userSpaceOnUse"
-                                        >
-                                            <stop stop-color="#88cbb4" />
-                                            <stop offset="1" stop-color="#9bb7d6" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="259" cy="163" r="139" fill="#dbe7ed" />
-                                    <ellipse cx="245" cy="283" rx="170" ry="18" fill="#c9d9de" />
-                                    <rect x="171" y="47" width="219" height="146" rx="14" fill="#21483f" />
-                                    <rect x="183" y="59" width="195" height="118" rx="7" fill="url(#tech-screen)" />
-                                    <path
-                                        d="m198 149 43-57 43 35 31-49 47 59"
-                                        stroke="#eef8f3"
-                                        stroke-width="7"
-                                        stroke-linecap="round"
-                                    />
-                                    <circle cx="280" cy="185" r="3" fill="#b5d4c8" />
-                                    <path d="M268 193h25v30h-25z" fill="#4d7267" />
-                                    <rect x="240" y="220" width="80" height="8" rx="4" fill="#4d7267" />
-                                    <g transform="rotate(-6 223 258)">
-                                        <rect x="114" y="233" width="217" height="50" rx="10" fill="#f5faf7" />
-                                        <path
-                                            d="M127 246h190 M127 259h190 M127 271h55 M199 271h74 M290 271h27"
-                                            stroke="#9ab4aa"
-                                            stroke-width="6"
-                                            stroke-linecap="round"
-                                        />
-                                    </g>
-                                    <ellipse
-                                        cx="373"
-                                        cy="251"
-                                        rx="25"
-                                        ry="37"
-                                        fill="#f5faf7"
-                                        transform="rotate(12 373 251)"
-                                    />
-                                    <path d="m375 224-3 16" stroke="#8aa89b" stroke-width="4" stroke-linecap="round" />
-                                    <path
-                                        d="M63 144v-18a38 38 0 0 1 76 0v18"
-                                        stroke="#bd9461"
-                                        stroke-width="13"
-                                        stroke-linecap="round"
-                                    />
-                                    <rect x="54" y="133" width="23" height="53" rx="11" fill="#365d50" />
-                                    <rect x="125" y="133" width="23" height="53" rx="11" fill="#365d50" />
-                                    <path d="m111 50 3 9 9 3-9 3-3 9-3-9-9-3 9-3 3-9Z" fill="#bd9461" />
-                                    <path d="m419 120 3 9 9 3-9 3-3 9-3-9-9-3 9-3 3-9Z" fill="#4e806b" />
-                                </svg>
-                                <div class="hero-stamp">
-                                    <svg class="icon"><use href="#i-check" /></svg
-                                    ><span>Chọn chi nhánh<br /><strong>Mua sắm thuận tiện</strong></span>
-                                </div>
+                            <!-- Khung giữ nguyên kích thước khi tải; sản phẩm là liên kết thật, sử dụng được bằng bàn phím. -->
+                            <div
+                                id="hero-showcase"
+                                class="hero-showcase"
+                                aria-label="Khám phá sản phẩm StockFlow"
+                                aria-busy="true"
+                            >
+                                <div class="hero-device hero-device-main hero-device-skeleton" aria-hidden="true"></div>
+                                <div
+                                    class="hero-device hero-device-secondary hero-device-skeleton"
+                                    aria-hidden="true"
+                                ></div>
+                                <div
+                                    class="hero-device hero-device-tertiary hero-device-skeleton"
+                                    aria-hidden="true"
+                                ></div>
+                                <span class="sr-only" role="status">Đang tải sản phẩm trưng bày…</span>
                             </div>
-                        </div>
+                        </section>
                     </div>
-                    <div class="shop-benefits">
+                    <!-- Thông tin mua sắm phản ánh các chức năng đã có; không thêm cam kết hoặc khuyến mãi giả. -->
+                    <div class="shop-benefits tech-benefits">
                         <span
-                            ><svg class="icon"><use href="#i-warehouse" /></svg>Hà Nội · Đà Nẵng · TP.HCM</span
+                            ><svg class="icon" aria-hidden="true"><use href="#i-warehouse" /></svg
+                            ><span
+                                ><strong>Chi nhánh bạn chọn</strong><small>Hà Nội · Đà Nẵng · TP.HCM</small></span
+                            ></span
                         >
                         <span
-                            ><svg class="icon"><use href="#i-clock" /></svg>Giữ hàng 15 phút khi đặt đơn</span
+                            ><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg
+                            ><span
+                                ><strong>An tâm chọn mua</strong><small>Giữ hàng 15 phút khi đặt đơn</small></span
+                            ></span
                         >
                         <span
-                            ><svg class="icon"><use href="#i-truck" /></svg>Theo dõi mã vận đơn</span
+                            ><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg
+                            ><span
+                                ><strong>Theo dõi từng bước</strong><small>Trạng thái đơn và mã vận đơn</small></span
+                            ></span
                         >
                     </div>
                     <div id="product-shelf" class="shelf-heading">
@@ -403,7 +388,7 @@
                         <button class="text-button" type="button" data-action="refresh">Làm mới</button>
                     </div>
                     <!-- Hai đầu mút giá và thứ tự sắp xếp gửi cùng danh mục/từ khóa, áp dụng trước phân trang. -->
-                    <div class="catalog-discovery-filters">
+                    <div class="catalog-discovery-filters price-discovery">
                         <!-- Hãng là dữ liệu riêng, kết hợp với danh mục và giá bằng ID từ API. -->
                         <label class="catalog-brand-label" for="catalog-brand">
                             Thương hiệu
@@ -412,28 +397,85 @@
                             </select>
                         </label>
                         <form id="catalog-price-filter" class="catalog-price-form">
-                            <span class="catalog-filter-label">Khoảng giá</span>
-                            <label for="catalog-min-price"
-                                >Từ (đ)<input
-                                    id="catalog-min-price"
-                                    type="number"
+                            <!-- Thanh hai đầu dùng cùng điều kiện giá với ô nhập; mốc cuối giữ nghĩa không giới hạn. -->
+                            <div class="catalog-price-heading">
+                                <span class="catalog-filter-label">Khoảng giá</span>
+                                <button
+                                    class="text-button"
+                                    type="button"
+                                    data-action="clear-catalog-filter"
+                                    data-filter="price"
+                                >
+                                    Đặt lại
+                                </button>
+                            </div>
+                            <div class="price-range-summary" aria-hidden="true">
+                                <strong id="catalog-price-low-label">0 ₫</strong>
+                                <strong id="catalog-price-high-label">Không giới hạn</strong>
+                            </div>
+                            <div
+                                id="catalog-price-slider"
+                                class="price-range-slider"
+                                role="group"
+                                aria-label="Chọn khoảng giá sản phẩm"
+                            >
+                                <span class="price-range-track" aria-hidden="true"
+                                    ><span class="price-range-fill"></span
+                                ></span>
+                                <input
+                                    id="catalog-price-low"
+                                    type="range"
                                     min="0"
-                                    max="9999999999.99"
-                                    step="0.01"
-                                    placeholder="Không giới hạn"
-                            /></label>
-                            <span class="price-range-separator" aria-hidden="true">—</span>
-                            <label for="catalog-max-price"
-                                >Đến (đ)<input
-                                    id="catalog-max-price"
-                                    type="number"
+                                    max="50000000"
+                                    step="50000"
+                                    value="0"
+                                    aria-label="Giá thấp nhất"
+                                    aria-describedby="catalog-price-hint"
+                                />
+                                <input
+                                    id="catalog-price-high"
+                                    type="range"
                                     min="0"
-                                    max="9999999999.99"
-                                    step="0.01"
-                                    placeholder="Không giới hạn"
-                                    aria-describedby="catalog-price-error"
-                            /></label>
-                            <button class="button secondary" type="submit">Áp dụng</button>
+                                    max="50000000"
+                                    step="50000"
+                                    value="50000000"
+                                    aria-label="Giá cao nhất; mốc cuối không giới hạn"
+                                    aria-describedby="catalog-price-hint"
+                                />
+                            </div>
+                            <p id="catalog-price-hint" class="catalog-price-hint">
+                                Kéo và thả để lọc. Nhập giá bên dưới để chọn chính xác.
+                            </p>
+                            <div class="catalog-price-inputs">
+                                <label for="catalog-min-price"
+                                    >Từ (đ)
+                                    <input
+                                        id="catalog-min-price"
+                                        type="number"
+                                        min="0"
+                                        max="9999999999.99"
+                                        step="0.01"
+                                        inputmode="decimal"
+                                        placeholder="0"
+                                        aria-describedby="catalog-price-error"
+                                    />
+                                </label>
+                                <span class="price-range-separator" aria-hidden="true">—</span>
+                                <label for="catalog-max-price"
+                                    >Đến (đ)
+                                    <input
+                                        id="catalog-max-price"
+                                        type="number"
+                                        min="0"
+                                        max="9999999999.99"
+                                        step="0.01"
+                                        inputmode="decimal"
+                                        placeholder="Không giới hạn"
+                                        aria-describedby="catalog-price-error"
+                                    />
+                                </label>
+                                <button class="button secondary" type="submit">Áp dụng</button>
+                            </div>
                             <p id="catalog-price-error" class="catalog-price-error" role="status" hidden></p>
                         </form>
                         <label class="catalog-sort-label" for="catalog-sort"
@@ -558,6 +600,79 @@
                             class="panel order-detail"
                             aria-label="Chi tiết đơn hàng của tôi"
                         ></article>
+                    </div>
+                </section>
+                <!-- Chỉ hiển thị liên hệ cá nhân; email và vai trò không nằm trong form chỉnh sửa. -->
+                <section id="shop-account" class="shop-panel" aria-labelledby="account-title" hidden>
+                    <div class="section-heading">
+                        <div>
+                            <span class="eyebrow">THÔNG TIN CÁ NHÂN</span>
+                            <h1 id="account-title">Tài khoản của tôi</h1>
+                            <p>Cập nhật liên hệ để đặt hàng thuận tiện hơn.</p>
+                        </div>
+                        <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                    </div>
+                    <div class="profile-layout">
+                        <aside class="panel profile-summary" aria-label="Thông tin tài khoản">
+                            <span class="profile-avatar" aria-hidden="true">
+                                <svg class="icon"><use href="#i-user" /></svg>
+                            </span>
+                            <h2 id="profile-display-name">—</h2>
+                            <span class="badge success">Khách mua hàng</span>
+                            <dl class="profile-facts">
+                                <div>
+                                    <dt>Email đăng nhập</dt>
+                                    <dd id="profile-email">—</dd>
+                                </div>
+                                <div>
+                                    <dt>Ngày tham gia</dt>
+                                    <dd id="profile-created">—</dd>
+                                </div>
+                            </dl>
+                            <p>Email và quyền tài khoản do hệ thống quản lý.</p>
+                        </aside>
+                        <section class="panel profile-editor" aria-labelledby="profile-editor-title">
+                            <div class="panel-heading">
+                                <h2 id="profile-editor-title">Thông tin liên hệ</h2>
+                            </div>
+                            <form id="profile-form" class="stacked-form">
+                                <label>
+                                    Họ và tên
+                                    <input
+                                        id="profile-name"
+                                        name="full_name"
+                                        autocomplete="name"
+                                        required
+                                        maxlength="150"
+                                    />
+                                </label>
+                                <label>
+                                    Số điện thoại <span class="checkout-optional">(tùy chọn)</span>
+                                    <input
+                                        id="profile-phone"
+                                        name="phone"
+                                        type="tel"
+                                        autocomplete="tel"
+                                        maxlength="30"
+                                        placeholder="0901234567"
+                                    />
+                                </label>
+                                <p class="profile-help">
+                                    Số điện thoại gồm 8–15 chữ số, có thể bắt đầu bằng +. Để trống rồi lưu nếu muốn xóa
+                                    số đã bổ sung.
+                                </p>
+                                <div class="inline-info">
+                                    Tên và số điện thoại sẽ gợi ý khi mở giỏ hàng. Bạn vẫn có thể đổi người nhận cho
+                                    từng đơn; thông tin trên các đơn đã đặt được giữ nguyên.
+                                </div>
+                                <div class="profile-actions">
+                                    <button id="profile-save" class="button primary" type="submit" disabled>
+                                        Lưu thông tin
+                                    </button>
+                                    <span id="profile-status" role="status" aria-live="polite"></span>
+                                </div>
+                            </form>
+                        </section>
                     </div>
                 </section>
                 <footer class="shop-footer">

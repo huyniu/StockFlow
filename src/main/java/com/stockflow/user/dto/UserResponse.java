@@ -12,6 +12,7 @@ public record UserResponse(
         Long id,
         String email,
         @JsonProperty("full_name") String fullName,
+        String phone,
         String role,
         String status,
         @JsonProperty("created_at") Instant createdAt) {
@@ -24,6 +25,7 @@ public record UserResponse(
                 user.getId(),
                 user.getEmail(),
                 user.getFullName(),
+                user.getPhone(),
                 user.getRole().getName(),
                 user.getStatus().name(),
                 user.getCreatedAt());

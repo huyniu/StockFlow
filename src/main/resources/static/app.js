@@ -3,6 +3,12 @@
     'use strict';
 
     const SESSION_KEY = 'stockflow.web.session';
+    // Giỏ chỉ tồn tại trong phiên của tab và gắn với danh tính đã được backend xác thực.
+    const CART_KEY = 'stockflow.web.cart.v1';
+    const MAX_CART_ITEMS = 100;
+    const ORDER_REFRESH_MS = 15000;
+    const EXPIRED_ORDER_REFRESH_MS = 5000;
+    const READ_TIMEOUT_MS = 15000;
     const MAX_QUANTITY = 2147483647;
     const MAX_GALLERY_IMAGES = 8;
     /** Khoảng giá dùng chung cho menu và API; hai đầu mút được tính cả trong kết quả. */
@@ -127,6 +133,9 @@
     const state = {
         token: null,
         user: null,
+        // Hồ sơ chỉ giữ trong bộ nhớ của phiên đăng nhập; không đưa số điện thoại vào sessionStorage.
+        profileReady: false,
+        profileSaving: false,
         epoch: 0,
         authBusy: false,
         authMode: 'login',
@@ -159,7 +168,11 @@
         availabilityLoading: false,
         availabilityError: false,
         cart: new Map(),
+        cartReady: false,
+        cartLoading: false,
+        cartRestoreFailed: false,
         order: null,
+        myOrdersPage: null,
         pendingMutation: null,
         pages: { catalog: 0, orders: 0, queue: 0, inventory: 0, ledger: 0, revenue: 0, top: 0, low: 0, manage: 0 },
     };
@@ -186,6 +199,12 @@
     let purchaseObserver = null;
     let purchaseScrollFrame = null;
     let cartBounceTimer = null;
+    // Một lần đồng bộ nền duy nhất; phiên bản chống phản hồi cũ ghi đè thao tác hoặc màn hình mới.
+    let orderRefreshTimer = null;
+    let orderRefreshRun = null;
+    let orderRefreshVersion = 0;
+    let orderRefreshFailures = 0;
+    let lastOrderRefreshAttempt = 0;
 
     /** Đồng bộ nội dung và quyền bấm; chỉ ghim khi nút mua chính đã đi khỏi mép trên màn hình. */
     function syncMobilePurchase() {
@@ -426,6 +445,122 @@
         requests.clear();
         channels.clear();
     }
+
+    /** Hủy đồng bộ nền trước thao tác tay, điều hướng hoặc đổi actor; request cũ không được ghi đè đơn mới. */
+    function invalidateOrderRefresh() {
+        orderRefreshVersion++;
+        window.clearTimeout(orderRefreshTimer);
+        orderRefreshTimer = null;
+        if (orderRefreshRun) window.clearTimeout(orderRefreshRun.timeout);
+        orderRefreshRun = null;
+        ['auto-order-list', 'auto-order-detail'].forEach((name) => {
+            channels.get(name)?.abort();
+            channels.delete(name);
+        });
+    }
+
+    /** Chỉ tự đồng bộ đơn của CUSTOMER ở màn hình đang xem; không gọi API vận hành hoặc chạy trong tab ẩn. */
+    function canAutoRefreshOrders() {
+        return (
+            hasRole('CUSTOMER') &&
+            state.view === 'shop' &&
+            state.shopTab === 'orders' &&
+            document.visibilityState === 'visible' &&
+            !state.authBusy &&
+            !document.querySelector('dialog[open]')
+        );
+    }
+
+    /** Thông báo nhỏ giữ dữ liệu đã xem khi mạng lỗi, không thay bảng bằng skeleton mỗi lần đồng bộ. */
+    function setOrderSyncMessage(message) {
+        $$('[data-order-sync]').forEach((element) => {
+            element.textContent = message;
+        });
+    }
+
+    /** Lặp sau khi request kết thúc; tăng thời gian chờ khi lỗi mạng và quét nhanh hơn sau hạn giữ hàng. */
+    function scheduleOrderRefresh(delay) {
+        window.clearTimeout(orderRefreshTimer);
+        orderRefreshTimer = null;
+        if (!canAutoRefreshOrders() || orderRefreshRun) return;
+        const expired =
+            state.order?.status === 'PENDING' && new Date(state.order.reservation_expires_at).getTime() <= Date.now();
+        const retryDelay = orderRefreshFailures
+            ? Math.min(60000, ORDER_REFRESH_MS * 2 ** orderRefreshFailures)
+            : expired
+              ? EXPIRED_ORDER_REFRESH_MS
+              : ORDER_REFRESH_MS;
+        // Focus và visibility có thể tới cùng lúc; không tạo thêm request trong cùng một giây.
+        const wait = Math.max(delay ?? retryDelay, 1000 - (Date.now() - lastOrderRefreshAttempt));
+        orderRefreshTimer = window.setTimeout(() => execute(refreshOrdersQuietly), wait);
+    }
+
+    /** GET nền giữ trang/đơn đang chọn; chỉ render phần thay đổi và luôn lấy trạng thái từ backend. */
+    async function refreshOrdersQuietly() {
+        if (!canAutoRefreshOrders() || orderRefreshRun) return;
+        if (channels.has('my-orders') || channels.has('order-detail') || $('#order-detail [aria-busy="true"]')) {
+            scheduleOrderRefresh();
+            return;
+        }
+        const run = { version: orderRefreshVersion, timedOut: false, timeout: null };
+        orderRefreshRun = run;
+        lastOrderRefreshAttempt = Date.now();
+        const current = () => run.version === orderRefreshVersion && canAutoRefreshOrders();
+        run.timeout = window.setTimeout(() => {
+            run.timedOut = true;
+            ['auto-order-list', 'auto-order-detail'].forEach((name) => channels.get(name)?.abort());
+        }, READ_TIMEOUT_MS);
+        try {
+            const result = await api('/orders/my', {
+                channel: 'auto-order-list',
+                query: { page: state.pages.orders, size: 8 },
+            });
+            if (!current()) return;
+            const selectedId = state.order?.id;
+            let order = selectedId
+                ? result.content.find((value) => value.id === selectedId)
+                : result.content[0] || null;
+            if (selectedId && !order) {
+                order = await api('/orders/' + selectedId, { channel: 'auto-order-detail' });
+            }
+            if (!current()) return;
+            const detailChanged = JSON.stringify(order) !== JSON.stringify(state.order);
+            if (detailChanged) await hydrateOrderProducts(order);
+            if (!current()) return;
+            if (JSON.stringify(result) !== JSON.stringify(state.myOrdersPage)) renderMyOrders(result);
+            if (detailChanged) {
+                state.order = order;
+                renderOrder();
+            }
+            orderRefreshFailures = 0;
+            setOrderSyncMessage(
+                'Đã đồng bộ lúc ' + new Date().toLocaleTimeString('vi-VN') + ' · Tự cập nhật khi đang xem.',
+            );
+        } catch (error) {
+            if (!current() || (error.name === 'AbortError' && !run.timedOut)) return;
+            orderRefreshFailures = Math.min(orderRefreshFailures + 1, 3);
+            setOrderSyncMessage('Chưa đồng bộ được. Hệ thống sẽ thử lại; bạn vẫn có thể bấm Tải lại.');
+        } finally {
+            window.clearTimeout(run.timeout);
+            if (orderRefreshRun === run) {
+                orderRefreshRun = null;
+                scheduleOrderRefresh();
+            }
+        }
+    }
+
+    /** Tab ẩn/rời trang dừng GET nền; quay lại và có mạng thì đọc lại đơn, không gửi thao tác thanh toán/hủy. */
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') invalidateOrderRefresh();
+        else scheduleOrderRefresh(0);
+    });
+    window.addEventListener('focus', () => scheduleOrderRefresh(0));
+    window.addEventListener('online', () => {
+        orderRefreshFailures = 0;
+        scheduleOrderRefresh(0);
+    });
+    $$('dialog').forEach((dialog) => dialog.addEventListener('close', () => scheduleOrderRefresh(0)));
+
     /** API cùng origin với JWT; mỗi kênh GET chỉ nhận response mới nhất khi đổi filter/phân trang. */
     async function api(path, { method = 'GET', body, query, anonymous = false, channel } = {}) {
         const epoch = state.epoch;
@@ -566,6 +701,7 @@
                 button.removeAttribute('aria-busy');
                 renderPermissions();
                 syncMobilePurchase();
+                scheduleOrderRefresh();
             }
         }
     }
@@ -579,12 +715,188 @@
         }
     }
 
+    /** Không tin role từ storage; chủ giỏ được xác định sau khi login hoặc users/me trả thành công. */
+    function cartOwner() {
+        if (!state.user) return 'guest';
+        return hasRole('CUSTOMER') ? 'customer:' + state.user.id : null;
+    }
+
+    /** Giỏ không chứa token, giá, ảnh hoặc thông tin người nhận; lỗi storage không chặn mua hàng. */
+    function writeCartSnapshot(items, warehouseId = state.branchId) {
+        const owner = cartOwner();
+        if (!owner) return;
+        try {
+            sessionStorage.setItem(
+                CART_KEY,
+                JSON.stringify({
+                    version: 1,
+                    owner,
+                    warehouse_id: warehouseId ? Number(warehouseId) : null,
+                    items,
+                }),
+            );
+        } catch {
+            /* Trình duyệt chặn storage thì giỏ hiện tại vẫn sử dụng được trong bộ nhớ. */
+        }
+    }
+
+    /** Chỉ ghi giỏ đã khôi phục xong, tránh ghi rỗng đè bản lưu khi API đang tải hoặc tạm lỗi. */
+    function saveCart() {
+        if (!state.cartReady || state.cartLoading || state.cartRestoreFailed) return;
+        writeCartSnapshot(
+            [...state.cart.values()].map((item) => ({ product_id: item.product.id, quantity: item.quantity })),
+        );
+    }
+
+    /** Đăng xuất, đổi actor hoặc dữ liệu lưu sai định dạng đều bỏ giỏ cũ khỏi phiên của tab. */
+    function forgetCart() {
+        try {
+            sessionStorage.removeItem(CART_KEY);
+        } catch {
+            /* Dữ liệu trong bộ nhớ vẫn được xóa nếu storage không truy cập được. */
+        }
+    }
+
+    /** Kiểm tra phiên bản, chủ giỏ và giới hạn request; chỉ nhận ID/số lượng nguyên hợp lệ. */
+    function readSavedCart() {
+        try {
+            const raw = sessionStorage.getItem(CART_KEY);
+            if (!raw) return null;
+            if (raw.length > 20000) throw new Error('Bản lưu giỏ vượt giới hạn.');
+            const saved = JSON.parse(raw);
+            if (
+                saved?.version !== 1 ||
+                saved.owner !== cartOwner() ||
+                !Array.isArray(saved.items) ||
+                saved.items.length > MAX_CART_ITEMS
+            ) {
+                throw new Error('Bản lưu giỏ không phù hợp với phiên hiện tại.');
+            }
+            const ids = new Set();
+            const items = saved.items.filter((item) => {
+                if (
+                    !Number.isSafeInteger(item?.product_id) ||
+                    item.product_id < 1 ||
+                    !Number.isInteger(item.quantity) ||
+                    item.quantity < 1 ||
+                    item.quantity > MAX_QUANTITY ||
+                    ids.has(item.product_id)
+                ) {
+                    return false;
+                }
+                ids.add(item.product_id);
+                return true;
+            });
+            return {
+                items: items.map((item) => ({ product_id: item.product_id, quantity: item.quantity })),
+                warehouse_id:
+                    Number.isSafeInteger(saved.warehouse_id) && saved.warehouse_id > 0 ? saved.warehouse_id : null,
+            };
+        } catch {
+            forgetCart();
+            return null;
+        }
+    }
+
+    /** SKU con lấy lại mapping model/phiên bản/màu; không phục hồi lựa chọn đã lưu trữ hoặc ngừng bán. */
+    async function loadSavedCartProduct(id, cache) {
+        const getProduct = (productId) => {
+            if (!cache.has(productId)) {
+                cache.set(
+                    productId,
+                    api('/products/' + productId, { anonymous: true, channel: 'cart-product-' + productId }),
+                );
+            }
+            return cache.get(productId);
+        };
+        const product = await getProduct(id);
+        if (product.parent_product_id) {
+            const root = await getProduct(product.parent_product_id);
+            const variant = root.variants?.find((value) => value.sku_product_id === id);
+            return root.status === 'ACTIVE' && variant ? colorSku(root, variant) : null;
+        }
+        return product.status === 'ACTIVE' ? saleSku(product) : null;
+    }
+
+    /** Đọc lại catalog theo lô nhỏ; lỗi mạng giữ bản lưu để thử lại, 404/ngừng bán bỏ mặt hàng tương ứng. */
+    async function restoreCart() {
+        if (isOperator() || state.cartLoading) return;
+        const epoch = state.epoch;
+        const saved = readSavedCart();
+        state.cartReady = false;
+        state.cartLoading = true;
+        state.cartRestoreFailed = false;
+        if (saved?.warehouse_id) state.branchId = String(saved.warehouse_id);
+        renderCart();
+        const cache = new Map();
+        // API treo không giữ toàn bộ cửa hàng ở trạng thái tải mãi; bản lưu được giữ để khách thử lại.
+        const timeout = window.setTimeout(() => {
+            if (epoch !== state.epoch) return;
+            cache.forEach((_, id) => channels.get('cart-product-' + id)?.abort());
+        }, READ_TIMEOUT_MS);
+        const restored = new Map(state.cart);
+        let removed = 0;
+        try {
+            const items = saved?.items || [];
+            for (let offset = 0; offset < items.length; offset += 4) {
+                const results = await Promise.allSettled(
+                    items.slice(offset, offset + 4).map(async (item) => {
+                        const product = await loadSavedCartProduct(item.product_id, cache);
+                        return { product, item };
+                    }),
+                );
+                if (epoch !== state.epoch) return;
+                for (const [index, result] of results.entries()) {
+                    const id = items[offset + index].product_id;
+                    if (result.status === 'rejected') {
+                        if (result.reason.status !== 404) throw result.reason;
+                        restored.delete(id);
+                        removed++;
+                    } else if (!result.value.product || result.value.product.status !== 'ACTIVE') {
+                        restored.delete(id);
+                        removed++;
+                    } else {
+                        const { product, item } = result.value;
+                        restored.set(id, { product, quantity: restored.get(id)?.quantity || item.quantity });
+                    }
+                }
+            }
+            state.cart = restored;
+            restored.forEach((item) => state.products.set(item.product.id, item.product));
+            state.cartReady = true;
+            if (removed) {
+                notify(
+                    'error',
+                    'Đã bỏ ' + removed + ' mặt hàng không còn bán khỏi giỏ. Vui lòng kiểm tra lại giỏ hàng.',
+                );
+            }
+        } catch (error) {
+            if (epoch !== state.epoch) return;
+            state.cartRestoreFailed = true;
+        } finally {
+            window.clearTimeout(timeout);
+            if (epoch === state.epoch) {
+                state.cartLoading = false;
+                renderCart();
+                saveCart();
+            }
+        }
+    }
+
     /** Xóa dữ liệu riêng và hủy request cũ; chỉ giữ giỏ khách vãng lai khi họ bắt đầu đăng nhập. */
     function clearSession({ preserveCart = false } = {}) {
+        invalidateOrderRefresh();
         cancelRequests();
+        if (!preserveCart) forgetCart();
         state.token = null;
         state.user = null;
+        state.profileReady = false;
+        state.profileSaving = false;
         state.order = null;
+        state.myOrdersPage = null;
+        state.cartLoading = false;
+        state.cartRestoreFailed = false;
+        orderRefreshFailures = 0;
         state.pendingMutation = null;
         state.operatingWarehouses = [];
         state.authBusy = false;
@@ -597,6 +909,7 @@
         state.catalogExpanded = false;
         if (!preserveCart) {
             state.cart.clear();
+            state.cartReady = true;
             resetCheckoutDetails();
         }
         Object.keys(state.pages).forEach((key) => {
@@ -648,6 +961,7 @@
             'category-edit',
             'brand-create',
             'brand-logo-edit',
+            'profile-form',
         ].forEach((id) => {
             $('#' + id).reset();
         });
@@ -657,6 +971,10 @@
         state.categoryProductCounts.clear();
         $('#category-admin-query').value = '';
         $('#brand-admin-query').value = '';
+        ['profile-display-name', 'profile-email', 'profile-created'].forEach((id) => {
+            $('#' + id).textContent = '—';
+        });
+        $('#profile-status').textContent = '';
         $$('[data-brand-logo-input]').forEach(renderBrandLogoPreview);
         $('#api-notice').hidden = true;
         $('#toasts').replaceChildren();
@@ -704,16 +1022,42 @@
         $$('[data-roles]').forEach((element) => {
             element.hidden = !hasRole(...element.dataset.roles.split(','));
         });
+        // Không sửa hồ sơ khi dữ liệu chưa tải xong hoặc đang ghi; tránh ghi đè nội dung đang nhập.
+        $$('#profile-form input, #profile-save').forEach((element) => {
+            element.disabled =
+                !hasRole('CUSTOMER') ||
+                !state.profileReady ||
+                state.profileSaving ||
+                state.authBusy ||
+                element.getAttribute('aria-busy') === 'true';
+        });
         $$('.shop-header [data-action="my-orders"], [data-shop-tab="orders"]').forEach((button) => {
             button.hidden = isOperator();
         });
         const create = $('#create-order');
         create.disabled =
-            state.cart.size === 0 || isOperator() || state.authBusy || create.getAttribute('aria-busy') === 'true';
+            state.cart.size === 0 ||
+            isOperator() ||
+            state.authBusy ||
+            state.cartLoading ||
+            state.cartRestoreFailed ||
+            create.getAttribute('aria-busy') === 'true';
         create.textContent = state.user ? 'Tiến hành đặt hàng' : 'Đăng nhập để đặt hàng';
         $('#cart-permission').textContent = isOperator()
             ? 'Dùng tài khoản khách hàng để mua sắm.'
-            : 'Một đơn được chuẩn bị tại một chi nhánh. Giữ hàng trong 15 phút.';
+            : state.cartLoading
+              ? 'Đang khôi phục giỏ và cập nhật thông tin sản phẩm…'
+              : 'Một đơn được chuẩn bị tại một chi nhánh. Giữ hàng trong 15 phút.';
+        // Không cho sửa giỏ chưa đồng bộ vì lần thử lại có thể phục hồi số lượng cũ từ bản lưu.
+        const cartLocked = state.cartLoading || state.cartRestoreFailed || state.authBusy;
+        $$('[data-cart-quantity], [data-action="remove-cart"]').forEach((element) => {
+            element.disabled = cartLocked;
+        });
+        $$('[data-action="cart-plus"], [data-action="cart-minus"]').forEach((button) => {
+            const quantity = state.cart.get(Number(button.dataset.id))?.quantity || 0;
+            button.disabled =
+                cartLocked || (button.dataset.action === 'cart-minus' ? quantity <= 1 : quantity >= MAX_QUANTITY);
+        });
         $$('#stock-in button[type="submit"], #inventory-filter button[type="submit"]').forEach((button) => {
             if (button.getAttribute('aria-busy') !== 'true') {
                 button.disabled = hasRole('WAREHOUSE_STAFF') && !state.operatingWarehouses.length;
@@ -728,7 +1072,7 @@
         if (state.portalTab === 'admin') state.portalTab = 'products';
         if (state.view === 'portal' && !isOperator()) state.view = 'shop';
         if (!canPortalTab(state.portalTab)) state.portalTab = 'queue';
-        if (state.shopTab === 'orders' && !hasRole('CUSTOMER')) state.shopTab = 'catalog';
+        if (['orders', 'account'].includes(state.shopTab) && !hasRole('CUSTOMER')) state.shopTab = 'catalog';
         $('#storefront-view').hidden = state.view !== 'shop';
         $('#dashboard-view').hidden = state.view !== 'portal';
         document.body.classList.toggle('portal-open', state.view === 'portal');
@@ -754,9 +1098,11 @@
                 ? 'StockFlow Tech — ' +
                   (state.shopTab === 'orders'
                       ? 'Đơn hàng của tôi'
-                      : state.shopTab === 'product'
-                        ? 'Chi tiết sản phẩm'
-                        : 'Cửa hàng công nghệ')
+                      : state.shopTab === 'account'
+                        ? 'Tài khoản của tôi'
+                        : state.shopTab === 'product'
+                          ? 'Chi tiết sản phẩm'
+                          : 'Cửa hàng công nghệ')
                 : 'StockFlow — ' + PORTAL_TITLES[state.portalTab];
         renderIdentity();
         renderPermissions();
@@ -787,6 +1133,7 @@
     async function authenticate(credentials, register = false, demo = false) {
         if (state.authBusy) return;
         const intent = demo ? 'login' : state.authIntent;
+        const guestCart = !state.user ? readSavedCart() : null;
         clearSession({ preserveCart: !state.user });
         state.authBusy = true;
         renderIdentity();
@@ -803,10 +1150,18 @@
             state.user = result.user;
             saveSession();
             $('#auth-password').value = '';
-            if (isOperator()) state.cart.clear();
+            if (isOperator()) {
+                state.cart.clear();
+                forgetCart();
+            } else {
+                // Chỉ giỏ khách vãng lai được chuyển vào tài khoản vừa đăng nhập, không lấy giỏ actor cũ.
+                if (guestCart) writeCartSnapshot(guestCart.items, guestCart.warehouse_id);
+                await restoreCart();
+                if (epoch !== state.epoch) return;
+            }
             state.view = isOperator() ? 'portal' : 'shop';
             state.portalTab = hasRole('MANAGER') ? 'reports' : 'queue';
-            state.shopTab = intent === 'orders' && hasRole('CUSTOMER') ? 'orders' : 'catalog';
+            state.shopTab = ['orders', 'account'].includes(intent) && hasRole('CUSTOMER') ? intent : 'catalog';
             renderContext();
             renderCart();
             replaceHash();
@@ -845,6 +1200,7 @@
         $$('dialog[open]').forEach((dialog) => dialog.close());
         const dialog = $('#' + id);
         $$('[data-dialog-notice]', dialog).forEach((element) => element.remove());
+        if (id === 'cart-dialog') prefillCheckoutFromProfile();
         dialog.showModal();
         syncMobilePurchase();
     }
@@ -873,6 +1229,78 @@
         state.authIntent = intent;
         setAuthMode('login');
         openDialog('auth-dialog');
+    }
+
+    /** Hiển thị liên hệ bằng textContent/value; tên do người dùng nhập không được coi là HTML. */
+    function renderProfile() {
+        $('#profile-display-name').textContent = state.user?.full_name || 'Khách mua hàng';
+        $('#profile-email').textContent = state.user?.email || '—';
+        $('#profile-created').textContent = state.user?.created_at
+            ? new Date(state.user.created_at).toLocaleDateString('vi-VN')
+            : '—';
+        $('#profile-name').value = state.user?.full_name || '';
+        $('#profile-phone').value = state.user?.phone || '';
+    }
+
+    /** Tải lại hồ sơ thật; epoch của API loại bỏ phản hồi thuộc tài khoản cũ sau khi đổi vai trò. */
+    async function loadProfile() {
+        if (!hasRole('CUSTOMER') || state.profileSaving) return;
+        const epoch = state.epoch;
+        state.profileReady = false;
+        renderProfile();
+        $('#profile-status').textContent = 'Đang tải thông tin…';
+        renderPermissions();
+        try {
+            state.user = await api('/users/me', { channel: 'profile-read' });
+            state.profileReady = true;
+            renderProfile();
+            renderIdentity();
+            $('#profile-status').textContent = '';
+        } catch (error) {
+            if (epoch === state.epoch && error.name !== 'AbortError') {
+                $('#profile-status').textContent = 'Chưa tải được hồ sơ. Bấm Làm mới để thử lại.';
+            }
+            throw error;
+        } finally {
+            if (epoch === state.epoch) renderPermissions();
+        }
+    }
+
+    /** Chỉ gửi liên hệ được phép; không đổi token, email hoặc vai trò và không tự sửa giỏ/đơn cũ. */
+    async function saveProfile() {
+        if (!hasRole('CUSTOMER') || !state.profileReady || state.profileSaving) return;
+        const epoch = state.epoch;
+        state.profileSaving = true;
+        $('#profile-status').textContent = 'Đang lưu thông tin…';
+        renderPermissions();
+        try {
+            state.user = await api('/users/me', {
+                method: 'PATCH',
+                body: { full_name: $('#profile-name').value, phone: $('#profile-phone').value },
+                channel: 'profile-save',
+            });
+            renderProfile();
+            renderIdentity();
+            $('#profile-status').textContent = 'Đã lưu thông tin.';
+            notify('success', 'Thông tin tài khoản đã được cập nhật.', 'HTTP 200 OK');
+        } catch (error) {
+            if (epoch === state.epoch && error.name !== 'AbortError') {
+                $('#profile-status').textContent = 'Chưa lưu được. Kiểm tra thông tin và thử lại.';
+            }
+            throw error;
+        } finally {
+            if (epoch === state.epoch) {
+                state.profileSaving = false;
+                renderPermissions();
+            }
+        }
+    }
+
+    /** Chỉ điền ô trống khi mở giỏ; giữ nguyên người nhận mà khách đã nhập, kể cả khác chủ tài khoản. */
+    function prefillCheckoutFromProfile() {
+        if (!hasRole('CUSTOMER')) return;
+        if (!$('#delivery-name').value.trim()) $('#delivery-name').value = state.user.full_name || '';
+        if (!$('#delivery-phone').value.trim()) $('#delivery-phone').value = state.user.phone || '';
     }
 
     /** Dữ liệu công khai tách khỏi lựa chọn kho vận hành; không gọi báo cáo hoặc kho nội bộ cho khách. */
@@ -1371,16 +1799,27 @@
         '2000-5000': { min: '2000000', max: '5000000' },
         'over-5000': { min: '5000000.01', max: '' },
     };
+    /* Thanh kéo chọn theo bước 50.000đ; ô nhập vẫn giữ chính xác hai chữ số thập phân của API. */
+    const PRICE_SLIDER_STEP = 50_000;
+    const PRICE_SLIDER_DEFAULT_MAX = 50_000_000;
+    const MAX_CATALOG_PRICE = 9_999_999_999.99;
+    let priceSliderDrag = null;
+
+    /** So sánh điều kiện giá theo giá trị số, nhưng phân biệt ô trống với một đầu mút cụ thể. */
+    function sameCatalogPrice(current, expected) {
+        return current === '' || expected === '' ? current === expected : Number(current) === Number(expected);
+    }
 
     /** Trạng thái chip luôn phản ánh bộ lọc đã áp dụng, kể cả khi nhập giá tay hoặc quay lại URL cũ. */
     function syncQuickPriceChips() {
         $$('[data-price-chip]').forEach((button) => {
             const range = QUICK_PRICE_RANGES[button.dataset.priceChip];
-            const same = (current, expected) =>
-                current === '' || expected === '' ? current === expected : Number(current) === Number(expected);
             button.setAttribute(
                 'aria-pressed',
-                String(same(state.catalogMinPrice, range.min) && same(state.catalogMaxPrice, range.max)),
+                String(
+                    sameCatalogPrice(state.catalogMinPrice, range.min) &&
+                        sameCatalogPrice(state.catalogMaxPrice, range.max),
+                ),
             );
         });
     }
@@ -1401,6 +1840,80 @@
         $('#catalog-max-price').value = state.catalogMaxPrice;
         validateCatalogPriceFields();
         syncQuickPriceChips();
+        syncCatalogPriceSlider();
+    }
+
+    /**
+     * Đồng bộ hình học và nhãn từ bản nháp; không làm tròn ô nhập hoặc tự áp giá đang gõ.
+     * Thang kéo mở rộng khi nhập giá lớn; đầu trên trống luôn có nghĩa không giới hạn.
+     */
+    function syncCatalogPriceSlider({ keepDomain = false, dragging = false } = {}) {
+        const minimum = $('#catalog-min-price');
+        const maximum = $('#catalog-max-price');
+        const low = $('#catalog-price-low');
+        const high = $('#catalog-price-high');
+        const minimumValue = Number.isFinite(minimum.valueAsNumber) ? Math.max(0, minimum.valueAsNumber) : 0;
+        const maximumValue = Number.isFinite(maximum.valueAsNumber) ? Math.max(0, maximum.valueAsNumber) : null;
+        const required = Math.min(MAX_CATALOG_PRICE, Math.max(minimumValue + PRICE_SLIDER_STEP, maximumValue || 0));
+        const ceiling = keepDomain
+            ? Number(high.max)
+            : Math.max(PRICE_SLIDER_DEFAULT_MAX, Math.ceil(required / 5_000_000) * 5_000_000);
+        const start = Math.min(minimumValue, ceiling);
+        const end = maximumValue === null ? ceiling : Math.min(maximumValue, ceiling);
+        low.max = high.max = String(ceiling);
+        low.value = String(start);
+        high.value = String(end);
+        const container = $('#catalog-price-slider');
+        container.style.setProperty('--price-start', (Math.min(start, end) / ceiling) * 100 + '%');
+        container.style.setProperty('--price-end', (Math.max(start, end) / ceiling) * 100 + '%');
+        $('#catalog-price-low-label').textContent = amount(minimumValue);
+        $('#catalog-price-high-label').textContent = maximumValue === null ? 'Không giới hạn' : amount(maximumValue);
+        low.setAttribute('aria-valuetext', 'Từ ' + amount(minimumValue));
+        high.setAttribute('aria-valuetext', maximumValue === null ? 'Không giới hạn' : 'Đến ' + amount(maximumValue));
+        const draft =
+            !sameCatalogPrice(minimum.value, state.catalogMinPrice) ||
+            !sameCatalogPrice(maximum.value, state.catalogMaxPrice);
+        $('#catalog-price-hint').textContent = dragging
+            ? 'Thả tay để áp dụng khoảng giá đã chọn.'
+            : draft
+              ? 'Bấm Áp dụng để lọc theo giá đã nhập.'
+              : 'Kéo và thả để lọc. Nhập giá bên dưới để chọn chính xác.';
+    }
+
+    /** Chỉ đổi đầu mút đang kéo; giữ nguyên phần thập phân hoặc đầu mút trống ở bên còn lại. */
+    function updatePriceDraftFromSlider(id) {
+        const minimum = $('#catalog-min-price');
+        const maximum = $('#catalog-max-price');
+        const ceiling = Number($('#catalog-price-high').max);
+        if (id === 'catalog-price-low') {
+            const upper = Number.isFinite(maximum.valueAsNumber) ? Math.max(0, maximum.valueAsNumber) : ceiling;
+            const value = Math.min(Number($('#catalog-price-low').value), upper, MAX_CATALOG_PRICE);
+            minimum.value = value === 0 ? '' : String(value);
+        } else {
+            const value = Number($('#catalog-price-high').value);
+            const lower = Number.isFinite(minimum.valueAsNumber) ? Math.max(0, minimum.valueAsNumber) : 0;
+            maximum.value = value >= ceiling ? '' : String(Math.min(MAX_CATALOG_PRICE, Math.max(value, lower)));
+        }
+        $('#catalog-price-slider').dataset.activeHandle = id;
+        validateCatalogPriceFields();
+        syncCatalogPriceSlider({ keepDomain: true, dragging: true });
+    }
+
+    /** Thả tay hoặc gửi form mới áp dụng; không gửi lặp cùng điều kiện đang tải/đã hiển thị, lỗi đọc vẫn thử lại được. */
+    async function applyCatalogPriceDraft() {
+        if (!validateCatalogPriceFields()) return;
+        const minimum = $('#catalog-min-price').value;
+        const maximum = $('#catalog-max-price').value;
+        const unchanged =
+            sameCatalogPrice(minimum, state.catalogMinPrice) && sameCatalogPrice(maximum, state.catalogMaxPrice);
+        if (unchanged && $('#catalog-grid').dataset.catalogStatus !== 'error') {
+            syncCatalogPriceFields();
+            return;
+        }
+        state.catalogMinPrice = minimum;
+        state.catalogMaxPrice = maximum;
+        syncCatalogPriceFields();
+        await reloadCatalogFilters();
     }
 
     /** HTML kiểm tra kiểu số/độ chính xác; điều kiện chéo báo rõ giá từ lớn hơn giá đến. */
@@ -1409,16 +1922,84 @@
         const maximum = $('#catalog-max-price');
         const invalid = minimum.value !== '' && maximum.value !== '' && Number(minimum.value) > Number(maximum.value);
         maximum.setCustomValidity(invalid ? 'Giá đến phải lớn hơn hoặc bằng giá từ.' : '');
+        const fields = [minimum, maximum];
+        const broken = fields.find((field) => !field.validity.valid);
+        let message = invalid ? 'Giá đến phải lớn hơn hoặc bằng giá từ.' : '';
+        if (broken?.validity.badInput) message = 'Vui lòng nhập giá hợp lệ.';
+        else if (broken?.validity.rangeUnderflow) message = 'Giá không được âm.';
+        else if (broken?.validity.rangeOverflow) message = 'Giá không vượt quá ' + amount(MAX_CATALOG_PRICE) + '.';
+        else if (broken?.validity.stepMismatch) message = 'Giá chỉ có tối đa hai chữ số thập phân.';
         const error = $('#catalog-price-error');
-        error.hidden = !invalid;
-        error.textContent = invalid ? maximum.validationMessage : '';
+        error.hidden = !message;
+        error.textContent = message;
+        fields.forEach((field) => field.setAttribute('aria-invalid', String(!field.validity.valid)));
         return $('#catalog-price-filter').checkValidity();
     }
 
     /** Bỏ lỗi chéo ngay khi người dùng sửa lại giá, tránh customValidity cũ chặn lần gửi hợp lệ. */
     document.addEventListener('input', (event) => {
-        if (['catalog-min-price', 'catalog-max-price'].includes(event.target.id)) validateCatalogPriceFields();
+        if (['catalog-min-price', 'catalog-max-price'].includes(event.target.id)) {
+            validateCatalogPriceFields();
+            syncCatalogPriceSlider();
+        } else if (['catalog-price-low', 'catalog-price-high'].includes(event.target.id)) {
+            updatePriceDraftFromSlider(event.target.id);
+        }
     });
+
+    /** Native range hỗ trợ Tab/phím mũi tên/Home/End; sự kiện change chỉ đọc catalog sau khi chọn xong. */
+    document.addEventListener('change', (event) => {
+        if (['catalog-price-low', 'catalog-price-high'].includes(event.target.id)) execute(applyCatalogPriceDraft);
+    });
+
+    /** Bấm/kéo trên nền thanh chọn đầu mút gần nhất; thumb vẫn dùng tương tác range gốc của trình duyệt. */
+    function movePriceTrackPointer(event) {
+        if (!priceSliderDrag || priceSliderDrag.pointerId !== event.pointerId) return;
+        const box = $('#catalog-price-slider').getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (event.clientX - box.left - 10) / (box.width - 20)));
+        const value = Math.round((ratio * priceSliderDrag.ceiling) / PRICE_SLIDER_STEP) * PRICE_SLIDER_STEP;
+        $('#' + priceSliderDrag.id).value = String(value);
+        updatePriceDraftFromSlider(priceSliderDrag.id);
+    }
+    const priceSlider = $('#catalog-price-slider');
+    priceSlider.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0 || event.isPrimary === false || event.target.matches('input')) return;
+        const box = priceSlider.getBoundingClientRect();
+        const ceiling = Number($('#catalog-price-high').max);
+        const value = Math.max(0, Math.min(1, (event.clientX - box.left - 10) / (box.width - 20))) * ceiling;
+        const low = Number($('#catalog-price-low').value);
+        const high = Number($('#catalog-price-high').value);
+        const useLow = low === high ? value < low : Math.abs(value - low) < Math.abs(value - high);
+        priceSliderDrag = {
+            id: useLow ? 'catalog-price-low' : 'catalog-price-high',
+            pointerId: event.pointerId,
+            ceiling,
+            minimum: $('#catalog-min-price').value,
+            maximum: $('#catalog-max-price').value,
+        };
+        event.preventDefault();
+        priceSlider.setPointerCapture(event.pointerId);
+        $('#' + priceSliderDrag.id).focus({ preventScroll: true });
+        movePriceTrackPointer(event);
+    });
+    priceSlider.addEventListener('pointermove', movePriceTrackPointer);
+    priceSlider.addEventListener('pointerup', (event) => {
+        if (!priceSliderDrag || priceSliderDrag.pointerId !== event.pointerId) return;
+        movePriceTrackPointer(event);
+        priceSliderDrag = null;
+        if (priceSlider.hasPointerCapture(event.pointerId)) priceSlider.releasePointerCapture(event.pointerId);
+        execute(applyCatalogPriceDraft);
+    });
+    /** Hủy cử chỉ (ví dụ vuốt trang dọc) trả bản nháp về trước khi kéo và không gọi API. */
+    function cancelPriceTrackPointer(event) {
+        if (!priceSliderDrag || priceSliderDrag.pointerId !== event.pointerId) return;
+        $('#catalog-min-price').value = priceSliderDrag.minimum;
+        $('#catalog-max-price').value = priceSliderDrag.maximum;
+        priceSliderDrag = null;
+        validateCatalogPriceFields();
+        syncCatalogPriceSlider();
+    }
+    priceSlider.addEventListener('pointercancel', cancelPriceTrackPointer);
+    priceSlider.addEventListener('lostpointercapture', cancelPriceTrackPointer);
 
     /** Bất kỳ bộ lọc/thứ tự mới nào đều quay về trang đầu; điều hướng từ chi tiết vẫn dùng History API. */
     async function reloadCatalogFilters({ scroll = false } = {}) {
@@ -1558,6 +2139,7 @@
             state.branchId = state.warehouses.length ? String(state.warehouses[0].id) : '';
         }
         renderWarehouses();
+        saveCart();
     }
 
     /** Phạm vi staff lấy từ phân công database, không suy đoán bằng email demo hay ID kho mặc định. */
@@ -1722,6 +2304,86 @@
                 <span class="product-image-error" hidden>Chưa tải được ảnh. Vui lòng kiểm tra kết nối.</span>
             </div>
         `;
+    }
+
+    /**
+     * Trưng bày tối đa ba model từ trang catalog đã tải, ưu tiên ngành hàng khác nhau.
+     * Dùng ảnh đã lưu và giá thật; không gọi thêm API, không tự gán bán chạy hoặc ưu đãi.
+     */
+    function renderHeroShowcase(products, { failed = false } = {}) {
+        const container = $('#hero-showcase');
+        const candidates = products.filter(
+            (product) => product.status === 'ACTIVE' && Number.isSafeInteger(Number(product.id)),
+        );
+        const selected = [];
+        const categories = new Set();
+        candidates.forEach((product) => {
+            if (selected.length < 3 && !categories.has(product.category_id)) {
+                selected.push(product);
+                categories.add(product.category_id);
+            }
+        });
+        candidates.forEach((product) => {
+            if (selected.length < 3 && !selected.some((value) => value.id === product.id)) selected.push(product);
+        });
+        // Chỉ thay DOM khi dữ liệu công khai đổi, tránh phát lại hiệu ứng và làm mất focus không cần thiết.
+        const signature = JSON.stringify({
+            products: selected.map((product) => [
+                product.id,
+                product.name,
+                product.category_name,
+                product.brand_name,
+                product.image_url,
+                product.image_urls,
+                product.min_price,
+                product.max_price,
+                product.unit_price,
+            ]),
+            failed,
+        });
+        if (container.dataset.signature === signature) return;
+        container.dataset.signature = signature;
+        container.dataset.count = String(selected.length);
+        container.setAttribute('aria-busy', 'false');
+        if (!selected.length) {
+            container.innerHTML = `
+                <div class="hero-showcase-empty">
+                    <span>KHÁM PHÁ CÙNG STOCKFLOW</span>
+                    <strong>Một lựa chọn mới.<br />Một trải nghiệm mới.</strong>
+                    <p>${failed ? 'Chưa tải được sản phẩm. Bạn có thể thử làm mới kệ hàng bên dưới.' : 'Khám phá danh mục hoặc đổi bộ lọc để tìm thiết bị phù hợp với bạn.'}</p>
+                </div>
+            `;
+            return;
+        }
+        const positions = ['main', 'secondary', 'tertiary'];
+        container.innerHTML = selected
+            .map((product, index) => {
+                const source =
+                    safeProductImageUrl(product.image_url) ||
+                    (product.image_urls || []).map(safeProductImageUrl).find(Boolean);
+                const price = product.min_price ?? product.unit_price;
+                const from = product.min_price != null && Number(product.min_price) !== Number(product.max_price);
+                return `
+                    <a class="hero-device hero-device-${positions[index]}" href="${productPagePath(product.id)}"
+                        data-product-link data-product-id="${product.id}" aria-label="Xem sản phẩm ${escapeHtml(product.name)}">
+                        <div class="hero-device-media">
+                            ${
+                                source
+                                    ? `<img src="${escapeHtml(source)}" alt="${escapeHtml(product.name)}"
+                                width="320" height="320" decoding="async" data-hero-image />`
+                                    : ''
+                            }
+                            <span class="hero-image-error" ${source ? 'hidden' : ''}>${source ? 'Ảnh chưa tải được.' : 'Xem thông tin sản phẩm'}</span>
+                        </div>
+                        <div class="hero-device-information">
+                            <span class="hero-device-category">${escapeHtml(product.brand_name || product.category_name)}</span>
+                            <span class="hero-device-name">${escapeHtml(product.name)}</span>
+                            <strong class="hero-device-price">${from ? 'Từ ' : ''}${amount(price)}</strong>
+                        </div>
+                    </a>
+                `;
+            })
+            .join('');
     }
 
     /** Tình trạng chi nhánh lấy từ API chỉ đọc; hàng đã giữ hoặc SKU ngừng bán không được coi là còn hàng. */
@@ -2425,6 +3087,7 @@
 
     /** Kệ chỉ hiển thị ACTIVE; tìm kiếm tên/SKU kết hợp danh mục và phân trang tại database. */
     async function loadCatalog() {
+        $('#catalog-grid').dataset.catalogStatus = 'loading';
         renderCatalogLoading();
         $('#catalog-pagination').replaceChildren();
         $('#catalog-count').textContent = '—';
@@ -2450,12 +3113,16 @@
             });
             result.content.forEach((product) => state.products.set(product.id, product));
             renderProducts(result.content);
+            renderHeroShowcase(result.content);
+            $('#catalog-grid').dataset.catalogStatus = 'ready';
             $('#catalog-count').textContent = integer(result.total_elements) + ' sản phẩm đang bán';
             renderPager('catalog', result);
             renderCart();
             if (state.view === 'shop' && state.shopTab === 'catalog') replaceHash();
         } catch (error) {
             if (error.name !== 'AbortError') {
+                $('#catalog-grid').dataset.catalogStatus = 'error';
+                renderHeroShowcase([], { failed: true });
                 $('#catalog-grid').innerHTML =
                     '<div class="grid-message">Chưa tải được sản phẩm. Vui lòng làm mới.</div>';
                 $('#catalog-count').textContent = 'Chưa tải được sản phẩm';
@@ -2517,13 +3184,36 @@
             })
             .join('');
         if (!state.cart.size) {
+            const waiting = state.cartLoading || state.cartRestoreFailed;
             $('#cart-items').innerHTML =
                 '<div class="empty-state">' +
                 icon('cart') +
-                '<h3>Giỏ hàng đang trống</h3><p>Thêm món đồ yêu thích từ cửa hàng để bắt đầu.</p>' +
-                '<button class="button primary empty-cart-cta" type="button" data-action="explore-products">Khám phá sản phẩm ngay ' +
-                icon('arrow') +
-                '</button></div>';
+                '<h3>' +
+                (waiting ? 'Đang khôi phục giỏ hàng' : 'Giỏ hàng đang trống') +
+                '</h3><p>' +
+                (waiting
+                    ? 'Thông tin sản phẩm sẽ hiển thị sau khi kết nối thành công.'
+                    : 'Thêm món đồ yêu thích từ cửa hàng để bắt đầu.') +
+                '</p>' +
+                (waiting
+                    ? ''
+                    : '<button class="button primary empty-cart-cta" type="button" data-action="explore-products">Khám phá sản phẩm ngay ' +
+                      icon('arrow') +
+                      '</button>') +
+                '</div>';
+        }
+        if (state.cartRestoreFailed) {
+            $('#cart-items').insertAdjacentHTML(
+                'beforeend',
+                `<div class="notice error" role="status">
+                    ${icon('alert')}
+                    <div class="notice-content">
+                        <strong>Chưa khôi phục được giỏ hàng</strong>
+                        <div>Bản lưu vẫn được giữ. Kiểm tra kết nối và thử lại để cập nhật giá trước khi đặt hàng.</div>
+                        <button class="button secondary small" type="button" data-action="retry-cart">Thử lại</button>
+                    </div>
+                </div>`,
+            );
         }
         $('#cart-total').textContent = amount(total);
         $('#cart-badge').textContent = integer(quantity);
@@ -2534,13 +3224,18 @@
     /** Gộp theo productId để mỗi sản phẩm chỉ xuất hiện một lần trong request đặt đơn. */
     function addCart(id, quantity = 1) {
         if (isOperator()) return;
+        if (state.cartLoading || state.cartRestoreFailed || state.authBusy) {
+            throw new Error('Vui lòng khôi phục giỏ và chờ phiên đăng nhập cập nhật xong trước khi thêm sản phẩm.');
+        }
         const product = saleSku(state.products.get(id));
         if (!product || product.status !== 'ACTIVE') return;
         const item = state.cart.get(id);
+        if (!item && state.cart.size >= MAX_CART_ITEMS) throw new Error('Một đơn tối đa 100 mặt hàng.');
         if (!Number.isInteger(quantity) || quantity < 1) throw new Error('Số lượng phải là số nguyên dương.');
         const totalQuantity = (item ? item.quantity : 0) + quantity;
         if (totalQuantity > MAX_QUANTITY) throw new Error('Số lượng đã đạt giới hạn.');
         state.cart.set(id, { product, quantity: totalQuantity });
+        saveCart();
         renderCart();
         bounceCart();
         notify('success', 'Đã thêm ' + product.name + ' vào giỏ hàng.');
@@ -2548,6 +3243,7 @@
 
     /** Số lượng giỏ phải là số nguyên dương trong giới hạn INTEGER của API. */
     function setCartQuantity(id, quantity) {
+        if (state.cartLoading || state.cartRestoreFailed) return;
         const item = state.cart.get(id);
         if (!item) return;
         if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) {
@@ -2555,6 +3251,7 @@
             throw new Error('Số lượng phải là số nguyên từ 1 đến ' + integer(MAX_QUANTITY) + '.');
         }
         item.quantity = quantity;
+        saveCart();
         renderCart();
     }
 
@@ -2572,6 +3269,8 @@
             return;
         }
         if (!hasRole('CUSTOMER')) throw new Error('Dùng tài khoản khách hàng để đặt đơn.');
+        if (state.cartLoading || state.cartRestoreFailed)
+            throw new Error('Khôi phục giỏ và cập nhật giá trước khi đặt hàng.');
         if (!state.cart.size) throw new Error('Thêm ít nhất một sản phẩm vào giỏ.');
         if (!state.branchId) throw new Error('Chọn chi nhánh chuẩn bị đơn.');
         const result = await api('/orders', {
@@ -2591,6 +3290,7 @@
             },
         });
         state.cart.clear();
+        saveCart();
         resetCheckoutDetails();
         state.order = result;
         state.pages.orders = 0;
@@ -2605,9 +3305,41 @@
         await activateView('shop', 'orders');
     }
 
-    /** Lịch sử chỉ gọi /my cho CUSTOMER, không tải danh sách vận hành rồi lọc ở client. */
+    /** Dùng cùng một bảng cho tải tay và tải nền, giữ tổng số dòng/phân trang do backend trả. */
+    function renderMyOrders(result) {
+        state.myOrdersPage = result;
+        $('#orders-rows').innerHTML = result.content
+            .map(
+                (order) =>
+                    '<tr><td><strong class="mono">' +
+                    escapeHtml(order.order_code) +
+                    '</strong><span class="meta-line">' +
+                    escapeHtml(warehouseName(order.warehouse_id)) +
+                    ' · #' +
+                    order.id +
+                    '</span></td><td>' +
+                    statusBadge(order.status) +
+                    '<span class="meta-line mono">' +
+                    escapeHtml(order.shipment?.tracking_code || 'Chưa có vận đơn') +
+                    '</span></td>' +
+                    '<td class="align-right price">' +
+                    amount(order.total_amount) +
+                    '</td><td>' +
+                    '<button class="button secondary small" type="button" data-action="view-order" data-id="' +
+                    order.id +
+                    '">Xem</button></td></tr>',
+            )
+            .join('');
+        if (!result.content.length)
+            emptyRows('orders', 4, 'Bạn chưa có đơn hàng. Khám phá cửa hàng để đặt đơn đầu tiên.');
+        $('#orders-count').textContent = integer(result.total_elements) + ' đơn';
+        renderPager('orders', result);
+    }
+
+    /** Lịch sử chỉ gọi /my cho CUSTOMER; thao tác tay luôn ưu tiên hơn lần đồng bộ nền đang chạy. */
     async function loadOrders() {
         if (!hasRole('CUSTOMER')) return;
+        invalidateOrderRefresh();
         loadingRows('orders', 4, 'Đang tải đơn hàng của bạn…');
         $('#orders-pagination').replaceChildren();
         try {
@@ -2615,32 +3347,7 @@
                 channel: 'my-orders',
                 query: { page: state.pages.orders, size: 8 },
             });
-            $('#orders-rows').innerHTML = result.content
-                .map(
-                    (order) =>
-                        '<tr><td><strong class="mono">' +
-                        escapeHtml(order.order_code) +
-                        '</strong><span class="meta-line">' +
-                        escapeHtml(warehouseName(order.warehouse_id)) +
-                        ' · #' +
-                        order.id +
-                        '</span></td><td>' +
-                        statusBadge(order.status) +
-                        '<span class="meta-line mono">' +
-                        escapeHtml(order.shipment?.tracking_code || 'Chưa có vận đơn') +
-                        '</span></td>' +
-                        '<td class="align-right price">' +
-                        amount(order.total_amount) +
-                        '</td><td>' +
-                        '<button class="button secondary small" type="button" data-action="view-order" data-id="' +
-                        order.id +
-                        '">Xem</button></td></tr>',
-                )
-                .join('');
-            if (!result.content.length)
-                emptyRows('orders', 4, 'Bạn chưa có đơn hàng. Khám phá cửa hàng để đặt đơn đầu tiên.');
-            $('#orders-count').textContent = integer(result.total_elements) + ' đơn';
-            renderPager('orders', result);
+            renderMyOrders(result);
             if (!state.order && result.content.length) state.order = result.content[0];
             else if (state.order) {
                 const updated = result.content.find((order) => order.id === state.order.id);
@@ -2648,9 +3355,12 @@
             }
             await hydrateOrderProducts();
             renderOrder();
+            orderRefreshFailures = 0;
         } catch (error) {
             if (error.name !== 'AbortError') emptyRows('orders', 4, 'Chưa tải được đơn hàng. Vui lòng làm mới.');
             throw error;
+        } finally {
+            scheduleOrderRefresh();
         }
     }
 
@@ -2744,8 +3454,8 @@
     }
 
     /** DTO item chỉ có product_id; bổ sung tên từ catalog thật mà không thay giá snapshot của đơn. */
-    async function hydrateOrderProducts() {
-        const ids = [...new Set((state.order?.items || []).map((item) => item.product_id))];
+    async function hydrateOrderProducts(order = state.order) {
+        const ids = [...new Set((order?.items || []).map((item) => item.product_id))];
         await Promise.all(
             ids
                 .filter((id) => !state.products.has(id))
@@ -2758,12 +3468,17 @@
 
     /** Xóa chi tiết cũ trước tra cứu để lỗi 403/404 không để lại thông tin của đơn trước đó. */
     async function lookupOrder(id) {
+        invalidateOrderRefresh();
         state.order = null;
         renderOrder();
-        state.order = await api('/orders/' + id, { channel: 'order-detail' });
-        $('#order-id').value = String(state.order.id);
-        await hydrateOrderProducts();
-        renderOrder();
+        try {
+            state.order = await api('/orders/' + id, { channel: 'order-detail' });
+            $('#order-id').value = String(state.order.id);
+            await hydrateOrderProducts();
+            renderOrder();
+        } finally {
+            scheduleOrderRefresh();
+        }
     }
 
     /** Timeline biểu diễn trạng thái thật, không tự suy ra đã giao từ timestamp hoặc countdown. */
@@ -2909,11 +3624,14 @@
             order.id +
             '">' +
             icon('refresh') +
-            'Tải lại</button></div>';
+            'Tải lại</button></div>' +
+            (hasRole('CUSTOMER')
+                ? '<p class="meta-line" data-order-sync>Tự cập nhật trạng thái khi bạn đang xem đơn.</p>'
+                : '');
         updateCountdown();
     }
 
-    /** Countdown không đổi EXPIRED ở client; khách tải lại để nhận trạng thái từ backend. */
+    /** Countdown chỉ nhắc hạn và kích hoạt GET; EXPIRED cùng thao tác nhả hàng vẫn do backend quyết định. */
     function updateCountdown() {
         $$('[data-expires]').forEach((element) => {
             const remaining = Math.max(0, Math.ceil((new Date(element.dataset.expires).getTime() - Date.now()) / 1000));
@@ -2924,7 +3642,15 @@
                       ' phút ' +
                       String(remaining % 60).padStart(2, '0') +
                       ' giây giữ hàng'
-                    : 'Đã đến hạn giữ hàng. Tải lại đơn để xem kết quả từ hệ thống.';
+                    : 'Đã đến hạn giữ hàng. Đang kiểm tra trạng thái từ hệ thống…';
+            if (
+                remaining === 0 &&
+                canAutoRefreshOrders() &&
+                !orderRefreshFailures &&
+                Date.now() - lastOrderRefreshAttempt >= EXPIRED_ORDER_REFRESH_MS
+            ) {
+                scheduleOrderRefresh(0);
+            }
         });
     }
 
@@ -2944,6 +3670,7 @@
 
     /** Mọi hành động gửi POST thật; không trừ kho tại client hoặc ship lần hai. */
     async function mutateOrder(id, action) {
+        invalidateOrderRefresh();
         const segment = action === 'pay' ? 'payment-simulations/confirm' : action;
         const path = '/orders/' + id + '/' + segment;
         let body;
@@ -4657,7 +5384,9 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
                 ? '#portal/' + state.portalTab
                 : state.shopTab === 'orders'
                   ? '#shop/orders'
-                  : '#shop';
+                  : state.shopTab === 'account'
+                    ? '#shop/account'
+                    : '#shop';
         return '/' + hash;
     }
 
@@ -4687,18 +5416,21 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             state.portalTab = canPortalTab(tab) ? tab : 'queue';
             if (['products', 'categories', 'admin'].includes(state.portalTab)) state.catalogExpanded = true;
         } else {
-            if (tab === 'orders' && !hasRole('CUSTOMER')) {
-                openAuth('orders');
+            if (['orders', 'account'].includes(tab) && !hasRole('CUSTOMER')) {
+                openAuth(tab);
                 return;
             }
             state.view = 'shop';
-            state.shopTab = ['orders', 'product'].includes(tab) ? tab : 'catalog';
+            state.shopTab = ['orders', 'product', 'account'].includes(tab) ? tab : 'catalog';
         }
+        invalidateOrderRefresh();
         // Rời trang chi tiết phải hủy GET chậm trước khi nó kịp cập nhật DOM hoặc giá trong giỏ.
         channels.get('shop-product-detail')?.abort();
         channels.delete('shop-product-detail');
         channels.get('shop-product-availability')?.abort();
         channels.delete('shop-product-availability');
+        channels.get('profile-read')?.abort();
+        channels.delete('profile-read');
         state.availabilityEpoch++;
         state.productId = state.view === 'shop' && state.shopTab === 'product' ? Number(productId) : null;
         if (state.shopTab !== 'product' || state.view !== 'shop') {
@@ -4719,6 +5451,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
     async function refreshSection() {
         if (state.view === 'shop') {
             if (state.shopTab === 'orders') await loadOrders();
+            else if (state.shopTab === 'account') await loadProfile();
             else if (state.shopTab === 'product') await loadShopProductDetail();
             else await loadCatalog();
             return;
@@ -4790,6 +5523,12 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             }
             if (image instanceof HTMLImageElement && image.hasAttribute('data-catalog-image')) {
                 image.hidden = true;
+                return;
+            }
+            // Banner giữ tên/giá/liên kết khi CDN lỗi; không thay bằng ảnh của sản phẩm khác.
+            if (image instanceof HTMLImageElement && image.hasAttribute('data-hero-image')) {
+                image.hidden = true;
+                $('.hero-image-error', image.closest('.hero-device-media')).hidden = false;
                 return;
             }
             if (!(image instanceof HTMLImageElement) || !image.classList.contains('product-card-img')) return;
@@ -4903,6 +5642,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         else if (action === 'open-portal') execute(() => activateView('portal', state.portalTab));
         else if (action === 'open-shop') execute(() => activateView('shop', 'catalog'));
         else if (action === 'my-orders') execute(() => activateView('shop', 'orders'));
+        else if (action === 'my-account') execute(() => activateView('shop', 'account'));
         else if (action === 'dismiss-notice') $('#api-notice').hidden = true;
         else if (action === 'dismiss-toast') button.closest('.toast').remove();
         else if (action === 'logout') {
@@ -4934,6 +5674,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         } else if (action === 'refresh-product-availability') execute(loadProductAvailability);
         else if (action === 'select-product-branch') {
             state.branchId = String(id);
+            saveCart();
             renderWarehouses();
             execute(loadProductAvailability);
         } else if (action === 'gallery-select') selectGalleryImage(Number(button.dataset.photoIndex));
@@ -4970,8 +5711,12 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
                     : addCart(id),
             );
         else if (action === 'remove-cart') {
+            if (state.cartLoading || state.cartRestoreFailed) return;
             state.cart.delete(id);
+            saveCart();
             renderCart();
+        } else if (action === 'retry-cart') {
+            execute(() => busy(button, restoreCart));
         } else if (action === 'cart-plus' || action === 'cart-minus') {
             const item = state.cart.get(id);
             if (item) execute(() => setCartQuantity(id, item.quantity + (action === 'cart-plus' ? 1 : -1)));
@@ -5062,6 +5807,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             );
         } else if (input.hasAttribute('data-store-warehouse')) {
             state.branchId = input.value;
+            saveCart();
             renderWarehouses();
             refreshProductStock();
             execute(loadProductAvailability);
@@ -5096,12 +5842,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         const button = $('button[type="submit"]', form);
         const handlers = {
             'catalog-filter': () => reloadCatalogFilters(),
-            'catalog-price-filter': () => {
-                if (!validateCatalogPriceFields()) return;
-                state.catalogMinPrice = $('#catalog-min-price').value;
-                state.catalogMaxPrice = $('#catalog-max-price').value;
-                return reloadCatalogFilters();
-            },
+            'catalog-price-filter': applyCatalogPriceDraft,
             'queue-filter': () => {
                 state.order = null;
                 renderOrder();
@@ -5109,6 +5850,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
                 return loadQueue();
             },
             'order-create': createOrder,
+            'profile-form': saveProfile,
             'order-lookup': () => lookupOrder(Number($('#order-id').value)),
             'product-create': () => createProduct(form),
             'product-update': () => updateProduct(form),
@@ -5242,6 +5984,8 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             if (epoch !== state.epoch) return;
         }
         renderContext();
+        await restoreCart();
+        if (epoch !== state.epoch) return;
         await loadReferences();
         if (epoch !== state.epoch) return;
         await routeFromLocation();

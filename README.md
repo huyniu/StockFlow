@@ -5,11 +5,20 @@ A shopping website for **one computer-accessories and technology retailer owning
 
 The backend and two Vietnamese interfaces are implemented: a **customer storefront** and an **operations dashboard**, served directly by Spring Boot using HTML, CSS, and vanilla JavaScript. Guests and customers use the shop; operational accounts enter the dashboard. This is a single-store system, with no seller/tenant marketplace model.
 
+<!-- Nhận diện xanh dương thống nhất hai giao diện; trạng thái kho/lỗi vẫn có màu riêng. -->
+StockFlow uses a blue visual identity: `#2563EB` for primary actions, `#1D4ED8` for hover, and `#EFF6FF` for soft accents. Dark mode uses `#60A5FA` on navy surfaces. Catalog navigation, product configuration choices, checkout, the dashboard sidebar and the SVG favicon share this palette. See [theme colors and verification](docs/blue-theme.md).
+
+<!-- Banner trưng bày dùng catalog thật; menu cuộn riêng và chuyển động hỗ trợ giảm chuyển động. -->
+The storefront opens with a compact navy product showcase, displaying up to three models from the current catalog page with their saved photos, actual prices, and product-page links. Category navigation scrolls independently on desktop; mobile shows the showcase above a horizontal category strip. Image failures and empty/unavailable catalogs have explicit fallback states. See [showcase design and verification](docs/storefront-showcase.md).
+
 <!-- V15 bổ sung checkout người nhận đã chốt, giữ đơn lịch sử và các quy tắc tồn kho hiện có. -->
 Checkout now requires a recipient name, phone number, and delivery address, with an optional note. Shipping is free in this MVP. Each order stores its own fixed delivery snapshot, visible to its owner and authorized warehouse operators. To change delivery details, cancel a PENDING order and place a new one. Flyway V15 preserves existing orders without inventing historical addresses. See [checkout rules, API contract, and verification](docs/checkout-delivery.md).
 
+<!-- V16 bổ sung hồ sơ tự chỉnh sửa; liên hệ chỉ gợi ý checkout, không thay bản chụp của đơn cũ. -->
+Customers can open **Tài khoản** in the shop or visit `/#shop/account` to edit their full name and optional phone number. Authenticated users read `GET /api/v1/users/me` and update their own contact fields through `PATCH /api/v1/users/me`; IDs, email, passwords, roles and account status cannot be edited through this endpoint. Flyway V16 adds a nullable contact phone without changing existing accounts. Checkout prefills only empty name/phone inputs, preserving manually entered recipients and all existing orders. See [profile API, privacy rules and verification](docs/customer-profile.md).
+
 <!-- Chi tiết sản phẩm có dữ liệu thật; mô tả do Admin nhập, không sinh thông số hay khuyến mãi giả. -->
-Clicking a product card opens its own public page at `/san-pham/{id}`, with the saved image, SKU, category, price, and optional description. Links support new tabs, direct reloads, and browser Back/Forward; the cart remains in memory during in-app navigation. The separate Add to cart button still adds quickly. Customers choose a branch and quantity on the detail page. Admins create, edit, or clear plain-text descriptions of up to 5,000 characters. Flyway V7 adds the nullable field without replacing existing catalog or sales data. See [product pages and description editing](docs/product-details.md).
+Clicking a product card opens its own public page at `/san-pham/{id}`, with the saved image, SKU, category, price, and optional description. Links support new tabs, direct reloads, and browser Back/Forward; the cart and serving branch survive reloads within the browser tab's session. The separate Add to cart button still adds quickly. Customers choose a branch and quantity on the detail page. Admins create, edit, or clear plain-text descriptions of up to 5,000 characters. Flyway V7 adds the nullable field without replacing existing catalog or sales data. See [product pages and description editing](docs/product-details.md).
 
 <!-- Bộ ảnh V8 do Admin nhập; không tự thêm ảnh góc chụp hoặc viết lại ảnh bìa cũ. -->
 Product detail pages include a gallery with clickable thumbnails, previous/next controls, and arrow-key navigation. Admin forms accept up to **eight additional image URLs**, one per line, alongside the existing cover URL. Flyway V8 stores their order in `product_images`; public catalog responses expose `image_urls`. Existing products start with no additional photos and keep their cover images. See [gallery management and verification](docs/product-gallery.md).
@@ -113,6 +122,8 @@ erDiagram
         bigint role_id FK
         varchar email UK
         varchar password_hash
+        varchar full_name
+        varchar phone
         varchar status
     }
     categories {
@@ -353,7 +364,14 @@ Public `GET /api/v1/storefront/branches` supplies only active branch IDs, codes,
 
 Product search uses optional `q` on `GET /api/v1/products`, matching name/SKU before pagination. Optional `minPrice`/`maxPrice` include both boundaries and combine with category/status filters. Use `sort=unitPrice,asc` or `sort=unitPrice,desc` for price ordering; unknown sort fields and invalid price ranges return 400. The shop explicitly requests `status=ACTIVE`; administration can filter all statuses. Products expose optional `image_url`, backed by Flyway V6. Admin can enter and preview an image URL when creating or editing a product. PATCH omitting the image or passing null preserves it; an empty string removes it. Only ADMIN can write catalog data.
 
-JWTs are kept in the tab's sessionStorage; manual passwords are not persisted. Logout or switching authenticated accounts clears cart/private results and aborts old requests. Guest-to-customer checkout login keeps the selected cart/branch and asks the customer to review and submit. Refresh validates the actor through `users/me`; invalid tokens return to the public shop. The cart is held in memory and resets on reload. Stored product images take priority over illustrative name/category fallbacks. Hard-coded ratings, sales counts and bestseller labels have been removed.
+<!-- Thanh kéo chỉ đồng bộ bộ lọc giá hiện có; thả tay mới gửi truy vấn, không đổi hợp đồng API. -->
+The shop now has a two-handle price slider, exact-price inputs, and synchronized quick-price chips. Dragging previews the range; releasing applies it through the existing catalog GET and returns to page one while preserving category, brand, search, and sorting. The top endpoint means **no upper limit**; typing a larger amount expands the slider scale. Mouse, touch, keyboard, and light/dark mobile layouts are verified. See [price-filter behavior and verification](docs/price-filter.md).
+
+<!-- Giỏ lưu theo danh tính đã xác thực, chỉ giữ SKU/số lượng/chi nhánh; thông tin nhận hàng không được ghi vào storage. -->
+JWTs are kept in the tab's sessionStorage; manual passwords are not persisted. Logout or switching authenticated accounts clears cart/private results and aborts old requests. Guest-to-customer checkout login keeps the selected cart/branch and asks the customer to review and submit. Refresh validates the actor through `users/me`; invalid tokens return to the public shop. A separate versioned cart record stores only the verified owner, SKU IDs, quantities, and serving branch. Reloads fetch current product prices and version/color mappings; unavailable SKUs are removed, while temporary network errors preserve the saved cart for retry. Closing the tab ends this persistence; it is not a database or cross-device cart. Stored product images take priority over illustrative name/category fallbacks. Hard-coded ratings, sales counts and bestseller labels have been removed.
+
+<!-- Đồng bộ đơn chỉ dùng GET của khách; không suy ra EXPIRED hoặc gửi thao tác kho/thanh toán từ bộ đếm phía client. -->
+The customer's order screen refreshes from the existing APIs every 15 seconds while visible, immediately on returning to the tab, and every 5 seconds after a pending reservation reaches its deadline. Hidden tabs, other screens, and operational accounts do not run this customer polling. Unchanged responses keep the DOM stable; manual actions cancel older background reads. Network failures retain the displayed orders and back off up to 60 seconds. Only backend responses determine order status and shipment tracking. See [cart persistence, order synchronization, and verification](docs/cart-and-order-sync.md).
 
 <!-- Trang chi tiết tham khảo CellphoneS, giữ một thẻ/model và tồn riêng theo SKU thay vì sao chép dữ liệu thương mại. -->
 Product details use a retailer-style layout with a full category/brand breadcrumb, a large gallery, version choices and color thumbnails showing each SKU's actual price. Selecting a version or color updates `/san-pham/{skuId}`; reload, sharing and browser Back/Forward retain that choice. Catalog filter URLs retain the category, brand, search and price range.

@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Xử lý exception tập trung để mọi lỗi API trả về cùng một cấu trúc JSON.
@@ -18,6 +19,16 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** Đường dẫn không tồn tại trả 404 rõ ràng, không bị handler tổng quát đổi thành lỗi hệ thống 500. */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleMissingResource(
+            NoResourceFoundException exception,
+            HttpServletRequest request) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(buildResponse(
+                status, "Không tìm thấy tài nguyên yêu cầu.", request.getRequestURI(), null));
+    }
 
     /** JSON không đọc được là lỗi request 400, không phải lỗi hệ thống 500 khi truyền mã vận đơn. */
     @ExceptionHandler(HttpMessageNotReadableException.class)

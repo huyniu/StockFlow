@@ -36,6 +36,10 @@ public class User {
     @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 
+    // Số liên hệ tùy chọn; thông tin người nhận trên đơn vẫn là bản chụp độc lập.
+    @Column(length = 30)
+    private String phone;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
@@ -115,6 +119,11 @@ public class User {
      */
     public String getFullName() {
         return fullName;
+    }
+
+    /** Lấy số điện thoại liên hệ đã chuẩn hóa; tài khoản chưa bổ sung trả null. */
+    public String getPhone() {
+        return phone;
     }
 
     /**
