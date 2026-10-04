@@ -1,4 +1,4 @@
-<!-- Bàn giao cập nhật ngày 30/09/2026: quyết định kho/DISPATCH đã chốt và API fulfillment giai đoạn 2. -->
+<!-- Bàn giao ngày 02/10/2026: V12 có model/phiên bản/màu; trang bán lẻ và tín hiệu còn hàng giữ nguyên nghiệp vụ SKU. -->
 # StockFlow — Handoff cho Antigravity
 
 > Mục đích: đọc file này trước khi tư vấn, viết prompt, review hoặc đề xuất thay đổi cho project. Ưu tiên yêu cầu của người dùng nếu có mâu thuẫn với file này.
@@ -11,13 +11,17 @@ Người dùng đang định hướng ứng tuyển vị trí **Java Backend Dev
 2. Một dự án theo hướng nghiên cứu kỹ thuật.
 3. Một dự án thương mại có người dùng, nghiệp vụ và quy trình rõ ràng.
 
-**StockFlow** là dự án thứ ba và là dự án thương mại chính: **website bán hàng cho một cửa hàng/doanh nghiệp sở hữu nhiều kho**. Bản hoàn thiện có storefront cho khách và dashboard cho admin/nhân viên. Không làm marketplace, nhiều người bán hoặc hệ thống tenant. Project vẫn thể hiện năng lực backend Java, thiết kế database, transaction, SQL, test và tài liệu dự án.
+**StockFlow** là dự án thứ ba và là dự án thương mại chính: **website bán phụ kiện máy tính và thiết bị công nghệ cho một cửa hàng/doanh nghiệp sở hữu nhiều kho**. Tên storefront là **StockFlow Tech**. Người dùng được chọn ngành hàng cho bài tập lớn và đã đồng ý hướng công nghệ. Bản hoàn thiện có storefront cho khách và dashboard cho admin/nhân viên. Không làm marketplace, nhiều người bán hoặc hệ thống tenant. Project vẫn thể hiện năng lực backend Java, thiết kế database, transaction, SQL, test và tài liệu dự án.
 
 Tên dự án dùng trên CV:
 
-> **StockFlow – Retail Storefront & Multi-Warehouse Management**
+> **StockFlow – Technology Storefront & Multi-Warehouse Management**
 
-Dashboard demo hiện có vẫn được giữ để trình diễn. Ưu tiên hoàn thiện API trước khi tách hai nhóm giao diện. Đánh giá hiện trạng và lộ trình mới nằm tại [docs/storefront-roadmap.md](docs/storefront-roadmap.md).
+Catalog giữ năm nhóm công nghệ ban đầu. Người dùng đã yêu cầu menu theo ảnh CellphoneS: **Điện thoại**, **Laptop**, **Âm thanh/Mic**, **Đồng hồ/Camera**, **Gia dụng/Làm đẹp**, cùng nhóm con và hãng. V9/V10 đã lưu tham chiếu và bổ sung form ADMIN; không tự thêm sản phẩm gia dụng hay model nổi bật. V11 có thông số nhập tay và nhóm màu; V12 mở rộng thành model → phiên bản → màu, **một thẻ chung cho model** theo quyết định người dùng. Dung lượng điện thoại, kích thước/kết nối đồng hồ hoặc RAM/SSD laptop có thể là phiên bản; mỗi tổ hợp có SKU/giá/ảnh/tồn riêng, giữ nguyên ID và lịch sử cũ. Serial/IMEI và bảo hành chưa có. Xem [Danh mục và hãng](docs/catalog-categories-and-brands.md), [Model/phiên bản/màu](docs/product-models-versions-and-colors.md) và [Trang bán lẻ](docs/retail-product-detail.md).
+
+Lượt đổi ngành hàng đã kiểm chứng **219 test PASS**, test/package BUILD SUCCESS và **72 kiểm tra Chrome PASS** trên PostgreSQL QA mới. Sau đó người dùng yêu cầu xóa catalog cũ để tự thêm: ngày **01/10/2026** đã sao lưu và reset database `stockflow` tại `localhost:5432`. Tại thời điểm reset có **năm danh mục công nghệ, 0 sản phẩm/tồn kho/movements/đơn hàng**; giữ nguyên tài khoản, ba kho và phân công nhân viên. Người dùng đã thêm sản phẩm thủ công sau đó; không được coi snapshot reset là số liệu hiện tại. **21 yêu cầu API trực tiếp PASS** sau reset. Chi tiết bản sao lưu/phạm vi ở [docs/tech-store.md](docs/tech-store.md). Đây là reset vận hành một lần; startup runner không được tự xóa dữ liệu.
+
+Storefront và dashboard đã tách trong cùng ứng dụng tĩnh tại `/`. Khách vãng lai/CUSTOMER dùng cửa hàng; role vận hành vào dashboard sau đăng nhập. Lộ trình nằm tại [docs/storefront-roadmap.md](docs/storefront-roadmap.md), kiểm chứng mới nhất tại [docs/storefront-dashboard-verification.md](docs/storefront-dashboard-verification.md).
 
 ## 2. Mô hình phối hợp
 
@@ -48,13 +52,13 @@ Khi nhận một yêu cầu code, Antigravity nên:
 | Test | JUnit 5, Spring Boot Test, MockMvc, H2; Testcontainers PostgreSQL chưa triển khai |
 | Local infrastructure | Docker Compose |
 | CI | GitHub Actions test/package trên Java 17, đã có workflow |
-| Frontend | Demo HTML/CSS/JS hiện có; storefront và dashboard riêng triển khai sau API |
+| Frontend | Storefront/dashboard riêng bằng HTML/CSS/JS thuần, chạy cùng Spring Boot; không cần Node.js |
 
 Không dùng microservices, Kafka, payment gateway thật, carrier API thật hoặc frontend lớn trong MVP.
 
 ## 4. Bài toán sản phẩm
 
-StockFlow bán hàng trực tiếp cho khách và giúp một retailer quản lý sản phẩm, tồn kho nhiều kho, đơn hàng, giao nhận và lịch sử biến động tồn kho. Giỏ hàng có thể nằm ở frontend trong phiên bản đầu; chưa có nhu cầu thêm bảng carts.
+StockFlow Tech bán phụ kiện máy tính trực tiếp cho khách và giúp cửa hàng quản lý sản phẩm, tồn kho nhiều kho, đơn hàng, giao nhận và lịch sử biến động tồn kho. Giỏ hàng có thể nằm ở frontend trong phiên bản đầu; chưa có nhu cầu thêm bảng carts. Đã có mô tả văn bản và trang chi tiết công khai `/san-pham/{id}` cho khách; Admin nhập/sửa/xóa mô tả tối đa 5.000 ký tự. Bài tập lớn còn yêu cầu hồ sơ chỉnh sửa, đánh giá sau mua và tích hợp thanh toán; các phần này phải được nghiệm thu riêng, không coi mock giao diện hoặc nút thanh toán mô phỏng là đã đáp ứng.
 
 ### Vai trò
 
@@ -120,13 +124,20 @@ WHERE id = :inventoryId
 
 ## 7. Data model nền tảng đã có
 
-Schema hiện tại do V1–V5 quản lý, có bản migration PostgreSQL và H2 riêng. Chưa có ảnh/mô tả sản phẩm, địa chỉ giao hàng chụp tại thời điểm đặt, hoặc bảng giỏ hàng. Giai đoạn 2 dùng bảng shipment/payment hiện có, không sửa/thêm migration.
+Schema hiện tại do V1–V15 quản lý, có migration PostgreSQL và H2 riêng. V6 thêm ảnh bìa, V7 thêm mô tả tối đa 5.000 ký tự, V8 thêm tối đa 8 ảnh bổ sung có thứ tự. V9 thêm brands/brand_categories/products.brand_id; V10 thêm categories.parent_id và nhóm/hãng tham chiếu. V11 thêm product_specifications/product_variants; V12 thêm product_versions/product_version_specifications và version_id trên mapping màu. Không sửa migration đã áp dụng. Thông số là bảng tên–giá trị, chưa có lọc RAM/chip/màn hình chuyên biệt. Upload file ảnh và bảng giỏ hàng chưa có. V15 thêm snapshot người nhận/điện thoại/địa chỉ/ghi chú trên orders, giữ đơn cũ chưa có thông tin nhận hàng. Fulfillment dùng shipment/payment hiện có; lượt hoàn thiện trang bán lẻ không thêm schema.
 
 ```text
 roles
 users
 categories
+brands
+brand_categories
 products
+product_images
+product_specifications
+product_variants
+product_versions
+product_version_specifications
 warehouses
 warehouse_staff_assignments
 inventories
@@ -138,6 +149,26 @@ shipments
 ```
 
 ### Các bảng/cột quan trọng
+
+**product_specifications và product_variants (V11)**
+
+ADMIN nhập tối đa 60 thông số tên–giá trị hiệu lực; POST bỏ qua/null lưu rỗng, PATCH bỏ qua/null giữ nguyên, [] xóa bảng. V12 có tối đa 20 phiên bản/model, 30 màu/phiên bản và 100 SKU/model. product_variants.product_id trỏ trang chung, sku_product_id trỏ SKU Product thực bán và version_id trỏ cấu hình; SKU gốc cũng có mapping chính nó. Giữ nguyên FK inventories/order_items và atomic reserve. Nhập kho/đặt hàng dùng sku_product_id, không dùng ID mapping hoặc phiên bản. grouped=true loại SKU con tại SQL trước phân trang; mặc định GET products vẫn trả SKU để API cũ/phiếu nhập tương thích. Cả trang INACTIVE hoặc một màu disabled đều bị chặn lúc đặt, kể cả gửi trực tiếp ID. Không merge SKU cũ hoặc di chuyển SKU giữa phiên bản. Contract/giới hạn hiện tại ở docs/product-models-versions-and-colors.md; tài liệu V11 là lịch sử.
+
+**categories và brands**
+
+categories.parent_id nullable, FK tự tham chiếu và CHECK chặn tự làm cha. API ADMIN chỉ nối danh mục mới vào cha đã có, tối đa ba cấp; không có API đổi cha gây vòng lặp. Hãng độc lập và dùng chung, không tạo Apple/Samsung thành danh mục con. Gợi ý brand_categories mở rộng xuống hậu duệ và lên tổ tiên; hãng thực sự dùng trong sản phẩm được gợi ý ở nhóm đó/các nhóm cha. Lọc nhóm/hãng tại database trước phân trang.
+
+POST product cho phép brand_id null; PATCH bỏ qua/null giữ hãng, clear_brand=true xóa hãng. ProductResponse thêm category_id/brand_id/brand_name; CategoryResponse thêm parent_id. V9 chỉ gán Apple cho hàng từng thuộc iphone; không đoán hãng các hàng khác từ tên/mô tả.
+
+**product_images**
+
+```text
+product_id REFERENCES products(id), position, image_url
+PRIMARY KEY(product_id, position)
+CHECK(0 <= position AND position < 8)
+```
+
+Ảnh bìa vẫn ở products.image_url. image_urls trong API là ảnh bổ sung theo thứ tự; POST bỏ qua/null lưu mảng rỗng, PATCH bỏ qua/null giữ ảnh và mảng rỗng xóa ảnh bổ sung. Mỗi link tối đa 2.048 ký tự, validate như ảnh bìa và không trùng trong danh sách. ADMIN sửa catalog; khóa dòng sản phẩm khi PATCH để các lượt đổi bộ ảnh không xen lẫn nhau. Collection tải theo lô, không fetch join làm sai phân trang. Xem docs/product-gallery.md.
 
 **inventories**
 
@@ -196,13 +227,19 @@ GET   /api/v1/products
 GET   /api/v1/products/{id}
 POST  /api/v1/products
 PATCH /api/v1/products/{id}
+POST  /api/v1/products/{id}/variants
+PATCH /api/v1/products/{id}/variants/{variantId}
 
 GET   /api/v1/categories
 POST  /api/v1/categories
+GET   /api/v1/brands
+POST  /api/v1/brands
 
 GET   /api/v1/warehouses
 POST  /api/v1/warehouses
 GET   /api/v1/warehouses/order-options
+GET   /api/v1/warehouses/operating-options
+GET   /api/v1/storefront/branches
 ```
 
 ### Inventory
@@ -247,7 +284,7 @@ D:\IdeaProjects\Stockflow
 
 Các milestone backend nền tảng 0–6 đã có source và integration test: auth/JWT, catalog, warehouse, inventory/ledger, order/reserve/payment/cancel/expiry, reports/SQL, Swagger, seed demo và CI. Giao diện demo chạy cùng Spring Boot tại `/`.
 
-- Demo seed thực tế: 3 kho, 4 danh mục, 24 sản phẩm, 72 inventory và 72 movement GOODS_RECEIPT; không seed đơn giả để tạo doanh thu.
+- V9/V10 chuẩn bị 71 danh mục và 76 hãng; V13 hoàn thiện Tivi/Điện máy, Phụ kiện, Hàng cũ: database mới có 125 danh mục và 84 hãng. Profile demo mặc định chuẩn bị 4 tài khoản, 3 kho và phân công staff Hà Nội; chế độ nhập tay không tạo lại danh mục đã sửa/xóa. DEMO_SEED_CATALOG=true mới thêm 5 nhóm công nghệ (thành 130 danh mục trên database mới), 24 sản phẩm TECH-, 72 inventory và 72 GOODS_RECEIPT. Số lượng trên database đã sử dụng có thể khác vì giữ mọi danh mục tự nhập. Khởi động lại giữ dữ liệu đã có; không seed đơn giả.
 - PostgreSQL có trigger cấm UPDATE/DELETE ledger; H2 có Java trigger tương ứng và test bất biến. Chưa có suite Testcontainers chạy migration PostgreSQL tự động trong CI.
 - Scheduler hết hạn đã khóa/recheck order và chạy từng đơn trong transaction riêng; chưa có distributed scheduler lock.
 - JWT mặc định một giờ. Tài khoản INACTIVE bị chặn cả đăng nhập và xác thực token đã phát; chưa có refresh token hoặc thu hồi từng token khi logout.
@@ -257,7 +294,13 @@ Giai đoạn API đầu tiên cho mục tiêu mới bổ sung `GET /api/v1/order
 
 Giai đoạn 2 có API pack/ship/deliver/return. Chỉ ADMIN/MANAGER và staff được phân công kho thao tác; CUSTOMER bị chặn. OrderResponse và /orders/my có shipment (tracking_code/status/shipped_at/delivered_at), null trước đóng gói. Ship nhận body tùy chọn với tracking_code; pack cấp sẵn SF-TRACK-UUID vì schema tracking_code NOT NULL. Mã không được đổi sau ship, có UNIQUE chống trùng giữa hai đơn.
 
-Fulfillment dùng khóa dòng order chung với cancel/payment/expiry, kiểm tra chuyển trạng thái và idempotency tại trạng thái đích. Return nhận lại toàn bộ hàng theo inventoryId tăng dần, ghi movement mới và hoàn tiền mô phỏng cùng transaction; lỗi một mặt hàng phải rollback tất cả. Hủy sau SHIPPED bị chặn; đơn PACKED bị hủy giữ shipment PREPARING như lịch sử. Chi tiết kiểm chứng: [docs/fulfillment-verification.md](docs/fulfillment-verification.md).
+Fulfillment dùng khóa dòng order chung với cancel/payment/expiry, kiểm tra chuyển trạng thái và idempotency tại trạng thái đích. Return nhận lại toàn bộ hàng theo inventoryId tăng dần, ghi movement mới và hoàn tiền mô phỏng cùng transaction; lỗi một mặt hàng phải rollback tất cả. Hủy sau SHIPPED bị chặn; đơn PACKED bị hủy giữ shipment PREPARING như lịch sử. Các ca nghiệp vụ/concurrency nằm tại [FulfillmentIntegrationTest](src/test/java/com/stockflow/order/FulfillmentIntegrationTest.java).
+
+Giai đoạn 3 đã triển khai storefront/dashboard theo role và work queue có pack/ship/deliver/return. Chi nhánh công khai chỉ trả id/code/name của kho ACTIVE; lựa chọn vận hành đọc phân công hiện tại và giữ cả kho ngừng bán để xử lý đơn lịch sử. `/products` có `q` tìm tên/SKU trước phân trang và escape wildcard LIKE; storefront gửi `status=ACTIVE`. Không sửa schema/migration hoặc logic tồn.
+
+Storefront có menu nhiều cột lấy cây danh mục/hãng thật từ API; ADMIN tạo nhóm con/hãng qua dashboard. GET /products kết hợp categoryId (cả hậu duệ), brandId, từ khóa/trạng thái/minPrice/maxPrice trước phân trang. Giá gồm cả đầu mút; giá tăng/giảm/mới nhất có ID làm thứ tự phụ. Sort hỗ trợ id/sku/name/unitPrice/status/createdAt và alias unit_price/created_at; input sai trả 400. Laptop/âm thanh có khoảng giá riêng; thông số chip/màn hình/nhu cầu còn trong lộ trình. Xem docs/catalog-categories-and-brands.md.
+
+Khách chỉ có nút hủy PENDING; quản lý hủy CONFIRMED/PACKED trước SHIPPED. Staff không thấy ledger/reports/catalog admin; form nhập chỉ ADMIN/STAFF đúng contract. Demo login JWT thật đổi ngữ cảnh và xóa dữ liệu riêng/hủy request chậm. Giỏ ở bộ nhớ, giữ qua đăng nhập checkout của khách vãng lai nhưng xóa khi reload hoặc đổi tài khoản đã đăng nhập.
 
 ## 10. Lộ trình theo mục tiêu cửa hàng mới
 
@@ -275,18 +318,21 @@ Fulfillment dùng khóa dòng order chung với cancel/payment/expiry, kiểm tr
 - Dùng khóa dòng order, kiểm tra role/phạm vi kho, state transition và idempotency. Return phải có movement mới, không sửa movement cũ.
 - ADMIN/MANAGER hoặc staff kho đó xác nhận giao/nhận trả; MVP nhận trả toàn bộ, chưa có partial return hoặc customer return-request.
 
-### Giai đoạn 3 — API mua hàng và checkout
+### Giai đoạn 3 — Hai nhóm giao diện đã triển khai
 
-- Tìm kiếm catalog, contract public chỉ sản phẩm đang bán; bổ sung ảnh/mô tả khi có yêu cầu cụ thể.
+- Storefront ACTIVE/tìm kiếm/danh mục/phân trang, giỏ nhiều sản phẩm, chọn chi nhánh, đặt hàng, lịch sử/tracking, thanh toán và hủy PENDING.
+- Dashboard theo role: work queue/fulfillment, inventory/stock-in, ledger, reports và catalog admin.
+- Giữ 183 test cũ, thêm 11 test: 194 PASS. Chrome headless có 49 mốc PASS trên PostgreSQL QA riêng, gồm desktop/mobile, chuyển role, lỗi 403/409 và hoàn kho.
+- UI không tự quyết định giá, tồn, quyền hay trạng thái. Không thêm bảng carts hoặc bước build/dependency frontend.
+
+### Giai đoạn 4 — Ảnh bìa đã triển khai; contract nhận hàng còn lại
+
+- products.image_url lưu ảnh bìa qua POST/PATCH dành cho ADMIN; response public và form quản trị có xem trước, thay/xóa ảnh. Null/bỏ qua PATCH giữ nguyên, chuỗi trống xóa ảnh. HTTP/HTTPS hoặc /assets/ được validate, backend không tải ảnh bên ngoài. V8 thêm gallery qua image_urls; form nhập mỗi dòng một link, đổi thứ tự/xóa ảnh, trang chi tiết có thumbnail và nút trước/sau. Chưa có upload file.
+- products.description lưu mô tả văn bản tối đa 5.000 ký tự qua POST/PATCH ADMIN; null/bỏ qua PATCH giữ nguyên, chuỗi trống xóa mô tả. Bấm thẻ mở trang `/san-pham/{id}`, không dùng popup hoặc nút Xem chi tiết riêng ở storefront. Liên kết hỗ trợ mở tab mới, tải lại và Back/Forward; mô tả được escape để giữ an toàn. Chọn số lượng/chi nhánh rồi thêm vào giỏ hiện có. Controller trang chỉ forward giao diện, không mở quyền ghi catalog hoặc số liệu kho. Xem docs/product-details.md.
+- 24 test mới đưa suite lên **218 PASS**; test/package BUILD SUCCESS. V6 chạy trên PostgreSQL QA 13.2; Chrome có **69 kiểm tra PASS** (49 hồi quy, 20 ảnh/form). Danh sách 24 file và giới hạn kiểm chứng ở docs/product-images.md.
 - Khách tiếp tục chọn kho/chi nhánh phục vụ, một đơn thuộc một kho. Chốt thông tin người nhận/địa chỉ trước khi thêm schema checkout. Không làm tự allocation/split order trong MVP này.
 - Nếu cần schema mới, thêm migration kế tiếp cho PostgreSQL/H2; giữ snapshot giá và reserve nhiều sản phẩm trong một transaction.
 - Giữ giỏ ở frontend cho MVP; ownership đơn vẫn bắt buộc.
-
-### Giai đoạn 4 — Hai nhóm giao diện
-
-- Storefront: danh mục/chi tiết, giỏ, checkout, theo dõi đơn và vận đơn.
-- Dashboard: catalog, stock-in, danh sách xử lý đơn theo kho, fulfillment và reports.
-- Tái sử dụng API; UI không tự suy luận quyền hay cập nhật số tồn/trạng thái đơn.
 
 ### Giai đoạn 5 — Củng cố portfolio và vận hành
 
@@ -323,4 +369,56 @@ CV description dự kiến:
 
 > Developed StockFlow for a retailer operating multiple warehouses, using Spring Boot and PostgreSQL. Implemented scoped authorization, transactional stock reservation to prevent overselling, immutable inventory audit trails, shipment tracking and order fulfillment, sales reporting, a runnable demo, and automated integration tests.
 
-Storefront riêng chưa hoàn thiện; chỉ bổ sung giao diện đó vào CV sau khi triển khai và kiểm thử. Không coi lộ trình là thành tích đã hoàn thành.
+Storefront/dashboard được kiểm chứng cục bộ bằng Chrome headless và PostgreSQL. Đã có ảnh bìa URL, gallery có thứ tự, mô tả văn bản và chế độ catalog nhập tay; xem docs/product-images.md, docs/product-gallery.md và docs/product-details.md. Giao diện quản lý Catalog & Sản phẩm đã được tách thành 2 tab độc lập ("Sản phẩm" và "Danh mục") dạng menu xổ xuống (nav-group), kèm dialog/modal tạo mới sản phẩm, sửa sản phẩm, xem chi tiết tồn kho 3 chi nhánh và tạo mới danh mục (thay thế hoàn toàn inline forms cũ). Thao tác xóa sản phẩm tuân thủ quy tắc nghiệp vụ: chuyển trạng thái INACTIVE an toàn qua PATCH thay vì DELETE vật lý. Chưa có deployment công khai. Thông tin nhận hàng đã triển khai V15 theo quyết định ngày 04/10/2026. Upload file ảnh, bộ lọc thông số chuyên biệt, Testcontainers và các mục lộ trình chưa triển khai không được coi là đã hoàn thành.
+
+Ngày 02/10/2026, storefront đổi chi tiết sang trang `/san-pham/{id}` và toàn thẻ là liên kết, giữ nút thêm giỏ riêng. **234 test PASS**, package thành công và **42 kiểm tra Chrome PASS** trên PostgreSQL QA riêng; có Back/Forward, Ctrl-click, reload URL và hồi quy fulfillment/hoàn kho. Không có schema/migration mới hoặc thay đổi dữ liệu sử dụng thực tế trong lượt chuyển trang. Xem danh sách 12 file và phạm vi kiểm chứng trong docs/product-details.md.
+
+Ngày 02/10/2026, bổ sung thư viện ảnh V8: **260 test PASS**, package thành công sau test và **78 kiểm tra Chrome PASS** (36 bộ ảnh, 42 hồi quy). PostgreSQL QA chạy JAR V7 rồi nâng cấp V8, giữ nguyên 24 sản phẩm, 72 tồn kho, 72 movements và ảnh bìa. Bộ ảnh ban đầu rỗng; không tự tìm ảnh hoặc ghi dữ liệu vào database sử dụng thực tế. Khởi động lại ứng dụng để áp dụng V8 rồi Ctrl + F5. Hướng dẫn, contract, 22 file thay đổi và giới hạn kiểm chứng ở docs/product-gallery.md.
+
+Mốc menu/giá ban đầu: **295 test PASS**, **74 kiểm tra Chrome PASS**, schema V8; đây là lịch sử ở docs/catalog-discovery.md.
+
+Hãng/cây danh mục V9/V10: **353 test PASS**, JAR BUILD SUCCESS, **84 kiểm tra Chrome PASS** (42 mới + 42 hồi quy), 0 exception JavaScript trên PostgreSQL QA 13.2. Snapshot kiểm chứng nâng cấp giữ sản phẩm/ảnh/tồn/ledger/đơn/tài khoản. Database thật stockflow tại 5432 đã lên V10, có 81 danh mục/76 hãng, giữ 4 sản phẩm đã nhập và hai iPhone thuộc Điện thoại/Apple. Backup trước V10: target/db-backups/catalog-expansion-20261002_081730/stockflow.dump. File/giới hạn ở docs/catalog-categories-and-brands.md; khởi động lại Spring Boot và Ctrl+F5 để dùng bản mới.
+
+
+<!-- Mốc V11 hiện tại; các con số V9/V10 phía trên là lịch sử nghiệm thu. -->
+Ngày 02/10/2026, mốc V11 bổ sung thông số nhập tay và nhóm màu: **388 test PASS**, JAR BUILD SUCCESS, **86 kiểm tra Chrome PASS**. Đây là lịch sử triển khai chỉ gộp màu; phạm vi đó được mở rộng bằng V12 dưới đây. Backup và 28 file/giới hạn V11 ở docs/product-specifications-and-colors.md.
+
+<!-- Quyết định mới đã chốt: một thẻ model như Apple Watch SE 3, chọn phiên bản rồi màu. -->
+V12 thêm product_versions, bảng thông số riêng và version_id trên mapping màu. Nhóm màu V11 giữ nguyên ID/SKU/giá/ảnh/tồn/đơn trong phiên bản trung tính “Phiên bản hiện tại”; ADMIN đổi nhãn theo dữ liệu đúng. Không sửa migration V1–V11 hoặc tự merge SKU đã tạo độc lập. Cùng màu được phép ở phiên bản khác; UNIQUE và khóa ngoại ghép chặn trùng/sai model. API POST/PATCH versions chỉ ADMIN; các màu dùng version_id, contract variants V11 vẫn hoạt động khi bỏ trường này. Thông số riêng ghi đè nhãn chung, null giữ bảng và [] xóa ghi đè. Tạo/sửa cấu hình dùng cùng khóa model và transaction.
+
+Storefront/admin danh sách vẫn grouped=true tại SQL trước phân trang; filter/sort giá dùng min_price của SKU ACTIVE, unit_price giữ giá SKU gốc cho client cũ. Trang chi tiết chọn phiên bản rồi chỉ thấy các màu tương ứng; đổi cấu hình giữ số lượng/chi nhánh, cập nhật SKU/giá/ảnh/thông số. Giỏ, order, inventory và ledger tiếp tục dùng Product ID của SKU; không gộp tồn các cấu hình. DISPATCH/fulfillment/return không thay đổi. Không mở API tồn/ledger cho khách.
+
+**411 test PASS**, **81 kiểm tra Chrome PASS** (39 mới + 42 hồi quy), package BUILD SUCCESS, 0 exception JavaScript. PostgreSQL QA 13.2 nâng V11→V12 giữ 13 nhóm snapshot và 6 SKU thực tế; 12 request tranh 3 chiếc chỉ tạo 3 đơn, các cấu hình khác không bị lấy hàng. Khởi động lại Spring Boot để áp dụng V12 rồi Ctrl+F5. Hướng dẫn/API/file/giới hạn ở docs/product-models-versions-and-colors.md; backup target/db-backups/product-versions-20261002_173343/stockflow.dump. Không coi merge SKU cũ, landing page dòng máy, lọc thuộc tính, snapshot tên/cấu hình order item hoặc Testcontainers là đã hoàn thành.
+
+<!-- Kết quả trang bán lẻ hiện tại tách khỏi các mốc triển khai V11/V12 phía trên. -->
+Lượt hoàn thiện trang sản phẩm theo tham chiếu CellphoneS: **424 test PASS**, package BUILD SUCCESS và **114 kiểm tra Chrome PASS** trên PostgreSQL QA riêng, 0 exception JavaScript. Giữ một thẻ/model; phiên bản và màu có ảnh/giá riêng, URL SKU giữ lựa chọn qua reload/Back/Forward, breadcrumb nối nhóm cha và hãng. Thêm GET /api/v1/products/{id}/availability chỉ báo còn/hết tại kho ACTIVE, có no-store; không mở quantity/ledger hoặc thay atomic reserve. Đã bỏ đánh giá/lượt bán và nhãn bán chạy ghi cứng. Không có migration mới, mọi V1–V12 giữ hash. Hướng dẫn, 13 file thay đổi và giới hạn kiểm chứng ở docs/retail-product-detail.md. Khởi động lại Spring Boot rồi Ctrl+F5.
+
+<!-- Mốc V13 theo ba ảnh tham khảo mới; không thêm hàng mẫu hay tự gán logo hãng. -->
+V13 hoàn thiện nhánh Tivi/Điện máy, Phụ kiện và Hàng cũ, bổ sung tám hãng còn thiếu và gợi ý hãng theo loại hàng; hãng được dùng chung cho hàng mới/cũ. Thêm brands.logo_url nullable, POST /brands nhận logo tùy chọn, PATCH /brands/{id}/logo chỉ ADMIN. PATCH bắt buộc chuỗi logo_url; chuỗi trống xóa, null/bỏ trường trả 400. URL HTTP/HTTPS hoặc /assets/ được kiểm tra bằng ImageUrl hiện có; backend không tải ảnh bên ngoài. Không có upload file ở lượt này.
+
+ADMIN vào Danh mục & Sản phẩm → Danh mục, phần Thương hiệu có tìm kiếm, Sửa logo và form thêm hãng với preview ảnh. Menu cửa hàng dùng logo đã lưu kèm tên hãng, giữ bộ lọc ID; ảnh lỗi hiện tên/chữ viết tắt. Kiểm chứng: **453 test PASS**, package BUILD SUCCESS, **121 kiểm tra Chrome PASS** (40 danh mục/logo + 39 phiên bản/màu + 42 mua hàng/fulfillment), không có exception JavaScript trong các bài kiểm chứng.
+
+PostgreSQL thật stockflow tại localhost:5432 đã lên V13 ngày 03/10/2026, thêm 51 danh mục và 8 hãng thành 132 danh mục/84 hãng. Đối chiếu snapshot giữ 15 nhóm dữ liệu nghiệp vụ, toàn bộ ID/giá trị danh mục/hãng và liên kết cũ. Không sửa V1–V12 hoặc seed sản phẩm/tồn. Backup trước migration: target/db-backups/brand-logos-live-20261003_072254/stockflow.dump. Không dừng app 8080; người dùng khởi động lại Spring Boot để nạp API Java mới, rồi Ctrl+F5. Danh sách 19 file/hướng dẫn/giới hạn tại docs/catalog-completion-and-brand-logos.md.
+
+<!-- CRUD danh mục được thêm riêng; không mở quyền ghi cho khách và không xóa dây chuyền dữ liệu nghiệp vụ. -->
+Ngày 03/10/2026, bổ sung tìm/sửa/xóa danh mục: GET /categories nhận q tùy chọn, PATCH /categories/{id} sửa tên/slug và DELETE /categories/{id} xóa nhóm trống. PATCH/DELETE chỉ ADMIN; sửa giữ ID/cha/con, xóa chặn mọi SKU kể cả INACTIVE hoặc danh mục con và chỉ gỡ gợi ý brand_categories. Transaction/khóa dòng/UNIQUE/FK bảo vệ cập nhật, lỗi cạnh tranh trả 409. UI Admin có ô tìm tên/slug/ID/đường dẫn, nút Sửa/Xóa từng dòng và xác nhận xóa.
+
+Chế độ app.demo.seed-catalog=false không còn tự khôi phục năm nhóm demo đã xóa/đổi slug. Database mới sau V13 có 125 danh mục; bật seed catalog mới thêm năm nhóm Tech cùng sản phẩm/tồn mẫu. Không thay đổi dữ liệu có sẵn hoặc migration V1–V13. **479 test PASS**, package BUILD SUCCESS, **66 kiểm tra Chrome PASS** (24 danh mục + 42 mua hàng/fulfillment), không có exception JavaScript trên PostgreSQL QA riêng. Database sử dụng thực tế/app 8080 được giữ nguyên; khởi động lại Spring Boot rồi Ctrl+F5 để dùng API/giao diện mới. Danh sách 15 file, hợp đồng API và giới hạn tại docs/category-management.md.
+
+<!-- V14 bổ sung xóa/khôi phục cấu hình theo yêu cầu người dùng; không xóa SKU hoặc phá ledger bất biến. -->
+Ngày 03/10/2026, quản trị sản phẩm có hai nút/tab riêng Phiên bản và Màu sắc. Phiên bản quản lý tên/thông số; Màu sắc chọn phiên bản và quản lý SKU/giá/ảnh/trạng thái. Mỗi phần có Xóa kèm xác nhận tên; bật “Hiện phiên bản và màu đã xóa” để khôi phục. Chuyển tab giữ dữ liệu chưa lưu, hỗ trợ bàn phím và mobile.
+
+V14 PostgreSQL/H2 thêm archived mặc định false vào product_versions và product_variants. DELETE /products/{productId}/versions/{versionId} lưu trữ phiên bản, POST đường dẫn đó /restore khôi phục; DELETE /variants/{variantId} lưu trữ màu và PATCH status=ACTIVE khôi phục qua contract cũ. Mọi API ghi chỉ ADMIN, khóa cùng model trong transaction và kiểm tra đúng quan hệ model/cấu hình. Xóa phiên bản ẩn tất cả màu thuộc nó, không tự đổi trạng thái riêng của màu; khôi phục giữ màu đã xóa/ngừng bán riêng. Xóa màu giữ SKU gốc/model hoặc dừng SKU con, không đổi tồn hoặc ghi movement.
+
+Response thêm archived; storefront ẩn lựa chọn đã xóa, OrderService chặn checkout trực tiếp, availability báo không bán và giá từ loại cấu hình đã xóa tại SQL. Đơn đã đặt vẫn thanh toán/hủy/giao/hoàn đúng SKU. Không sửa V1–V13, không tái sử dụng SKU/tên đang được dữ liệu lưu trữ giữ và không thêm cơ chế xóa vật lý/chuyển màu giữa phiên bản.
+
+**496 test PASS**, package BUILD SUCCESS, **69 kiểm tra Chrome PASS** (27 cấu hình + 42 mua hàng/fulfillment) trên JAR cuối, không exception JavaScript. Nâng V13→V14 trên PostgreSQL QA giữ 18 nhóm snapshot và archived=false cho cấu hình cũ. Database thật/app 8080 giữ nguyên; khởi động lại Spring Boot rồi Ctrl+F5 để áp dụng V14/API/UI. Backup QA: target/db-backups/configuration-management-20261003_092923/stockflow.dump. Hướng dẫn, 20 file thay đổi và giới hạn tại docs/product-configuration-management.md.
+
+<!-- Checkout V15 đã được người dùng chốt; snapshot người nhận không thay đổi khi hồ sơ hoặc vòng đời đơn đổi. -->
+Ngày 04/10/2026, triển khai checkout V15: tên người nhận, điện thoại và địa chỉ bắt buộc, ghi chú tùy chọn; miễn phí giao hàng. DTO POST /orders thêm delivery bắt buộc; response tạo/chi tiết/my/vòng đời trả bản chụp. Muốn đổi thông tin phải hủy PENDING và đặt lại, không có API sửa địa chỉ. Giữ kho do khách chọn, giá do server tính, atomic reserve, transaction, thứ tự inventory ID và DISPATCH lúc payment.
+
+V15 PostgreSQL/H2 thêm recipient_name/recipient_phone/delivery_address/delivery_note nullable trên orders; CHECK cho toàn null của đơn cũ hoặc bản chụp đầy đủ. Đơn cũ trả delivery=null, vẫn thanh toán/hủy/giao/hoàn; không bịa địa chỉ từ hồ sơ. Value object không có setter và mapping updatable=false; snapshot readonly ở tầng ứng dụng, không dùng trigger bất biến của ledger cho địa chỉ.
+
+Giỏ có form người nhận, phí giao hàng miễn phí và hướng dẫn hủy PENDING nếu cần đổi. Login checkout giữ giỏ/người nhận; lỗi 400/409 giữ dữ liệu để chỉnh, đặt xong/đăng xuất/đổi tài khoản xóa dữ liệu chưa gửi. Chi tiết khách/dashboard hiển thị người nhận và ghi chú dưới dạng văn bản đã escape, tương thích sáng/tối/mobile. Khách chỉ xem đơn mình, staff chỉ xem kho phân công; summary vận hành không trả địa chỉ.
+
+**526 test PASS** (498 baseline + 28 ca mới), test/package BUILD SUCCESS; **24 kiểm tra API PostgreSQL và 25 kiểm tra Chrome PASS**, 0 exception JavaScript. JAR V14→V15 trên PostgreSQL QA 13.2 giữ 19 bảng snapshot; hai CHECK thử bằng SQL thật đều chặn dữ liệu sai. 16 request tranh 5 chiếc chỉ tạo 5 đơn, tồn không âm và hủy hoàn đủ. Database sử dụng thực tế/app 8080 giữ nguyên; khởi động lại Spring Boot rồi Ctrl+F5 để áp dụng V15. 29 file, contract và giới hạn tại [docs/checkout-delivery.md](docs/checkout-delivery.md). Chưa có idempotency tạo đơn phía server, hồ sơ chỉnh sửa, đánh giá, refresh token hoặc Testcontainers; triển khai từng lượt riêng.

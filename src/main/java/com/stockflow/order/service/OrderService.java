@@ -1,6 +1,8 @@
 package com.stockflow.order.service;
 
 import com.stockflow.catalog.domain.ProductStatus;
+import com.stockflow.catalog.domain.ProductVariant;
+import com.stockflow.catalog.repository.ProductVariantRepository;
 import com.stockflow.common.exception.BadRequestException;
 import com.stockflow.common.exception.ConflictException;
 import com.stockflow.common.exception.ForbiddenException;
@@ -10,6 +12,7 @@ import com.stockflow.inventory.domain.InventoryMovement;
 import com.stockflow.inventory.domain.MovementType;
 import com.stockflow.inventory.repository.InventoryMovementRepository;
 import com.stockflow.inventory.repository.InventoryRepository;
+import com.stockflow.order.domain.DeliveryDetails;
 import com.stockflow.order.domain.Order;
 import com.stockflow.order.domain.OrderStatus;
 import com.stockflow.order.domain.Payment;
@@ -65,6 +68,7 @@ public class OrderService {
     private final UserRepository users;
     private final EntityManager em;
     private final Validator validator;
+    private final ProductVariantRepository variants;
 
     /** Nhận repository và EntityManager để refresh số tồn sau UPDATE nguyên tử. */
     public OrderService(
@@ -75,7 +79,8 @@ public class OrderService {
             InventoryMovementRepository movements,
             UserRepository users,
             EntityManager em,
-            Validator validator) {
+            Validator validator,
+            ProductVariantRepository variants) {
         this.orders = orders;
         this.payments = payments;
         this.shipments = shipments;
@@ -84,6 +89,7 @@ public class OrderService {
         this.users = users;
         this.em = em;
         this.validator = validator;
+        this.variants = variants;
     }
 
     /** Tạo đơn giữ hàng 15 phút; cập nhật theo inventoryId tăng dần để tránh chu trình khóa chéo. */
@@ -105,8 +111,25 @@ public class OrderService {
         }
 
         Set<Long> seen = new HashSet<>();
+        // Kiểm tra nhóm màu một lần; reserve sau đó vẫn là UPDATE có điều kiện trên từng SKU/kho.
+        Map<Long, ProductVariant> colors = variants.findMappings(
+                        request.items().stream().map(CreateOrderRequest.Item::productId).toList()).stream()
+                .collect(Collectors.toMap(value -> value.getSkuProduct().getId(), value -> value));
+        for (ProductVariant color : colors.values()) {
+            // Cấu hình đã xóa không thể mua qua SKU trực tiếp, dù tồn kho vật lý vẫn còn.
+            if (!color.isEnabled() || color.isArchived() || color.getVersion().isArchived()
+                    || color.getProduct().getStatus() != ProductStatus.ACTIVE) {
+                throw new ConflictException("Màu " + color.getColorName() + " hiện đã dừng bán.");
+            }
+        }
         List<StockLine> lines = new ArrayList<>();
-        Order order = new Order(customerId, warehouse.getId(), Instant.now());
+        // Thông tin nhận hàng là bản chụp cố định; MVP miễn phí giao hàng, tổng tiền chỉ gồm mặt hàng.
+        var delivery = request.delivery();
+        Order order = new Order(
+                customerId,
+                warehouse.getId(),
+                Instant.now(),
+                new DeliveryDetails(delivery.recipientName(), delivery.recipientPhone(), delivery.address(), delivery.note()));
         for (CreateOrderRequest.Item item : request.items()) {
             if (!seen.add(item.productId())) {
                 throw new BadRequestException("Sản phẩm không được lặp trong một đơn.");

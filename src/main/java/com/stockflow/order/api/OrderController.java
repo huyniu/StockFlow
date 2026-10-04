@@ -45,10 +45,10 @@ public class OrderController {
         this.queries = queries;
     }
 
-    /** Chỉ CUSTOMER tạo đơn, server tự tính giá và giữ tồn kho. */
+    /** CUSTOMER tạo đơn với người nhận bắt buộc; server chụp địa chỉ, tính giá và giữ tồn kho. */
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
-    @Operation(summary = "Tạo đơn và giữ tồn kho trong 15 phút")
+    @Operation(summary = "Tạo đơn có thông tin nhận hàng, miễn phí giao hàng và giữ tồn 15 phút")
     public ResponseEntity<OrderResponse> create(
             @Valid @RequestBody CreateOrderRequest request,
             @AuthenticationPrincipal User user) {

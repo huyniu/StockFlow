@@ -1,5 +1,8 @@
 package com.stockflow.order;
 
+import static com.stockflow.order.support.CheckoutTestData.deliveryPayload;
+import static com.stockflow.order.support.CheckoutTestData.orderRequest;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -148,7 +151,7 @@ class OrderIntegrationTest {
  /** Thiếu mặt hàng sau khi đã giữ mặt hàng trước phải rollback cả đơn, stock và ledger. */
  @Test void insufficientSecondItemRollsBackEverything() {
   inventoryService.stockIn(new StockInRequest(second.getId(), warehouse.getId(), 1, "Bổ sung"), admin.getId());
-  CreateOrderRequest request = new CreateOrderRequest(warehouse.getId(), List.of(
+  CreateOrderRequest request = orderRequest(warehouse.getId(), List.of(
    new CreateOrderRequest.Item(product.getId(), 2), new CreateOrderRequest.Item(second.getId(), 7)));
   assertThatThrownBy(() -> orders.createOrder(request, customer.getId())).isInstanceOf(ConflictException.class);
   assertStock(product, 5, 0); assertStock(second, 6, 0);
@@ -158,7 +161,7 @@ class OrderIntegrationTest {
  }
  /** Mặt hàng trùng bị từ chối để không giữ hàng nhiều lần hoặc vi phạm UNIQUE của order_items. */
  @Test void duplicateProductRejected() {
-  CreateOrderRequest duplicate = new CreateOrderRequest(warehouse.getId(), List.of(
+  CreateOrderRequest duplicate = orderRequest(warehouse.getId(), List.of(
    new CreateOrderRequest.Item(product.getId(), 1), new CreateOrderRequest.Item(product.getId(), 1)));
   assertThatThrownBy(() -> orders.createOrder(duplicate, customer.getId())).isInstanceOf(BadRequestException.class);
   assertStock(product, 5, 0);
@@ -171,9 +174,11 @@ class OrderIntegrationTest {
  }
  /** Payload thiếu hoặc rỗng đều không được đi vào dịch vụ giữ hàng. */
  @Test void emptyItemsAndNullItemRejected() throws Exception {
-  for (String body : List.of("{\"warehouse_id\":" + warehouse.getId() + ",\"items\":[]}",
-    "{\"warehouse_id\":" + warehouse.getId() + ",\"items\":[null]}",
-    "{\"warehouse_id\":" + warehouse.getId() + ",\"items\":[{}]}")) {
+  List<List<?>> invalidItems = List.of(List.of(), Collections.singletonList(null), List.of(Map.of()));
+  for (List<?> items : invalidItems) {
+   // Người nhận hợp lệ để lỗi 400 vẫn kiểm chứng riêng danh sách mặt hàng, không bị lỗi checkout che khuất.
+   String body = json.writeValueAsString(Map.of(
+     "warehouse_id", warehouse.getId(), "items", items, "delivery", deliveryPayload()));
    mvc.perform(post("/api/v1/orders").header("Authorization", bearer(customer)).contentType(MediaType.APPLICATION_JSON)
     .content(body)).andExpect(status().isBadRequest());
   }
@@ -223,9 +228,9 @@ class OrderIntegrationTest {
  }
  /** Đơn nhiều mặt hàng gửi thứ tự ngược nhau vẫn kết thúc, không giữ khóa theo thứ tự client gửi. */
  @Test void oppositeItemOrderDoesNotDeadlock() throws Exception {
-  CreateOrderRequest forward = new CreateOrderRequest(warehouse.getId(), List.of(
+  CreateOrderRequest forward = orderRequest(warehouse.getId(), List.of(
    new CreateOrderRequest.Item(product.getId(), 1), new CreateOrderRequest.Item(second.getId(), 1)));
-  CreateOrderRequest reverse = new CreateOrderRequest(warehouse.getId(), List.of(
+  CreateOrderRequest reverse = orderRequest(warehouse.getId(), List.of(
    new CreateOrderRequest.Item(second.getId(), 1), new CreateOrderRequest.Item(product.getId(), 1)));
   List<Callable<Boolean>> tasks = new ArrayList<>();
   for (int i = 0; i < 12; i++) {
@@ -301,7 +306,7 @@ class OrderIntegrationTest {
  }
  /** Tạo yêu cầu một mặt hàng tại kho fixture. */
  private CreateOrderRequest request(int quantity) {
-  return new CreateOrderRequest(warehouse.getId(), List.of(new CreateOrderRequest.Item(product.getId(), quantity)));
+  return orderRequest(warehouse.getId(), List.of(new CreateOrderRequest.Item(product.getId(), quantity)));
  }
  /** Tạo actor với role thật trong database để phát JWT. */
  private User user(String role) {

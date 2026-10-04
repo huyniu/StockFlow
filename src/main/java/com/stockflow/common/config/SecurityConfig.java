@@ -69,11 +69,17 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         // Giao diện tĩnh được mở công khai; API vẫn kiểm tra JWT và quyền ở controller/service.
                         .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/favicon.ico", "/assets/**").permitAll()
+                        // Trang chi tiết chỉ mở GET công khai; API ghi catalog vẫn yêu cầu ADMIN.
+                        .requestMatchers(HttpMethod.GET, "/san-pham/*").permitAll()
                         // Cho phép đọc tài liệu công khai; các API nghiệp vụ vẫn giữ kiểm tra JWT và role.
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
+                        // Chỉ đọc hãng được công khai; tạo hãng vẫn kiểm tra JWT và ROLE_ADMIN.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/brands/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
+                        // Khách vãng lai chỉ nhận lựa chọn chi nhánh tối thiểu; không mở API kho vận hành.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/storefront/branches").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions

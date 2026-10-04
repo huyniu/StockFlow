@@ -11,6 +11,7 @@ import com.stockflow.warehouse.domain.*;
 import com.stockflow.warehouse.repository.WarehouseRepository;
 import java.math.BigDecimal;
 import java.util.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.namedparam.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,12 +19,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Dữ liệu portfolio chỉ được thêm khi chưa tồn tại, nhận diện theo email/slug/SKU/code.
+ * Dữ liệu StockFlow Tech chỉ được thêm khi chưa tồn tại, nhận diện theo email/slug/SKU/code.
+ * Cửa hàng tập trung phụ kiện máy tính; dữ liệu cũ không bị đổi tên, xóa hay chuyển trạng thái ngầm.
  * Nhập tồn kho qua service nghiệp vụ để GOODS_RECEIPT luôn có actor và snapshot balance hợp lệ.
  */
 @Service
 @Profile("demo")
 public class DemoDataSeeder {
+
+    // Ảnh Unsplash minh họa fixture công nghệ; chủ cửa hàng có thể thay URL qua form ADMIN.
+    private static final String KEYBOARD_IMAGE =
+            "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80";
+    private static final String MOUSE_IMAGE =
+            "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80";
+    private static final String HEADPHONE_IMAGE =
+            "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80";
 
     private final UserRepository users;
     private final RoleRepository roles;
@@ -34,11 +44,13 @@ public class DemoDataSeeder {
     private final InventoryService inventoryService;
     private final PasswordEncoder passwords;
     private final NamedParameterJdbcTemplate jdbc;
+    private final boolean seedCatalog;
 
     /** Nhận repository và nghiệp vụ nhập kho, tránh viết trực tiếp tồn kho mà thiếu movement. */
     public DemoDataSeeder(UserRepository users, RoleRepository roles, CategoryRepository categories,
             ProductRepository products, WarehouseRepository warehouses, InventoryRepository inventories,
-            InventoryService inventoryService, PasswordEncoder passwords, NamedParameterJdbcTemplate jdbc) {
+            InventoryService inventoryService, PasswordEncoder passwords, NamedParameterJdbcTemplate jdbc,
+            @Value("${app.demo.seed-catalog:false}") boolean seedCatalog) {
         this.users = users;
         this.roles = roles;
         this.categories = categories;
@@ -48,9 +60,13 @@ public class DemoDataSeeder {
         this.inventoryService = inventoryService;
         this.passwords = passwords;
         this.jdbc = jdbc;
+        this.seedCatalog = seedCatalog;
     }
 
-    /** Nạp 4 tài khoản, 3 kho, 4 danh mục, 24 sản phẩm và tồn kho mới trong cùng transaction. */
+    /**
+     * Chuẩn bị tài khoản/kho; chỉ thêm danh mục/sản phẩm/tồn mẫu khi bật seed-catalog.
+     * Chế độ nhập tay không khôi phục danh mục đã xóa hoặc tạo lại slug cũ sau khi ADMIN sửa.
+     */
     @Transactional
     public void seed() {
         User admin = account("admin@stockflow.com", "Admin@123", "Quản trị viên demo", "ADMIN");
@@ -64,49 +80,85 @@ public class DemoDataSeeder {
                 warehouse("WH-SGN-01", "Kho TP.HCM", "Thành phố Thủ Đức, TP.HCM"));
         assign(staff.getId(), demoWarehouses.get(0).getId());
 
-        Map<String, Category> demoCategories = new LinkedHashMap<>();
-        demoCategories.put("dien-tu", category("Điện tử", "dien-tu"));
-        demoCategories.put("gia-dung", category("Gia dụng", "gia-dung"));
-        demoCategories.put("thoi-trang", category("Thời trang", "thoi-trang"));
-        demoCategories.put("phu-kien", category("Phụ kiện", "phu-kien"));
+        if (!seedCatalog) {
+            // Danh mục tham khảo đã có qua Flyway; giữ mọi quyết định thêm/sửa/xóa catalog của chủ cửa hàng.
+            return;
+        }
 
+        Map<String, Category> demoCategories = new LinkedHashMap<>();
+        demoCategories.put("ban-phim-chuot", category("Bàn phím & Chuột", "ban-phim-chuot"));
+        demoCategories.put("tai-nghe-loa", category("Tai nghe & Loa", "tai-nghe-loa"));
+        demoCategories.put("webcam-micro", category("Webcam & Micro", "webcam-micro"));
+        demoCategories.put("hub-cap-sac", category("Hub, Cáp & Bộ sạc", "hub-cap-sac"));
+        demoCategories.put("man-hinh-ban-lam-viec",
+                category("Màn hình & Phụ kiện bàn làm việc", "man-hinh-ban-lam-viec"));
+
+        // Mỗi cấu hình bán là một SKU riêng; giá và ảnh dưới đây chỉ là dữ liệu trình diễn.
         List<ProductSeed> catalog = List.of(
-                new ProductSeed("dien-tu", "ELE-PHONE-01", "Điện thoại Android 128GB", "5990000"),
-                new ProductSeed("dien-tu", "ELE-LAPTOP-01", "Laptop văn phòng 14 inch", "15990000"),
-                new ProductSeed("dien-tu", "ELE-HEADSET-01", "Tai nghe Bluetooth", "790000"),
-                new ProductSeed("dien-tu", "ELE-TABLET-01", "Máy tính bảng 10 inch", "4990000"),
-                new ProductSeed("dien-tu", "ELE-TV-01", "Smart TV 43 inch", "7490000"),
-                new ProductSeed("dien-tu", "ELE-MONITOR-01", "Màn hình IPS 24 inch", "2990000"),
-                new ProductSeed("gia-dung", "HOME-RICE-01", "Nồi cơm điện 1.8 lít", "890000"),
-                new ProductSeed("gia-dung", "HOME-KETTLE-01", "Ấm siêu tốc inox", "350000"),
-                new ProductSeed("gia-dung", "HOME-STOVE-01", "Bếp từ đơn", "1290000"),
-                new ProductSeed("gia-dung", "HOME-VACUUM-01", "Máy hút bụi gia đình", "2190000"),
-                new ProductSeed("gia-dung", "HOME-AIR-01", "Máy lọc không khí", "3490000"),
-                new ProductSeed("gia-dung", "HOME-IRON-01", "Bàn ủi hơi nước", "590000"),
-                new ProductSeed("thoi-trang", "FASH-SHIRT-01", "Áo sơ mi cotton", "299000"),
-                new ProductSeed("thoi-trang", "FASH-JACKET-01", "Áo khoác chống nắng", "399000"),
-                new ProductSeed("thoi-trang", "FASH-JEANS-01", "Quần jean nam", "549000"),
-                new ProductSeed("thoi-trang", "FASH-DRESS-01", "Váy công sở", "649000"),
-                new ProductSeed("thoi-trang", "FASH-SHOES-01", "Giày thể thao", "899000"),
-                new ProductSeed("thoi-trang", "FASH-BAG-01", "Ba lô đi làm", "459000"),
-                new ProductSeed("phu-kien", "ACC-CHARGER-01", "Sạc nhanh USB-C 30W", "290000"),
-                new ProductSeed("phu-kien", "ACC-POWER-01", "Pin dự phòng 10000mAh", "490000"),
-                new ProductSeed("phu-kien", "ACC-MOUSE-01", "Chuột không dây", "249000"),
-                new ProductSeed("phu-kien", "ACC-KEYBOARD-01", "Bàn phím cơ", "990000"),
-                new ProductSeed("phu-kien", "ACC-CABLE-01", "Cáp USB-C 1 mét", "99000"),
-                new ProductSeed("phu-kien", "ACC-CASE-01", "Ốp lưng điện thoại", "149000"));
+                new ProductSeed("ban-phim-chuot", "TECH-KBD-01",
+                        "Bàn phím cơ 75%", "990000", KEYBOARD_IMAGE),
+                new ProductSeed("ban-phim-chuot", "TECH-KBD-02",
+                        "Bàn phím cơ full-size", "1290000", KEYBOARD_IMAGE),
+                new ProductSeed("ban-phim-chuot", "TECH-KBD-03",
+                        "Bàn phím không dây văn phòng", "590000", KEYBOARD_IMAGE),
+                new ProductSeed("ban-phim-chuot", "TECH-MOUSE-01",
+                        "Chuột không dây công thái học", "790000", MOUSE_IMAGE),
+                new ProductSeed("ban-phim-chuot", "TECH-MOUSE-02",
+                        "Chuột gaming có dây", "490000", MOUSE_IMAGE),
+                new ProductSeed("ban-phim-chuot", "TECH-MOUSE-03",
+                        "Chuột Bluetooth nhỏ gọn", "290000", MOUSE_IMAGE),
+                new ProductSeed("tai-nghe-loa", "TECH-AUDIO-01",
+                        "Tai nghe chụp tai không dây", "1290000", HEADPHONE_IMAGE),
+                new ProductSeed("tai-nghe-loa", "TECH-AUDIO-02",
+                        "Tai nghe gaming có micro", "790000", HEADPHONE_IMAGE),
+                new ProductSeed("tai-nghe-loa", "TECH-AUDIO-03",
+                        "Tai nghe chụp tai có dây", "490000", HEADPHONE_IMAGE),
+                new ProductSeed("tai-nghe-loa", "TECH-AUDIO-04",
+                        "Tai nghe kiểm âm", "1590000", HEADPHONE_IMAGE),
+                new ProductSeed("tai-nghe-loa", "TECH-SPEAKER-01",
+                        "Loa vi tính 2.0", "890000", null),
+                new ProductSeed("webcam-micro", "TECH-CAM-01",
+                        "Webcam Full HD", "690000", null),
+                new ProductSeed("webcam-micro", "TECH-CAM-02",
+                        "Webcam 2K", "1190000", null),
+                new ProductSeed("webcam-micro", "TECH-MIC-01",
+                        "Micro USB để bàn", "990000", null),
+                new ProductSeed("webcam-micro", "TECH-MIC-02",
+                        "Micro USB kèm chân đỡ", "1490000", null),
+                new ProductSeed("hub-cap-sac", "TECH-HUB-01",
+                        "Hub USB-C 6 trong 1", "790000", null),
+                new ProductSeed("hub-cap-sac", "TECH-HUB-02",
+                        "Hub USB 3.0 bốn cổng", "290000", null),
+                new ProductSeed("hub-cap-sac", "TECH-CABLE-01",
+                        "Cáp USB-C 100W một mét", "149000", null),
+                new ProductSeed("hub-cap-sac", "TECH-CABLE-02",
+                        "Cáp HDMI hai mét", "129000", null),
+                new ProductSeed("hub-cap-sac", "TECH-CHARGER-01",
+                        "Bộ sạc GaN 65W", "690000", null),
+                new ProductSeed("man-hinh-ban-lam-viec", "TECH-MONITOR-01",
+                        "Màn hình IPS 24 inch", "2990000", null),
+                new ProductSeed("man-hinh-ban-lam-viec", "TECH-MONITOR-02",
+                        "Màn hình 27 inch QHD", "4990000", null),
+                new ProductSeed("man-hinh-ban-lam-viec", "TECH-DESK-01",
+                        "Giá đỡ laptop nhôm", "390000", null),
+                new ProductSeed("man-hinh-ban-lam-viec", "TECH-DESK-02",
+                        "Tay đỡ màn hình đơn", "790000", null));
 
         for (int index = 0; index < catalog.size(); index++) {
             ProductSeed item = catalog.get(index);
             Product product = products.findBySku(item.sku()).orElseGet(() -> products.save(new Product(
-                    demoCategories.get(item.categorySlug()), item.sku(), item.name(),
-                    new BigDecimal(item.price()), ProductStatus.ACTIVE)));
+                    demoCategories.get(item.categorySlug()),
+                    item.sku(),
+                    item.name(),
+                    new BigDecimal(item.price()),
+                    ProductStatus.ACTIVE,
+                    item.imageUrl())));
             for (Warehouse warehouse : demoWarehouses) {
                 // Inventory đã tồn tại không được bơm lại tồn đầu kỳ, kể cả sau khi bán hết.
                 if (inventories.findByProductIdAndWarehouseId(product.getId(), warehouse.getId()).isEmpty()) {
                     int quantity = index % 8 == 0 ? 6 : 40 + index * 2;
                     inventoryService.stockIn(new StockInRequest(product.getId(), warehouse.getId(),
-                            quantity, "Nhập tồn ban đầu cho portfolio demo"), admin.getId());
+                            quantity, "Nhập tồn ban đầu cho StockFlow Tech demo"), admin.getId());
                 }
             }
         }
@@ -129,9 +181,13 @@ public class DemoDataSeeder {
                 warehouses.save(new Warehouse(code, name, address, WarehouseStatus.ACTIVE)));
     }
 
-    /** Danh mục hiện có được nhận diện bằng slug ổn định. */
+    /** Giữ nhóm đã có; nhóm Tai nghe & Loa mới nằm dưới Âm thanh như dữ liệu nâng cấp V10. */
     private Category category(String name, String slug) {
-        return categories.findBySlug(slug).orElseGet(() -> categories.save(new Category(name, slug)));
+        return categories.findBySlug(slug).orElseGet(() -> {
+            Category parent = "tai-nghe-loa".equals(slug)
+                    ? categories.findBySlug("am-thanh-mic-thu-am").orElse(null) : null;
+            return categories.save(new Category(name, slug, parent));
+        });
     }
 
     /** Phân công nhân viên Hà Nội một lần để endpoint nhập kho và tra cứu hoạt động đúng quyền. */
@@ -152,7 +208,12 @@ public class DemoDataSeeder {
         }
     }
 
-    /** Snapshot catalog cố định dành cho dữ liệu mẫu. */
-    private record ProductSeed(String categorySlug, String sku, String name, String price) {
+    /** Fixture công nghệ có ảnh tùy chọn; bản ghi đã tồn tại giữ nguyên thông tin do ADMIN chỉnh sửa. */
+    private record ProductSeed(
+            String categorySlug,
+            String sku,
+            String name,
+            String price,
+            String imageUrl) {
     }
 }

@@ -1,0 +1,551 @@
+/* Bảng màu sáng/tối dùng chung storefront và dashboard; ảnh sản phẩm/logo giữ màu gốc. */
+:root {
+    color-scheme: light;
+}
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid #cbdace;
+    border-radius: 999px;
+    background: #fff;
+    color: #245b46;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition:
+        background-color 180ms ease,
+        transform 180ms ease;
+}
+.theme-toggle:hover {
+    background: #e5f1e8;
+}
+.theme-toggle:active {
+    transform: scale(0.95);
+}
+.theme-toggle .icon {
+    width: 16px;
+    height: 16px;
+}
+.theme-toggle [data-theme-icon='dark'],
+:root[data-theme='dark'] .theme-toggle [data-theme-icon='light'] {
+    display: none;
+}
+:root[data-theme='dark'] .theme-toggle [data-theme-icon='dark'] {
+    display: block;
+}
+
+/* Màu ngữ nghĩa cho nền, chữ, đường viền và trạng thái; lựa chọn sáng giữ nguyên thiết kế hiện tại. */
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --background: #101b17;
+    --surface: #192b23;
+    --surface-muted: #20362b;
+    --control-surface: #13251e;
+    --text: #e5efe9;
+    --muted: #a9bdb0;
+    --line: #354d3f;
+    --brand: #87d7ad;
+    --brand-soft: #254733;
+    --danger: #ffaba0;
+    /* Khung tải và biểu đồ dùng sắc độ tối; cảnh báo vàng vẫn đọc rõ trên nền kho. */
+    --skeleton-base: #2b4134;
+    --skeleton-glow: #90b6a126;
+    --chart-track: #304a3a;
+    --chart-grid: #354d3f;
+    --warning-bg: #302a1e;
+    --warning-line: #bc954d;
+    --warning-text: #ffdda0;
+}
+:root[data-theme='dark'] body {
+    background: var(--background);
+}
+:root[data-theme='dark'] .demo-bar {
+    background: #13251e;
+    border-color: var(--line);
+}
+:root[data-theme='dark'] .theme-toggle {
+    background: var(--surface-muted);
+    color: var(--brand);
+    border-color: #4c6b58;
+}
+
+/* Các khung nội dung cùng một nền tối; không áp dụng bộ lọc màu lên ảnh hoặc SVG thương hiệu. */
+:root[data-theme='dark']
+    :is(
+        .shop-header,
+        .shop-nav,
+        .portal-header,
+        .panel,
+        .product-card,
+        .grid-message,
+        .home-categories,
+        .home-category-detail,
+        .category-menu-panel,
+        .category-menu-rail,
+        .menu-brand-button,
+        .catalog-discovery-filters,
+        .stock-metric,
+        .report-metric,
+        .summary-chip,
+        .brand-admin-item,
+        .shop-product-summary,
+        .shop-product-message,
+        .product-specifications,
+        .variant-admin-edit,
+        .version-admin-edit,
+        .version-admin-tab.is-selected,
+        .configuration-tabs > button.is-selected,
+        .shop-product-page .version-option,
+        .shop-product-page .color-option,
+        .version-option,
+        .color-option,
+        .branch-stock-option,
+        .menu-price-grid button,
+        .toast,
+        dialog
+    ) {
+    background: var(--surface);
+    border-color: var(--line);
+}
+:root[data-theme='dark']
+    :is(
+        .search-box,
+        .hero-stamp,
+        .inline-info,
+        .order-info,
+        .catalog-count,
+        .catalog-detail-facts,
+        .catalog-detail-message,
+        .catalog-empty-icon,
+        .product-description,
+        .product-image-preview,
+        .product-service-strip,
+        .gallery-input-preview,
+        .spec-editor,
+        .original-color-fields,
+        .variants-note,
+        .configuration-tabs,
+        .configuration-guide,
+        .configuration-create-disclosure,
+        .version-create-form,
+        .version-admin-sidebar,
+        .variant-admin-edit.is-archived,
+        .specifications-table > div:nth-child(odd),
+        th
+    ) {
+    background: var(--surface-muted);
+    border-color: var(--line);
+}
+:root[data-theme='dark']
+    :is(
+        input,
+        select,
+        textarea,
+        .catalog-form input,
+        .catalog-form select,
+        .catalog-form textarea,
+        .catalog-filter input,
+        .catalog-filter select,
+        .spec-editor-row input,
+        .spec-editor-row textarea,
+        .variant-admin-edit textarea,
+        .variant-create-form textarea,
+        .catalog-price-form input,
+        .catalog-sort-label select,
+        .catalog-brand-label select
+    ) {
+    background: var(--control-surface);
+    color: var(--text);
+    border-color: var(--line);
+}
+:root[data-theme='dark'] input::placeholder,
+:root[data-theme='dark'] textarea::placeholder {
+    color: #93aa9a;
+}
+:root[data-theme='dark']
+    :is(
+        td,
+        th,
+        .catalog-table td,
+        .catalog-table th,
+        .panel-heading,
+        .home-categories-heading,
+        .product-detail-heading,
+        .shop-product-purchase,
+        .catalog-dialog .dialog-actions,
+        .catalog-panel .pagination,
+        .specifications-table,
+        .catalog-detail-stock,
+        .variant-admin-title,
+        .variant-create-form,
+        .product-branch-panel,
+        .product-service-strip,
+        .cart-line,
+        .cart-footer
+    ) {
+    border-color: var(--line);
+}
+
+/* Tiêu đề, giá trị và điều khiển giữ chữ rõ ràng; các trạng thái dùng bảng màu riêng bên dưới. */
+:root[data-theme='dark']
+    :is(
+        h1,
+        h2,
+        h3,
+        .home-categories-heading,
+        .category-menu-item,
+        .menu-column-title,
+        .menu-subcategory-button,
+        .brand-admin-item strong,
+        .specifications-table dd,
+        .version-option strong,
+        .color-option strong,
+        .shop-product-page .version-option strong,
+        .shop-product-page .color-option strong,
+        .version-admin-tab strong,
+        .version-picker legend strong,
+        .shop-product-page .version-picker legend strong,
+        .shop-product-page .color-picker legend strong,
+        .catalog-detail-facts dd,
+        .shop-product-sku span,
+        .catalog-category-total,
+        .hero-stamp strong,
+        .spec-editor legend,
+        .original-color-fields legend,
+        .configuration-create-disclosure > summary,
+        .product-branch-panel summary,
+        .branch-stock-option
+    ) {
+    color: var(--text);
+}
+:root[data-theme='dark']
+    :is(
+        label,
+        .catalog-form label,
+        .catalog-filter label,
+        .configuration-color-fields label,
+        .shop-product-purchase label,
+        .shop-product-page .version-picker legend,
+        .shop-product-page .color-picker legend,
+        .demo-caption,
+        .brand-shop,
+        .shop-brand small,
+        .hero-copy p,
+        .hero-details,
+        .hero-stamp,
+        .shop-benefits,
+        .catalog-demo-note,
+        .product-sku,
+        .product-stock,
+        .product-service-strip,
+        .product-detail-meta,
+        .shop-product-sku,
+        .product-page-breadcrumb,
+        .product-page-breadcrumb [aria-current='page'],
+        .product-description-text,
+        .price-selection-note,
+        .product-price-panel .shop-product-price-label,
+        .catalog-heading p,
+        .catalog-sku,
+        .catalog-category-name,
+        .catalog-product-brand,
+        .catalog-category-id,
+        .catalog-count,
+        .category-admin-search,
+        .catalog-category-unit,
+        .catalog-list-note,
+        .catalog-dialog-description,
+        .catalog-detail-summary p,
+        .catalog-detail-stock p,
+        .product-image-preview figcaption,
+        .image-field-help,
+        .description-field-help,
+        .gallery-help,
+        .gallery-preview-heading,
+        .gallery-preview-item figcaption,
+        .brand-admin-note,
+        .brand-admin-item span,
+        .menu-brand-button small,
+        .brand-logo-preview p,
+        .product-brand-meta,
+        .specifications-table dt,
+        .version-option small,
+        .color-option small,
+        .shop-product-page .version-option small,
+        .shop-product-page .color-option small,
+        .version-admin-tab small,
+        .configuration-section-heading > span,
+        .version-colors-heading > span,
+        .version-spec-details summary,
+        .version-spec-details summary span,
+        .stock-metric span,
+        .metric-caption,
+        th,
+        .catalog-table th,
+        .header-button,
+        .shop-nav-links button,
+        .portal-link,
+        .report-metric span,
+        .report-metric p,
+        .order-info span,
+        .confirm-message,
+        .toast p,
+        .pagination,
+        .footer-brand,
+        .footer-brand small,
+        .shop-footer,
+        .page-footer
+    ) {
+    color: var(--muted);
+}
+:root[data-theme='dark']
+    :is(
+        .product-category,
+        .hero-copy .eyebrow,
+        .hero-copy h1 em,
+        .product-page-breadcrumb a,
+        .product-page-back,
+        .price,
+        .catalog-price,
+        .catalog-action-restore,
+        .product-card-link:hover h3
+    ) {
+    color: var(--brand);
+}
+
+/* Nền banner và vùng giá dùng gradient tối; màu giá/stock vẫn nổi bật theo nghĩa nghiệp vụ. */
+:root[data-theme='dark'] .shop-hero {
+    background:
+        radial-gradient(ellipse at 85% 20%, #355545 0%, transparent 55%), linear-gradient(115deg, #1c3a2d, #1b2e35);
+    border-color: #385348;
+}
+:root[data-theme='dark'] .product-price-panel {
+    background: linear-gradient(135deg, #39282e, #2a242a);
+    border-color: #66414b;
+}
+:root[data-theme='dark'] .shop-product-page {
+    --product-accent: #ff8795;
+    --product-accent-soft: #39282e;
+}
+:root[data-theme='dark'] .product-price,
+:root[data-theme='dark'] .shop-product-price {
+    color: #ff8795;
+}
+:root[data-theme='dark'] .product-stock.stock-available {
+    color: #8edcb2;
+}
+:root[data-theme='dark'] .shop-product-page .product-stock.stock-available {
+    color: #8edcb2;
+}
+:root[data-theme='dark'] .product-stock.stock-empty {
+    color: var(--danger);
+}
+:root[data-theme='dark'] .shop-product-page .product-stock.stock-empty {
+    color: var(--danger);
+}
+
+/* Phiên bản, màu và chi nhánh đang chọn vẫn có viền nhấn rõ trên nền tối. */
+:root[data-theme='dark']
+    :is(
+        .version-option.is-selected,
+        .color-option.is-selected,
+        .shop-product-page .version-option.is-selected,
+        .shop-product-page .color-option.is-selected,
+        .branch-stock-option.is-selected
+    ) {
+    background: #39282e;
+    border-color: #ff8795;
+    box-shadow: inset 0 0 0 1px #ff8795;
+}
+:root[data-theme='dark'] :is(.version-check, .shop-product-page .color-check) {
+    color: #39131c;
+}
+:root[data-theme='dark'] .branch-stock-refresh {
+    color: var(--brand);
+}
+:root[data-theme='dark'] .product-branch-panel summary::after {
+    color: var(--muted);
+}
+
+/* Các nút có nền xanh dùng chữ tối để giữ độ tương phản trên màu nhấn sáng. */
+:root[data-theme='dark']
+    :is(
+        .primary,
+        .category-chips button.active,
+        .category-menu-toggle:hover,
+        .category-menu-toggle[aria-expanded='true']
+    ) {
+    background: var(--brand);
+    color: #102b1b;
+    border-color: var(--brand);
+}
+:root[data-theme='dark'] .primary:hover {
+    background: #a2e5c0;
+}
+:root[data-theme='dark']
+    :is(.secondary, .demo-accounts button, .catalog-action, .category-menu-toggle, .cart-trigger, .color-reset) {
+    background: var(--surface-muted);
+    color: var(--text);
+    border-color: var(--line);
+}
+:root[data-theme='dark']
+    :is(
+        .secondary:hover,
+        .demo-accounts button.active,
+        .demo-accounts button:hover,
+        .theme-toggle:hover,
+        .icon-button:hover,
+        .catalog-action:hover,
+        .menu-brand-button:hover,
+        .menu-brand-button:focus-visible,
+        .category-menu-item:hover,
+        .category-menu-item.active,
+        .home-category-list .category-menu-item.active,
+        .home-category-list .category-menu-item:hover,
+        .nav-subitem,
+        tbody tr:hover,
+        .catalog-table tbody tr:hover
+    ) {
+    background: var(--brand-soft);
+    color: var(--text);
+    border-color: #648770;
+}
+:root[data-theme='dark'] .nav-subitem.active,
+:root[data-theme='dark'] .nav-subitem:hover {
+    background: #32573e;
+    color: #d7f5e1;
+}
+:root[data-theme='dark'] .catalog-action-danger,
+:root[data-theme='dark'] .catalog-action-danger:hover {
+    color: var(--danger);
+}
+:root[data-theme='dark'] .gallery-arrow,
+:root[data-theme='dark'] .gallery-counter {
+    background: var(--surface-muted);
+    color: var(--text);
+    border-color: var(--line);
+}
+
+/* Mỗi trạng thái giữ màu nhận diện, nhưng thay nền nhạt thành nền tối tương ứng. */
+:root[data-theme='dark'] :is(.neutral, .configuration-state.is-archived, .catalog-status.is-inactive) {
+    background: #354338;
+    color: #d1ded5;
+}
+:root[data-theme='dark'] :is(.role-admin, .status-pending, .low-number) {
+    background: #49381d;
+    color: #ffe0a3;
+}
+:root[data-theme='dark']
+    :is(
+        .role-warehouse_staff,
+        .status-confirmed,
+        .status-delivered,
+        .configuration-state,
+        .shop-product-availability,
+        .catalog-status.is-active
+    ) {
+    background: #244b35;
+    color: #a1edbd;
+}
+:root[data-theme='dark'] :is(.role-manager, .status-shipped) {
+    background: #253f56;
+    color: #b5ddff;
+}
+:root[data-theme='dark'] :is(.role-customer, .status-packed, .status-returned) {
+    background: #3c2e54;
+    color: #ddcaff;
+}
+:root[data-theme='dark'] :is(.danger, .status-cancelled, .status-expired, .shop-product-availability.is-inactive) {
+    background: #4b2c29;
+    color: var(--danger);
+    border-color: #87514a;
+}
+:root[data-theme='dark'] .notice {
+    background: #254331;
+    color: #c0e8cb;
+    border-color: #527459;
+}
+:root[data-theme='dark'] .notice.error {
+    background: #4b2c29;
+    color: var(--danger);
+    border-color: #87514a;
+}
+:root[data-theme='dark'] .balance-change .after {
+    background: var(--brand-soft);
+}
+
+/* Khung trắng riêng bảo toàn logo chữ đen và ảnh sản phẩm có nền trắng; không đảo màu ảnh. */
+:root[data-theme='dark'] .brand-logo-media.without-logo {
+    background: var(--surface-muted);
+}
+:root[data-theme='dark'] .brand-logo-media .brand-monogram {
+    color: var(--brand);
+}
+/* Tên hãng là chữ độc lập bên dưới ảnh; đổi màu chữ theo nền tối để tránh chìm vào khung. */
+:root[data-theme='dark'] .menu-brand-button > span:not(.brand-logo-media) {
+    color: var(--text);
+}
+:root[data-theme='dark'] .brand-logo-preview,
+:root[data-theme='dark'] .gallery-preview-item {
+    background: #fff;
+}
+:root[data-theme='dark'] .brand-logo-preview p,
+:root[data-theme='dark'] .gallery-preview-item figcaption {
+    color: #45624f;
+}
+
+/* Nút vẫn nằm trong thanh ghim trên điện thoại, có nhãn truy cập dù ẩn chữ để tiết kiệm chỗ. */
+@media (max-width: 760px) {
+    .theme-toggle {
+        width: 28px;
+        height: 25px;
+        padding: 4px;
+    }
+    .theme-toggle-label {
+        display: none;
+    }
+    /* Menu vận hành chuyển thành thanh ngang trên màn hình nhỏ, vẫn dùng nền và chữ tối phù hợp. */
+    :root[data-theme='dark'] .sidebar {
+        background: var(--surface);
+    }
+    :root[data-theme='dark'] .nav-item {
+        color: var(--muted);
+    }
+    :root[data-theme='dark'] .nav-item.active,
+    :root[data-theme='dark'] .nav-item:hover {
+        background: var(--brand-soft);
+        color: var(--brand);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .theme-toggle {
+        transition: none;
+    }
+}
+
+/* Các thành phần trải nghiệm mới giữ màu ngữ nghĩa của theme, không áp bộ lọc lên ảnh sản phẩm. */
+:root[data-theme='dark'] .product-card:hover,
+:root[data-theme='dark'] .product-card:focus-within {
+    box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.25),
+        0 3px 8px rgba(0, 0, 0, 0.18);
+}
+:root[data-theme='dark'] .product-tag {
+    background: var(--brand-soft);
+    color: var(--brand);
+    border-color: var(--line);
+}
+:root[data-theme='dark'] .color-swatch-dot {
+    border-color: #9aafa2;
+}
+:root[data-theme='dark'] .inventory-warning:hover td {
+    background: #3e3523;
+}
+:root[data-theme='dark'] .mobile-purchase-bar {
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.28);
+}

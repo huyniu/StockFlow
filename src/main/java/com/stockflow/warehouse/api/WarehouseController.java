@@ -4,6 +4,7 @@ import com.stockflow.warehouse.dto.CreateWarehouseRequest;
 import com.stockflow.warehouse.dto.WarehouseOrderOptionResponse;
 import com.stockflow.warehouse.dto.WarehouseResponse;
 import com.stockflow.warehouse.service.WarehouseService;
+import com.stockflow.user.domain.User;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -12,6 +13,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,6 +54,14 @@ public class WarehouseController {
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
     public List<WarehouseOrderOptionResponse> orderOptions() {
         return warehouseService.orderOptions();
+    }
+
+    /** Cổng vận hành không gợi ý kho ngoài phân công cho staff; CUSTOMER không được truy cập. */
+    @GetMapping("/operating-options")
+    @Operation(summary = "Xem lựa chọn kho vận hành theo vai trò và phân công")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
+    public List<WarehouseOrderOptionResponse> operatingOptions(@AuthenticationPrincipal User actor) {
+        return warehouseService.operatingOptions(actor);
     }
 
     /**

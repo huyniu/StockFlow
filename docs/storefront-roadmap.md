@@ -1,20 +1,45 @@
-<!-- Đánh giá source và bàn giao giai đoạn API đầu tiên cho mục tiêu cửa hàng nhiều kho, ngày 30/09/2026. -->
-# StockFlow: cửa hàng nhiều kho và lộ trình API
+<!-- StockFlow Tech tập trung ngành hàng công nghệ; các giai đoạn và kết quả cũ được giữ như lịch sử. -->
+# StockFlow Tech: cửa hàng công nghệ nhiều kho và lộ trình API
 
-> Cập nhật giai đoạn 2: khách chọn kho/chi nhánh và DISPATCH lúc payment đã được chốt. Fulfillment PACKED/SHIPPED/DELIVERED/RETURNED và shipment tracking đã có API; xem [báo cáo kiểm chứng](fulfillment-verification.md). Các mục hiện trạng/kiểm thử giai đoạn 1 dưới đây giữ lại như lịch sử; không coi các khoảng trống tại mốc đó là trạng thái hiện tại.
+> Giai đoạn 1/2 đã nghiệm thu và commit. Giai đoạn 3 tách storefront/dashboard, thêm tìm kiếm và lựa chọn chi nhánh theo ngữ cảnh, giữ schema và nghiệp vụ đã có. Xem [kiểm chứng giai đoạn 3](storefront-dashboard-verification.md). Những đánh giá/test giai đoạn 1 dưới đây là lịch sử; các khoảng trống tại mốc đó không phải hiện trạng.
+
+## Ngành hàng đã chốt: phụ kiện máy tính và thiết bị công nghệ
+
+Storefront mang tên **StockFlow Tech**, phục vụ một cửa hàng có nhiều kho. Năm nhóm đầu tiên là Bàn phím & Chuột, Tai nghe & Loa, Webcam & Micro, Hub/Cáp/Bộ sạc và Màn hình/Phụ kiện bàn làm việc. Mỗi cấu hình bán là một SKU riêng. Đổi định hướng không thay schema, không đổi giá/ảnh hay xóa lịch sử cũ trong startup runner. Xem [phạm vi công nghệ](tech-store.md).
+
+Lượt này đổi nội dung giao diện, fixture và tài liệu. Chế độ nhập tay vẫn không nạp sản phẩm/tồn; fixture 24 sản phẩm công nghệ chỉ bật bằng DEMO_SEED_CATALOG=true. Mô tả/thuộc tính sản phẩm, checkout có người nhận, chỉnh sửa hồ sơ, đánh giá sau giao và thanh toán sandbox nằm ở các lượt tiếp theo.
+
+Kiểm chứng lượt công nghệ: **219 test PASS**, test/package thành công và **72 kiểm tra Chrome PASS** trên PostgreSQL QA mới. Giữ schema V1–V6 và dữ liệu cũ cho tới khi chủ cửa hàng chọn phạm vi reset.
+
+## Bổ sung sau giai đoạn 3: ảnh bìa và catalog nhập tay
+
+- V6 bổ sung `products.image_url` tùy chọn, không sửa V1–V5. POST/PATCH chỉ ADMIN được lưu URL; bỏ qua/null PATCH giữ ảnh, chuỗi trống xóa ảnh.
+- Form tạo/sửa có link và xem trước; storefront ưu tiên ảnh đã lưu, không cần chỉnh app.js khi thêm sản phẩm. HTTP/HTTPS và /assets/ được validate; không tải ảnh bên ngoài qua backend.
+- Demo mặc định giữ tài khoản/kho/danh mục nhưng không tự tạo sản phẩm/tồn. `DEMO_SEED_CATALOG=true` vẫn bật fixture portfolio đầy đủ; đổi flag không tự xóa dữ liệu.
+- Mô tả V7 và trang chi tiết `/san-pham/{id}` đã có; bấm thẻ mở trang, nút thêm giỏ vẫn độc lập. V8 thêm bộ ảnh có thứ tự qua form ADMIN, thumbnail và nút chuyển ảnh. Xem [hướng dẫn ảnh sản phẩm](product-images.md), [bộ ảnh](product-gallery.md) và [trang chi tiết](product-details.md). Upload file và thông tin người nhận còn trong lộ trình.
+- Menu nhiều cột, hãng và giá lấy dữ liệu thật từ V9/V10. categoryId gồm nhóm con; brandId/minPrice/maxPrice/q/trạng thái lọc tại database trước phân trang. ADMIN chọn đường dẫn nhóm/hãng và tạo nhóm con. Giá tăng/giảm/mới nhất có ID làm thứ tự phụ; thông số laptop còn ở lượt sau. Xem [Danh mục và hãng](catalog-categories-and-brands.md).
+
+## Hiện trạng sau giai đoạn 3
+
+- Cửa hàng công khai/CUSTOMER: kệ ACTIVE dạng card, tìm tên/SKU tại database, danh mục/phân trang, chọn chi nhánh, giỏ nhiều sản phẩm và đặt/giữ hàng 15 phút.
+- Khách theo dõi đơn của mình và shipment/tracking, thanh toán mô phỏng, hủy PENDING; giữ giỏ vãng lai qua đăng nhập checkout.
+- Dashboard theo role có work queue theo kho, PACKED/SHIPPED/DELIVERED/RETURNED, tồn kho/nhập hàng, ledger, reports và catalog admin.
+- Staff chọn kho theo phân công database, không thấy ledger/reports/admin. Quản lý không có form nhập hàng/catalog vì contract chỉ ADMIN/STAFF nhập, ADMIN quản trị catalog.
+- Thêm read API `/storefront/branches`, `/warehouses/operating-options` và tham số `q`. Không sửa schema V1–V5, transaction/atomic reserve, DISPATCH lúc payment hoặc ledger.
+- 194 test PASS (183 cũ + 11 mới), 49 mốc Chrome headless PASS trên PostgreSQL QA riêng; xem báo cáo giai đoạn 3.
 
 ## Mục tiêu sản phẩm
 
-Một cửa hàng/doanh nghiệp sở hữu nhiều kho, bán trực tiếp cho khách. Bản hoàn thiện có storefront cho khách và dashboard cho admin/nhân viên; cùng dùng backend Java 17, Spring Boot 3.4.5, PostgreSQL và Flyway hiện tại. Không thêm seller, tenant hoặc marketplace.
+Một cửa hàng/doanh nghiệp bán phụ kiện máy tính và thiết bị công nghệ, sở hữu nhiều kho và bán trực tiếp cho khách. Bản hoàn thiện có storefront cho khách và dashboard cho admin/nhân viên; cùng dùng backend Java 17, Spring Boot 3.4.5, PostgreSQL và Flyway hiện tại. Không thêm seller, tenant hoặc marketplace.
 
 Portfolio ưu tiên tính đúng đắn của database, transaction, quyền sở hữu/phạm vi kho và kiểm thử. Payment/shipping mô phỏng; giỏ ở frontend đủ cho MVP.
 
-## Hiện trạng đã đọc trước khi sửa
+## Hiện trạng đã đọc ở giai đoạn 1 (lịch sử)
 
 Đã đọc source Java, test, migration PostgreSQL/H2 V1–V5, frontend tĩnh, Maven/configuration/CI/Docker và các tài liệu trong repository, gồm ANTIGRAVITY_HANDOFF.md.
 
 - **Auth/user:** register CUSTOMER, login BCrypt/JWT, users/me; role được nạp từ DB. Trước lượt này login/filter chưa chặn INACTIVE, trong khi OrderService đã kiểm tra trạng thái actor.
-- **Catalog/warehouse:** category/product public reads, lọc danh mục/trạng thái và phân trang; ADMIN tạo category/product/kho và sửa tên/giá/trạng thái sản phẩm. Kho lựa chọn đặt hàng trả DTO tối thiểu, chỉ kho ACTIVE.
+- **Catalog/warehouse:** category/product public reads, tìm tên/SKU, lọc danh mục/trạng thái/khoảng giá và sắp xếp trước phân trang; ADMIN tạo category/product/kho và sửa nội dung/bộ ảnh/giá/trạng thái sản phẩm. Menu storefront tự lấy danh mục đã lưu. Kho lựa chọn đặt hàng trả DTO tối thiểu, chỉ kho ACTIVE.
 - **Inventory:** stock-in cho ADMIN/nhân viên kho được giao; đọc tồn theo phạm vi; physical = available + reserved. Ledger có actor, tham chiếu, balance trước/sau; PostgreSQL trigger và H2 Java trigger chặn UPDATE/DELETE.
 - **Order:** nhiều sản phẩm trong một transaction, atomic conditional reserve và thứ tự inventory ID chống khóa chéo; snapshot giá, giữ 15 phút, my/detail, payment mô phỏng idempotent, cancel/refund/restock và expiry. Lifecycle khóa dòng order và kiểm tra lại trạng thái.
 - **Report:** revenue theo ngày/tháng/kho, top products, low stock và order summary; MANAGER/ADMIN, SQL tổng hợp và phân trang. Có tài liệu benchmark PostgreSQL riêng.
@@ -22,7 +47,7 @@ Portfolio ưu tiên tính đúng đắn của database, transaction, quyền s�
 
 Đây là hiện trạng source và các contract được test; không có nghĩa mọi tính năng mục tiêu đã được triển khai hoặc đã chạy trên GitHub/public deployment.
 
-## Khoảng trống của luồng bán hàng
+## Khoảng trống tại giai đoạn 1 (lịch sử)
 
 Khách hiện đã có thể xem sản phẩm, thêm nhiều mặt hàng vào giỏ demo, chọn kho, đặt/giữ hàng và xem đơn của mình. Còn thiếu tìm kiếm storefront, ảnh/mô tả sản phẩm, contract public chỉ sản phẩm đang bán, thông tin nhận hàng và chính sách chọn kho ở checkout. Chi tiết đơn chưa trả shipment/tracking hoặc hành trình giao nhận. Không cần thêm bảng carts để giải quyết các điểm này.
 
@@ -71,13 +96,13 @@ Không thay migration V1–V5 hoặc schema, không thêm bảng carts/sellers. 
 2. **Thời điểm xuất:** payment CONFIRMED giảm reserved và ghi DISPATCH. Pack/ship/deliver không đổi tồn; cancel trước ship restock/refund. Không cần chuyển đổi đơn cũ hoặc sửa ledger lịch sử.
 3. **Giao/hoàn:** ADMIN/MANAGER hoặc staff kho đó xác nhận DELIVERED và nhận trả toàn bộ đơn DELIVERED; RETURN_RESTOCK và REFUNDED trong cùng transaction. Chưa có customer return-request hoặc partial return.
 
-Thông tin người nhận/địa chỉ checkout còn cần được chốt trước phần schema phụ thuộc, nhưng không cản trở fulfillment giai đoạn này.
+Thông tin người nhận/địa chỉ checkout đã được chốt ngày 04/10/2026: bắt buộc tên, điện thoại, địa chỉ; ghi chú tùy chọn; miễn phí giao hàng và lưu cố định trên đơn. V15 triển khai contract này; xem [checkout](checkout-delivery.md). Các mốc giai đoạn 1–3 bên dưới được giữ làm lịch sử.
 
 ## Lộ trình còn lại và tiêu chí nghiệm thu
 
 1. **Fulfillment API theo kho đã triển khai:** pack, ship/tracking, deliver, receive return/refund. Giữ row lock, kiểm tra transition, role/phạm vi kho, idempotency và rollback toàn bộ return. Có test concurrent pack/return, ship/cancel và trùng tracking giữa hai đơn; xem báo cáo giai đoạn 2.
-2. **Catalog/checkout storefront:** tìm kiếm và public visibility, chi tiết sản phẩm, snapshot người nhận/địa chỉ khi đã chốt, allocation toàn giỏ nếu được chọn. Thêm migration mới khi cần; giữ transaction/atomic update và snapshot giá. Customer không thể xem hoặc thao tác đơn khác.
-3. **Storefront/dashboard riêng:** giỏ frontend, checkout, lịch sử đơn/vận đơn cho khách; catalog, nhập kho, danh sách xử lý đơn theo kho và báo cáo cho nhân viên. Mọi hành động gọi API đã nghiệm thu; UI không quyết định số tồn hay quyền.
+2. **Storefront/dashboard đã triển khai:** giỏ, chọn chi nhánh, lịch sử/vận đơn; work queue/fulfillment, catalog, nhập kho, ledger và reports. Khách chọn một kho, DISPATCH lúc payment; không làm allocation/split order.
+3. **Nhận hàng và catalog:** V15 đã có người nhận/điện thoại/địa chỉ/ghi chú cố định trên đơn, form checkout và kiểm thử; xem [Checkout](checkout-delivery.md). Ảnh bìa, gallery URL, mô tả văn bản và trang chi tiết sản phẩm cũng đã có; xem [Chi tiết sản phẩm](product-details.md) và [bộ ảnh](product-gallery.md). Upload file và lọc thông số chuyên biệt còn lại. Giữ transaction/atomic reserve/snapshot giá; không thêm carts chỉ để làm CRUD.
 4. **Củng cố kiểm thử/vận hành:** Testcontainers PostgreSQL cho migration/trigger/concurrency, rồi auth refresh/revocation và request tracing/metrics. Cache/distributed scheduler lock có yêu cầu rõ ràng và test trước khi thêm. Chuyển kho/kiểm kê để sau MVP bán hàng.
 
 ## Kiểm thử và build giai đoạn 1
@@ -115,6 +140,13 @@ Test mới phủ management đọc nhiều kho, staff một/nhiều/không có p
 
 ## Giới hạn và việc tiếp theo
 
-Suite tự động vẫn dùng H2, chưa chạy trong GitHub Actions ở lượt này, chưa có Testcontainers. PostgreSQL được kiểm chứng cục bộ trên 13.2; chưa chạy lại Docker Compose/PostgreSQL 17 trong lượt này. Flyway hiện cảnh báo phiên bản H2 2.3 mới hơn mức hỗ trợ đã kiểm chứng; suite vẫn PASS, chưa đổi dependency ngoài phạm vi. Giao diện không sửa nên không có kiểm chứng trình duyệt mới. Không có public deployment. Luồng fulfillment, checkout/địa chỉ và thay đổi thời điểm DISPATCH còn chờ giai đoạn sau; không coi chúng là đã hoàn thành.
+Tại giai đoạn 1, suite dùng H2, chưa có Testcontainers/GitHub Actions/public deployment kiểm chứng mới và chưa sửa giao diện. Đây là giới hạn lịch sử. Sau giai đoạn 3 đã kiểm chứng Chrome desktop/mobile với PostgreSQL 13.2; fulfillment và giao diện đã hoạt động. CI mới, Docker Compose/PostgreSQL 17, Testcontainers và contract địa chỉ vẫn chưa được xác minh/triển khai ở lượt này.
 
-Sau giai đoạn 2, lượt tiếp theo nên hoàn thiện **catalog storefront và contract thông tin nhận hàng**. Giữ khách chọn kho/DISPATCH lúc payment; chốt địa chỉ/snapshot trước migration mới. Sau API mới tách storefront/dashboard. Không thêm chuyển kho, kiểm kê, cache hoặc refresh token vào lượt checkout.
+<!-- Kết quả hiện tại tách khỏi các mốc lịch sử để lần bàn giao sau không dùng tổng test cũ. -->
+<!-- Mốc V12 thay phạm vi chỉ gộp màu bằng model có phiên bản/màu, giữ số liệu cũ làm lịch sử. -->
+Các mốc ảnh bìa/trang riêng/bộ ảnh/menu giá có 218/260/295 test PASS. V9/V10 có 353 test/84 kiểm tra Chrome; V11 có 388 test/86 kiểm tra Chrome; V12 có 411 test/81 kiểm tra Chrome. Đây là lịch sử. Lượt hoàn thiện trang bán lẻ hiện có **424 test PASS**, package BUILD SUCCESS và **114 kiểm tra Chrome PASS** trên PostgreSQL QA 13.2. Một thẻ model chứa phiên bản và màu; chọn SKU cập nhật URL, ảnh nhỏ và breadcrumb đầy đủ. API công khai chỉ báo còn/hết hàng theo chi nhánh, không tiết lộ quantity hoặc ledger. Đã bỏ đánh giá/lượt bán và nhãn bán chạy ghi cứng. Xem [Trang sản phẩm bán lẻ](retail-product-detail.md), [Danh mục và hãng](catalog-categories-and-brands.md) và [Model, phiên bản, màu](product-models-versions-and-colors.md).
+
+<!-- Checkout V15 nối tiếp các mốc lịch sử, không thay thời điểm DISPATCH hoặc quyền theo kho. -->
+Checkout **đã triển khai V15**: DTO bắt buộc người nhận/điện thoại/địa chỉ, ghi chú tùy chọn, snapshot trên order, form giỏ và hiển thị ở chi tiết cho khách/nhân viên. Đơn cũ vẫn hỗ trợ `delivery=null`. Giữ miễn phí giao hàng, khách chọn kho, DISPATCH lúc payment và rollback reserve nhiều mặt hàng. Xem [contract, file thay đổi và kiểm chứng](checkout-delivery.md).
+
+Lượt tiếp theo đề xuất hồ sơ khách hàng và lưu giỏ trong trình duyệt nếu cần giữ qua tải lại trang. Chống tạo đơn trùng bằng khóa idempotency phía server, đánh giá sau mua, thanh toán sandbox và Testcontainers PostgreSQL là các lượt riêng. Không coi việc khóa nút đặt hàng là đã hoàn thành idempotency tạo đơn. Upload file, merge SKU cũ và lọc RAM/chip/màn hình chuyên biệt vẫn là mở rộng sau.

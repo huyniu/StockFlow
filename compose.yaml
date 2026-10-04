@@ -21,6 +21,8 @@ services:
     build: .
     environment:
       SPRING_PROFILES_ACTIVE: demo
+      # Mặc định nhập catalog thủ công; bật true để nạp fixture sản phẩm/tồn cho portfolio.
+      DEMO_SEED_CATALOG: ${DEMO_SEED_CATALOG:-false}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-stockflow}

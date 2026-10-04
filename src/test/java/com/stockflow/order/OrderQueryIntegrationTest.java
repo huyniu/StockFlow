@@ -1,5 +1,7 @@
 package com.stockflow.order;
 
+import static com.stockflow.order.support.CheckoutTestData.orderRequest;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -310,7 +312,7 @@ class OrderQueryIntegrationTest {
 
     /** Dùng nghiệp vụ tạo đơn thật để fixture có inventory và ledger nhất quán. */
     private OrderResponse create(Product product, Warehouse warehouse, User customer, int quantity) {
-        return orders.createOrder(new CreateOrderRequest(
+        return orders.createOrder(orderRequest(
                 warehouse.getId(), List.of(new CreateOrderRequest.Item(product.getId(), quantity))), customer.getId());
     }
 

@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/** Phản hồi đơn hàng chứa vòng đời, thời hạn giữ chỗ, snapshot mặt hàng và vận đơn nếu có. */
+/** Phản hồi đơn chứa vòng đời, bản chụp mặt hàng/người nhận và vận đơn; quyền được kiểm tra trước khi ánh xạ. */
 public record OrderResponse(
         Long id,
         @JsonProperty("order_code") String orderCode,
@@ -20,7 +20,8 @@ public record OrderResponse(
         @JsonProperty("created_at") Instant createdAt,
         @JsonProperty("updated_at") Instant updatedAt,
         List<OrderItemResponse> items,
-        ShipmentResponse shipment) {
+        ShipmentResponse shipment,
+        DeliveryDetailsResponse delivery) {
 
     /** Chuyển đơn mới chưa có vận đơn sang DTO, giữ cách gọi cũ cho nghiệp vụ tạo đơn. */
     public static OrderResponse from(Order order) {
@@ -30,10 +31,17 @@ public record OrderResponse(
     /** Chuyển đơn, mặt hàng và vận đơn sang DTO trong transaction đang mở. */
     public static OrderResponse from(Order order, Shipment shipment) {
         return new OrderResponse(
-                order.getId(), order.getOrderCode(), order.getCustomerId(), order.getWarehouseId(),
-                order.getStatus(), order.getTotalAmount(), order.getReservationExpiresAt(),
-                order.getCreatedAt(), order.getUpdatedAt(),
+                order.getId(),
+                order.getOrderCode(),
+                order.getCustomerId(),
+                order.getWarehouseId(),
+                order.getStatus(),
+                order.getTotalAmount(),
+                order.getReservationExpiresAt(),
+                order.getCreatedAt(),
+                order.getUpdatedAt(),
                 order.getItems().stream().map(OrderItemResponse::from).toList(),
-                ShipmentResponse.from(shipment));
+                ShipmentResponse.from(shipment),
+                DeliveryDetailsResponse.from(order.getDelivery()));
     }
 }

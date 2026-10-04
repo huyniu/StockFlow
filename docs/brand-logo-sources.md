@@ -1,0 +1,98 @@
+<!-- Danh sách nguồn ảnh thương hiệu ngày 03/10/2026; không phải migration hoặc seed tự động. -->
+# Nguồn 84 logo thương hiệu
+
+Các ảnh sau được tải về `src/main/resources/static/assets/brands/` và đóng gói cùng ứng dụng. Bốn logo Apple, Samsung, Sony và HP được giữ nguyên; bổ sung 80 ảnh cho các hãng còn lại. Tên file trùng slug thương hiệu, không phụ thuộc tên sản phẩm hoặc SKU.
+
+Nguồn gồm [Simple Icons](https://github.com/simple-icons/simple-icons), ảnh nhận diện ở danh mục [CellphoneS](https://cellphones.com.vn/) và website chính thức của hãng. SVG Simple Icons có comment nguồn; ảnh PNG giữ bản tải về. Chọn đúng logo thiết bị: Beats là tai nghe, AQUA là gia dụng, Sharp là điện tử; không lấy biểu tượng các công ty/phần mềm trùng tên. imoo dùng logo màu cam từ trang giới thiệu hãng, khác thương hiệu camera Imou.
+
+- **Acer** — `/assets/brands/acer.svg`; [ảnh nguồn](https://cdn.simpleicons.org/acer?viewbox=auto), [trang đối chiếu](https://www.acer.com)
+- **Acnos** — `/assets/brands/acnos.png`; [ảnh nguồn](https://cellphones.com.vn/media/catalog/product/l/o/logo-brand-acnos.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/loa.html)
+- **Alpha Works** — `/assets/brands/alpha-works.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Logo/AlphaWork-2026.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/tai-nghe.html)
+- **Amazfit** — `/assets/brands/amazfit.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Icon/brand_logo/amazfit.png), [trang đối chiếu](https://cellphones.com.vn/do-choi-cong-nghe.html)
+- **Anker** — `/assets/brands/anker.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/Anker-240x50.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/tai-nghe.html)
+- **Apple** — `/assets/brands/apple.svg`; [ảnh nguồn](https://cdn.simpleicons.org/apple/111827), Simple Icons (logo đã có).
+- **AQUA** — `/assets/brands/aqua.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/AQUA-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Arirang** — `/assets/brands/arirang.png`; [ảnh nguồn](https://cellphones.com.vn/media/catalog/product/l/o/logo-brand-arirang.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/loa.html)
+- **ASUS** — `/assets/brands/asus.svg`; [ảnh nguồn](https://cdn.simpleicons.org/asus?viewbox=auto), [trang đối chiếu](https://www.asus.com)
+- **Bear** — `/assets/brands/bear.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/bear-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Beats** — `/assets/brands/beats.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Icon/beats-logo-cate.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/loa.html)
+- **Black Shark** — `/assets/brands/black-shark.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/abc_4_.png), [trang đối chiếu](https://cellphones.com.vn/do-choi-cong-nghe.html)
+- **Bosch** — `/assets/brands/bosch.svg`; [ảnh nguồn](https://cdn.simpleicons.org/bosch?viewbox=auto), [trang đối chiếu](https://www.bosch.de)
+- **Bose** — `/assets/brands/bose.svg`; [ảnh nguồn](https://cdn.simpleicons.org/bose?viewbox=auto), [trang đối chiếu](https://www.bose.com)
+- **Canon** — `/assets/brands/canon.png`; [ảnh nguồn](https://cellphones.com.vn/media/catalog/product/b/r/brand-icon-canon.png), [trang đối chiếu](https://cellphones.com.vn/may-anh.html)
+- **Casper** — `/assets/brands/casper.png`; [ảnh nguồn](https://casper-electric.com/wp-content/uploads/2022/06/cropped-logo.png), [trang đối chiếu](https://casper-electric.com/)
+- **Colorful** — `/assets/brands/colorful.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Brand/logo-brand-HPRT.png), [trang đối chiếu](https://cellphones.com.vn/laptop.html)
+- **coocaa** — `/assets/brands/coocaa.png`; [ảnh nguồn](https://cellphones.com.vn/media/catalog/product/f/r/frame_85.png), [trang đối chiếu](https://cellphones.com.vn/tivi.html)
+- **Coros** — `/assets/brands/coros.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Icon/brand_logo/coros.png), [trang đối chiếu](https://cellphones.com.vn/do-choi-cong-nghe.html)
+- **Cuckoo** — `/assets/brands/cuckoo.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/cukcoo-new-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Daikin** — `/assets/brands/daikin.svg`; [ảnh nguồn](https://www.daikin.com.vn/static/version1789715086/frontend/Daikin/corporate/vi_VN/images/logo.svg), [trang đối chiếu](https://www.daikin.com.vn/)
+- **Dell** — `/assets/brands/dell.svg`; [ảnh nguồn](https://cdn.simpleicons.org/dell?viewbox=auto), [trang đối chiếu](https://www.dell.com)
+- **DJI** — `/assets/brands/dji.svg`; [ảnh nguồn](https://cdn.simpleicons.org/dji?viewbox=auto), [trang đối chiếu](https://www.dji.com)
+- **Dreame** — `/assets/brands/dreame.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/dreame-240x50-new.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Dyson** — `/assets/brands/dyson.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/dyson-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Ecovacs** — `/assets/brands/ecovacs.svg`; [ảnh nguồn](https://cdn.simpleicons.org/ecovacs?viewbox=auto), [trang đối chiếu](https://www.ecovacs.com)
+- **Edifier** — `/assets/brands/edifier.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/edifer-240x50.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/tai-nghe.html)
+- **Ezviz** — `/assets/brands/ezviz.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/ezviz-240x50.png), [trang đối chiếu](https://cellphones.com.vn/phu-kien/camera/an-ninh.html)
+- **Fujifilm** — `/assets/brands/fujifilm.svg`; [ảnh nguồn](https://cdn.simpleicons.org/fujifilm?viewbox=auto), [trang đối chiếu](https://www.fujifilm.com)
+- **Gaabor** — `/assets/brands/gaabor.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/gaabor-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Garmin** — `/assets/brands/garmin.svg`; [ảnh nguồn](https://cdn.simpleicons.org/garmin?viewbox=auto), [trang đối chiếu](https://creative.garmin.com/styleguide/logo/)
+- **Gigabyte** — `/assets/brands/gigabyte.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Logo/logo-brand-HPRT_7.png), [trang đối chiếu](https://cellphones.com.vn/laptop.html)
+- **GoPro** — `/assets/brands/gopro.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/Gopro-240x50.png), [trang đối chiếu](https://cellphones.com.vn/phu-kien/camera/hanh-trinh/action-camera.html)
+- **Harman Kardon** — `/assets/brands/harman-kardon.png`; [ảnh nguồn](https://cellphones.com.vn/media/catalog/product/b/r/brand-icon-harman.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/loa.html)
+- **Havit** — `/assets/brands/havit.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/HAVIT-240x50.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/tai-nghe.html)
+- **Hitachi** — `/assets/brands/hitachi.svg`; [ảnh nguồn](https://cdn.simpleicons.org/hitachi?viewbox=auto), [trang đối chiếu](https://commons.wikimedia.org/wiki/File:Hitachi_inspire_the_next-Logo.svg)
+- **HONOR** — `/assets/brands/honor.svg`; [ảnh nguồn](https://cdn.simpleicons.org/honor?viewbox=auto), [trang đối chiếu](https://www.hihonor.com)
+- **HP** — `/assets/brands/hp.svg`; [ảnh nguồn](https://cdn.simpleicons.org/hp/0096D6), Simple Icons (logo đã có).
+- **Huawei** — `/assets/brands/huawei.svg`; [ảnh nguồn](https://cdn.simpleicons.org/huawei?viewbox=auto), [trang đối chiếu](https://e.huawei.com/ph/material/partner/0a72728b864949c48b22106454352483)
+- **imoo** — `/assets/brands/imoo.png`; [ảnh nguồn](https://static-res-www.imoo.com/US/images/pages/why-imoo/why-imoo-banner/logo-new.png), [trang đối chiếu](https://www.imoo.com/en/why-imoo)
+- **Imou** — `/assets/brands/imou.svg`; [ảnh nguồn](https://cdn.simpleicons.org/imou?viewbox=auto), [trang đối chiếu](https://www.imoulife.com/support/download/userManual)
+- **Infinix** — `/assets/brands/infinix.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/Infinix-240x50.png), [trang đối chiếu](https://cellphones.com.vn/mobile.html)
+- **Insta360** — `/assets/brands/insta360.svg`; [ảnh nguồn](https://cdn.simpleicons.org/insta360?viewbox=auto), [trang đối chiếu](https://www.insta360.com/press/logo)
+- **itel** — `/assets/brands/itel.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Group_281.png), [trang đối chiếu](https://cellphones.com.vn/do-choi-cong-nghe.html)
+- **JBL** — `/assets/brands/jbl.svg`; [ảnh nguồn](https://cdn.simpleicons.org/jbl?viewbox=auto), [trang đối chiếu](https://www.jbl.com)
+- **KAVVO** — `/assets/brands/kavvo.png`; [ảnh nguồn](https://kavvo.com/cdn/shop/files/20240425172333.png?v=1714037752&width=600), [trang đối chiếu](https://kavvo.com/)
+- **Kieslect** — `/assets/brands/kieslect.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Icon/brand_logo/Kieslect.png), [trang đối chiếu](https://cellphones.com.vn/do-choi-cong-nghe.html)
+- **Kospet** — `/assets/brands/kospet.png`; [ảnh nguồn](https://kospet.com/cdn/shop/files/logo_280x80_221057b3-93b3-4ca1-aa0b-e14b22dd1f81.png?v=1730255117&width=280), [trang đối chiếu](https://kospet.com/)
+- **Lenovo** — `/assets/brands/lenovo.svg`; [ảnh nguồn](https://cdn.simpleicons.org/lenovo?viewbox=auto), [trang đối chiếu](https://news.lenovo.com/press-kits/)
+- **LG** — `/assets/brands/lg.svg`; [ảnh nguồn](https://cdn.simpleicons.org/lg?viewbox=auto), [trang đối chiếu](https://www.lg.com/global/our-brand/brand-expression/elements/logo/index.jsp)
+- **Marshall** — `/assets/brands/marshall.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/marshall-240x50.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/tai-nghe.html)
+- **Masstel** — `/assets/brands/masstel.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/abc_9_.png), [trang đối chiếu](https://cellphones.com.vn/do-choi-cong-nghe.html)
+- **Meizu** — `/assets/brands/meizu.svg`; [ảnh nguồn](https://cdn.simpleicons.org/meizu?viewbox=auto), [trang đối chiếu](https://commons.wikimedia.org/wiki/File:Meizu.svg)
+- **Mibro** — `/assets/brands/mibro.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/mybro.png), [trang đối chiếu](https://cellphones.com.vn/do-choi-cong-nghe.html)
+- **Microsoft Surface** — `/assets/brands/microsoft-surface.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Logo/logo-brand-HPRT_4.png), [trang đối chiếu](https://cellphones.com.vn/laptop.html)
+- **Midea** — `/assets/brands/midea.png`; [ảnh nguồn](https://web-res.midea.com/content/dam/midea-aem/system/Midea-logo-2x.png), [trang đối chiếu](https://www.midea.com/vn)
+- **MSI** — `/assets/brands/msi.svg`; [ảnh nguồn](https://cdn.simpleicons.org/msi?viewbox=auto), [trang đối chiếu](https://www.msi.com/page/brochure)
+- **MyKID** — `/assets/brands/mykid.png`; [ảnh nguồn](https://mykid.vietteltelecom.vn/images/logo.png), [trang đối chiếu](https://mykid.vietteltelecom.vn/index.html)
+- **Nokia** — `/assets/brands/nokia.svg`; [ảnh nguồn](https://cdn.simpleicons.org/nokia?viewbox=auto), [trang đối chiếu](https://www.nokia.com)
+- **Nothing** — `/assets/brands/nothing.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/Nothing-240x50.png), [trang đối chiếu](https://cellphones.com.vn/mobile.html)
+- **nubia** — `/assets/brands/nubia.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/Nubia-240x50.png), [trang đối chiếu](https://cellphones.com.vn/mobile.html)
+- **OnePlus** — `/assets/brands/oneplus.svg`; [ảnh nguồn](https://cdn.simpleicons.org/oneplus?viewbox=auto), [trang đối chiếu](https://www.oneplus.com/ca_en/brand/asset)
+- **OPPO** — `/assets/brands/oppo.svg`; [ảnh nguồn](https://cdn.simpleicons.org/oppo?viewbox=auto), [trang đối chiếu](https://www.figma.com/community/file/832815970641696814/OPPO-Media-Kit)
+- **Panasonic** — `/assets/brands/panasonic.svg`; [ảnh nguồn](https://cdn.simpleicons.org/panasonic?viewbox=auto), [trang đối chiếu](https://www.panasonic.com)
+- **Philips** — `/assets/brands/philips.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/PHILLIPS-240x50.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/tai-nghe.html)
+- **realme** — `/assets/brands/realme.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/Realme-240x50.png), [trang đối chiếu](https://cellphones.com.vn/mobile.html)
+- **Roborock** — `/assets/brands/roborock.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/roborock-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Samsung** — `/assets/brands/samsung.svg`; [ảnh nguồn](https://cdn.simpleicons.org/samsung/1428A0?viewbox=auto), Simple Icons (logo đã có).
+- **Sennheiser** — `/assets/brands/sennheiser.svg`; [ảnh nguồn](https://cdn.simpleicons.org/sennheiser?viewbox=auto), [trang đối chiếu](https://sennheiser.com)
+- **Sharp** — `/assets/brands/sharp.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/SHARP-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Shokz** — `/assets/brands/shokz.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/shokz-240x50.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/tai-nghe.html)
+- **Sony** — `/assets/brands/sony.svg`; [ảnh nguồn](https://cdn.simpleicons.org/sony/111827?viewbox=auto), Simple Icons (logo đã có).
+- **Soundpeats** — `/assets/brands/soundpeats.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/soundpeats-240x50.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/tai-nghe.html)
+- **Sunhouse** — `/assets/brands/sunhouse.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/sunhouse-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **TCL** — `/assets/brands/tcl.png`; [ảnh nguồn](https://cellphones.com.vn/media/tmp/catalog/product/t/i/tivi-logo-cate.png), [trang đối chiếu](https://cellphones.com.vn/tivi.html)
+- **TECNO** — `/assets/brands/tecno.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/tecno.png), [trang đối chiếu](https://cellphones.com.vn/mobile.html)
+- **Tiandy** — `/assets/brands/tiandy.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/Tiandy-240x50.png), [trang đối chiếu](https://cellphones.com.vn/phu-kien/camera/an-ninh.html)
+- **Tineco** — `/assets/brands/tineco.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/tineco-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Toshiba** — `/assets/brands/toshiba.svg`; [ảnh nguồn](https://cdn.simpleicons.org/toshiba?viewbox=auto), [trang đối chiếu](https://commons.wikimedia.org/wiki/File:Toshiba_logo.svg)
+- **TP-Link** — `/assets/brands/tp-link.svg`; [ảnh nguồn](https://cdn.simpleicons.org/tplink?viewbox=auto), [trang đối chiếu](https://www.tp-link.com)
+- **Tronsmart** — `/assets/brands/tronsmart.png`; [ảnh nguồn](https://cellphones.com.vn/media/catalog/product/b/r/brand-icon-tronsmart.png), [trang đối chiếu](https://cellphones.com.vn/thiet-bi-am-thanh/loa.html)
+- **VSP** — `/assets/brands/vsp.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/logo-vsp.png), [trang đối chiếu](https://cellphones.com.vn/tivi.html)
+- **Wanbo** — `/assets/brands/wanbo.png`; [ảnh nguồn](https://cellphones.com.vn/media/wysiwyg/Web/Brand/WANBO-240x50.png), [trang đối chiếu](https://cellphones.com.vn/do-gia-dung.html)
+- **Xiaomi** — `/assets/brands/xiaomi.svg`; [ảnh nguồn](https://cdn.simpleicons.org/xiaomi?viewbox=auto), [trang đối chiếu](https://www.mi.com/global)
+
+<!-- Cách thay ảnh tiếp tục dùng phân quyền ADMIN và form đã có. -->
+## Sử dụng
+
+Vào **ADMIN → Danh mục và sản phẩm → Danh mục → Thương hiệu → Sửa logo**, nhập đường dẫn ở trên rồi lưu. Chủ cửa hàng vẫn có thể thay hoặc xóa logo. Hãng mới có thể nhập URL ảnh trực tiếp trong form thêm hãng.
+
+Các URL được gán qua API quản trị vào database đang chạy tại máy người dùng. Database mới không tự nạp logo; dùng danh sách này để gán ảnh tương ứng. Không sửa migration Flyway đã áp dụng, không thêm SKU, tồn kho hoặc đơn hàng.

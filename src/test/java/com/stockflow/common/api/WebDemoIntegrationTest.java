@@ -43,20 +43,24 @@ class WebDemoIntegrationTest {
     @Autowired RoleRepository roles;
     @Autowired JwtTokenProvider jwt;
 
-    /** Cả welcome page và index trực tiếp phải trả HTML tiếng Việt chứa dashboard StockFlow công khai. */
+    /** URL cửa hàng và chi tiết mở công khai, kể cả tải trực tiếp; dashboard vẫn cần role vận hành. */
     @ParameterizedTest
-    @ValueSource(strings = {"/", "/index.html"})
+    @ValueSource(strings = {"/", "/index.html", "/san-pham/1", "/san-pham/42", "/san-pham/99999"})
     void dashboardIsPublic(String path) {
         ResponseEntity<String> response = http.getForEntity(path, String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getContentType().toString()).startsWith("text/html");
-        assertThat(response.getBody()).contains("StockFlow", "Sản phẩm & đặt hàng", "Báo cáo quản trị",
-                "src=\"/app.js\"", "href=\"/styles.css\"");
+        assertThat(response.getBody()).contains("StockFlow Tech", "Sản phẩm & đặt hàng", "Báo cáo quản trị",
+                "PHỤ KIỆN MÁY TÍNH", "Tìm bàn phím, chuột, tai nghe",
+                "src=\"/app.js\"", "href=\"/styles.css\"",
+                "id=\"storefront-view\"", "id=\"dashboard-view\" hidden",
+                "id=\"shop-product\"", "id=\"shop-product-detail-body\"", "Tiếp tục mua sắm",
+                "class=\"brand-shop\"", "Giỏ hàng của bạn");
     }
 
-    /** CSS/JS/icon cũng phải public để người chưa đăng nhập tải được giao diện đầy đủ. */
+    /** CSS/JS/icon và bảng màu sáng/tối phải public để người chưa đăng nhập tải được giao diện đầy đủ. */
     @ParameterizedTest
-    @ValueSource(strings = {"/styles.css", "/app.js", "/assets/stockflow.svg"})
+    @ValueSource(strings = {"/styles.css", "/app.js", "/assets/stockflow.svg", "/assets/theme.js", "/assets/theme.css"})
     void webAssetsArePublic(String path) {
         ResponseEntity<String> response = http.getForEntity(path, String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

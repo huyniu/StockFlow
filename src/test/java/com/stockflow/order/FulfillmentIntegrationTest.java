@@ -1,5 +1,7 @@
 package com.stockflow.order;
 
+import static com.stockflow.order.support.CheckoutTestData.orderRequest;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -116,7 +118,7 @@ class FulfillmentIntegrationTest {
                 firstProduct.getId(), warehouse.getId(), 5, "Nhập mặt hàng thứ nhất"), admin.getId());
         inventoryService.stockIn(new StockInRequest(
                 secondProduct.getId(), warehouse.getId(), 7, "Nhập mặt hàng thứ hai"), admin.getId());
-        order = orders.createOrder(new CreateOrderRequest(warehouse.getId(), List.of(
+        order = orders.createOrder(orderRequest(warehouse.getId(), List.of(
                 new CreateOrderRequest.Item(secondProduct.getId(), 3),
                 new CreateOrderRequest.Item(firstProduct.getId(), 2))), customer.getId());
     }
@@ -519,7 +521,7 @@ class FulfillmentIntegrationTest {
 
     /** Đơn thứ hai dùng lượng nhỏ hơn stock còn lại, phục vụ kiểm chứng mã vận đơn duy nhất. */
     private OrderResponse createSecondPaidPackedOrder() {
-        OrderResponse second = orders.createOrder(new CreateOrderRequest(warehouse.getId(), List.of(
+        OrderResponse second = orders.createOrder(orderRequest(warehouse.getId(), List.of(
                 new CreateOrderRequest.Item(firstProduct.getId(), 1))), customer.getId());
         orders.confirmPaymentSimulation(second.id(), customer.getId());
         return orders.packOrder(second.id(), admin.getId());

@@ -1,167 +1,1798 @@
 <!doctype html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#123c36">
-    <meta name="description" content="Dashboard StockFlow: đặt hàng, quản lý tồn kho đa kho, sổ cái bất biến và báo cáo kinh doanh.">
-    <title>StockFlow — Đơn hàng & Tồn kho Đa kho</title>
-    <link rel="icon" href="/assets/stockflow.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="/styles.css">
-    <script src="/app.js" defer></script>
-</head>
-<body>
-<!-- Bộ biểu tượng SVG nội bộ, không phụ thuộc CDN hay bước build frontend. -->
-<svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z M3 8v9l9 5 9-5V8 M12 13v9 M7.5 5.5l9 5"/></symbol>
-    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
-    <symbol id="i-order" viewBox="0 0 24 24"><path d="M8 3h11v18l-3-2-3 2-3-2-3 2V3h1Z M10 8h6 M10 12h6 M10 16h3"/></symbol>
-    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 3v17h17 M8 16v-5 M13 16V6 M18 16v-8"/></symbol>
-    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"/></symbol>
-    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16 M14 6l6 6-6 6"/></symbol>
-    <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 3h7v7 M21 3l-11 11 M10 3H4v17h17v-6"/></symbol>
-    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7a9 9 0 1 0 1 8 M20 3v5h-5"/></symbol>
-    <symbol id="i-cart" viewBox="0 0 24 24"><path d="M2 3h3l3 13h11l3-9H6 M9 20h.01 M18 20h.01"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></symbol>
-    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12 M18 6 6 18"/></symbol>
-    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
-    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4 M12 14v3"/></symbol>
-    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
-    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m12 3 10 18H2L12 3Z M12 9v5 M12 17h.01"/></symbol>
-    <symbol id="i-warehouse" viewBox="0 0 24 24"><path d="m3 9 9-6 9 6v12H3V9Z M7 21V11h10v10 M7 15h10 M7 18h10"/></symbol>
-    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 3H3v18h6 M9 12h12 M16 7l5 5-5 5"/></symbol>
-    <symbol id="i-card" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 10h20 M6 15h4"/></symbol>
-</svg>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#153e35" />
+        <meta
+            name="description"
+            content="StockFlow Tech — Phụ kiện máy tính, thiết bị công nghệ và đặt hàng từ ba chi nhánh."
+        />
+        <title>StockFlow Tech — Cửa hàng công nghệ & Cổng quản trị</title>
+        <!-- Nạp lựa chọn sáng/tối trước CSS để tránh chớp nền sáng khi đã chọn chế độ tối. -->
+        <script src="/assets/theme.js"></script>
+        <!-- Font Inter hỗ trợ tiếng Việt; font hệ thống dự phòng giữ giao diện sử dụng được khi mất mạng. -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet" />
+        <link rel="icon" href="/assets/stockflow.svg" type="image/svg+xml" />
+        <link rel="stylesheet" href="/styles.css" />
+        <link rel="stylesheet" href="/assets/theme.css" />
+        <script src="/app.js" defer></script>
+    </head>
+    <body>
+        <!-- Biểu tượng SVG nội bộ dùng chung cho hai giao diện, không cần thư viện biểu tượng bên ngoài. -->
+        <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <symbol id="i-box" viewBox="0 0 24 24">
+                <path d="m12 3 9 5-9 5-9-5 9-5Z M3 8v9l9 5 9-5V8 M12 13v9 M7.5 5.5l9 5" />
+            </symbol>
+            <symbol id="i-grid" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+            </symbol>
+            <symbol id="i-order" viewBox="0 0 24 24">
+                <path d="M7 3h12v18l-3-2-3 2-3-2-3 2V3Z M10 8h6 M10 12h6 M10 16h3" />
+            </symbol>
+            <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 3v17h17 M8 16v-5 M13 16V6 M18 16v-8" /></symbol>
+            <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14" /></symbol>
+            <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
+            <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16 M14 6l6 6-6 6" /></symbol>
+            <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7a9 9 0 1 0 1 8 M20 3v5h-5" /></symbol>
+            <symbol id="i-cart" viewBox="0 0 24 24">
+                <path d="M2 3h3l3 13h11l3-9H6" />
+                <circle cx="9" cy="20" r="1" />
+                <circle cx="18" cy="20" r="1" />
+            </symbol>
+            <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12 M18 6 6 18" /></symbol>
+            <symbol id="i-user" viewBox="0 0 24 24">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+            </symbol>
+            <symbol id="i-lock" viewBox="0 0 24 24">
+                <rect x="4" y="10" width="16" height="11" rx="2" />
+                <path d="M8 10V6a4 4 0 0 1 8 0v4 M12 14v3" />
+            </symbol>
+            <symbol id="i-clock" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+            </symbol>
+            <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6" /></symbol>
+            <symbol id="i-alert" viewBox="0 0 24 24"><path d="m12 3 10 18H2L12 3Z M12 9v5 M12 17h.01" /></symbol>
+            <symbol id="i-warehouse" viewBox="0 0 24 24">
+                <path d="m3 9 9-6 9 6v12H3V9Z M7 21V11h10v10 M7 15h10 M7 18h10" />
+            </symbol>
+            <symbol id="i-card" viewBox="0 0 24 24">
+                <rect x="2" y="4" width="20" height="16" rx="3" />
+                <path d="M2 10h20 M6 15h4" />
+            </symbol>
+            <symbol id="i-search" viewBox="0 0 24 24">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="m16 16 5 5" />
+            </symbol>
+            <symbol id="i-truck" viewBox="0 0 24 24">
+                <path d="M2 5h12v12H2Z M14 9h4l4 5v3h-8" />
+                <circle cx="6" cy="18" r="2" />
+                <circle cx="18" cy="18" r="2" />
+            </symbol>
+            <symbol id="i-device" viewBox="0 0 24 24">
+                <rect x="6" y="2" width="12" height="20" rx="3" />
+                <path d="M10 18h4" />
+            </symbol>
+            <!-- Biểu tượng danh mục tự vẽ bằng SVG, dùng lại màu và nét của giao diện hiện có. -->
+            <symbol id="i-laptop" viewBox="0 0 24 24">
+                <rect x="4" y="3" width="16" height="13" rx="2" />
+                <path d="m4 16-3 5h22l-3-5 M9 19h6" />
+            </symbol>
+            <symbol id="i-monitor" viewBox="0 0 24 24">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M12 17v4 M7 21h10" />
+            </symbol>
+            <symbol id="i-headphones" viewBox="0 0 24 24">
+                <path d="M4 14v-3a8 8 0 0 1 16 0v3" />
+                <rect x="3" y="12" width="4" height="9" rx="2" />
+                <rect x="17" y="12" width="4" height="9" rx="2" />
+            </symbol>
+            <symbol id="i-keyboard" viewBox="0 0 24 24">
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <path d="M6 9h.1 M10 9h.1 M14 9h.1 M18 9h.1 M6 12h.1 M10 12h.1 M14 12h.1 M18 12h.1 M7 16h10" />
+            </symbol>
+            <symbol id="i-plug" viewBox="0 0 24 24">
+                <path d="M8 2v5 M16 2v5 M5 7h14v4a7 7 0 0 1-14 0V7Z M12 18v4" />
+            </symbol>
+            <symbol id="i-home" viewBox="0 0 24 24"><path d="m2 11 10-9 10 9 M5 9v13h14V9 M10 22v-7h4v7" /></symbol>
+            <symbol id="i-shirt" viewBox="0 0 24 24">
+                <path d="m8 3-6 4 3 5 3-2v12h8V10l3 2 3-5-6-4c0 4-8 4-8 0Z" />
+            </symbol>
+            <symbol id="i-bag" viewBox="0 0 24 24"><path d="M4 7h16l1 15H3L4 7Z M8 9V5a4 4 0 0 1 8 0v4" /></symbol>
+            <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12 2H2v10l10 10 10-10L12 2Z M7 7h.01" /></symbol>
+            <symbol id="i-eye" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+            </symbol>
+            <symbol id="i-edit" viewBox="0 0 24 24">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </symbol>
+            <symbol id="i-trash" viewBox="0 0 24 24">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </symbol>
+        </svg>
 
-<!-- Điều hướng luôn hiển thị; dữ liệu và thao tác nội bộ được kiểm tra theo role tại API. -->
-<aside class="sidebar">
-    <a href="/" class="brand" aria-label="Trang chủ StockFlow">
-        <span class="brand-mark"><svg class="icon"><use href="#i-box"/></svg></span>
-        <span>StockFlow<small>QUẢN LÝ ĐA KHO</small></span>
-    </a>
-    <div class="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
-    <nav aria-label="Chức năng chính">
-        <button type="button" class="nav-item active" data-tab="catalog" aria-current="page"><svg class="icon"><use href="#i-grid"/></svg><span>Sản phẩm & đặt hàng</span></button>
-        <button type="button" class="nav-item" data-tab="orders"><svg class="icon"><use href="#i-order"/></svg><span>Quản lý đơn hàng</span></button>
-        <button type="button" class="nav-item" data-tab="inventory"><svg class="icon"><use href="#i-box"/></svg><span>Tồn kho & sổ cái</span></button>
-        <button type="button" class="nav-item" data-tab="reports"><svg class="icon"><use href="#i-chart"/></svg><span>Báo cáo quản trị</span></button>
-    </nav>
-    <div class="sidebar-note"><svg class="icon"><use href="#i-lock"/></svg><strong>Mỗi biến động đều được ghi lại</strong><p>Lịch sử nhập, giữ và xuất hàng được lưu trong sổ cái bất biến.</p></div>
-    <div class="sidebar-bottom"><span class="connection-dot" id="connection-dot"></span><span id="connection-label">Đang kết nối hệ thống…</span></div>
-</aside>
-
-<div class="workspace">
-    <!-- Header gồm tên hệ thống, tài liệu Swagger và danh tính xác thực hiện tại. -->
-    <header class="topbar">
-        <div class="system-title"><h1>StockFlow <span>— Hệ thống Quản lý Đơn hàng & Tồn kho Đa kho</span></h1><span class="subtle">Không gian vận hành và trình diễn nghiệp vụ</span></div>
-        <div class="header-actions">
-            <a class="swagger-link" href="/swagger-ui/index.html" target="_blank" rel="noopener noreferrer">Swagger <svg class="icon"><use href="#i-external"/></svg></a>
-            <div id="identity" class="identity"><span class="avatar"><svg class="icon"><use href="#i-user"/></svg></span><div><strong id="identity-email">Chưa đăng nhập</strong><span id="identity-role" class="badge neutral">KHÁCH</span></div></div>
-            <button type="button" class="button secondary small" id="open-login" data-action="open-auth">Đăng nhập</button>
-            <button type="button" class="icon-button" id="logout" data-action="logout" aria-label="Đăng xuất" title="Đăng xuất" hidden><svg class="icon"><use href="#i-logout"/></svg></button>
+        <!-- Thanh demo ghim nhỏ: đăng nhập thật và chuyển ngữ cảnh theo role do backend trả về. -->
+        <div class="demo-bar">
+            <span class="demo-caption"><span class="live-dot"></span>TRẢI NGHIỆM DEMO</span>
+            <nav class="demo-accounts" aria-label="Chuyển tài khoản demo">
+                <button type="button" data-demo-role="CUSTOMER" aria-pressed="false">
+                    🛒 <span class="demo-full">Khách mua hàng</span><span class="demo-short">Khách mua</span>
+                </button>
+                <button type="button" data-demo-role="WAREHOUSE_STAFF" aria-pressed="false">
+                    📦 <span class="demo-full">Nhân viên kho Hà Nội</span><span class="demo-short">Kho Hà Nội</span>
+                </button>
+                <button type="button" data-demo-role="MANAGER" aria-pressed="false">📊 Quản lý</button>
+                <button type="button" data-demo-role="ADMIN" aria-pressed="false">
+                    👑 <span class="demo-full">Sếp tổng Admin</span><span class="demo-short">Admin</span>
+                </button>
+            </nav>
+            <div class="session-controls">
+                <!-- Nút dùng chung cho khách và nhân viên; aria-pressed cho biết chế độ tối đang bật hay tắt. -->
+                <button
+                    type="button"
+                    id="theme-toggle"
+                    class="theme-toggle"
+                    aria-label="Chế độ tối"
+                    aria-pressed="false"
+                    title="Chuyển sang giao diện tối"
+                    hidden
+                >
+                    <svg class="icon" viewBox="0 0 24 24" data-theme-icon="light" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4" />
+                        <path
+                            d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5l1.5 1.5 M5 19l1.5-1.5 M17.5 6.5l1.5-1.5"
+                        />
+                    </svg>
+                    <svg class="icon" viewBox="0 0 24 24" data-theme-icon="dark" aria-hidden="true">
+                        <path d="M20.8 14.1A9 9 0 0 1 9.9 3.2 9 9 0 1 0 20.8 14.1Z" />
+                    </svg>
+                    <span class="theme-toggle-label">Sáng</span>
+                </button>
+                <span id="identity-email">Chưa đăng nhập</span>
+                <span id="identity-role" class="badge neutral">Khách</span>
+                <button type="button" class="text-button" id="logout" data-action="logout" hidden>Đăng xuất</button>
+            </div>
         </div>
-    </header>
-
-    <main>
-        <!-- Tài khoản demo gọi API đăng nhập thật; mật khẩu mẫu chỉ phục vụ môi trường demo. -->
-        <section class="demo-strip" aria-labelledby="demo-title">
-            <div class="demo-intro"><span class="eyebrow">TRẢI NGHIỆM NHANH</span><h2 id="demo-title">Một hệ thống, bốn vai trò.</h2><p>Chọn tài khoản demo để bắt đầu thao tác.</p></div>
-            <div class="demo-accounts">
-                <button type="button" class="demo-account" data-demo-role="ADMIN" aria-label="Đăng nhập demo Admin" aria-pressed="false"><span class="demo-emoji">👑</span><span><strong>Admin</strong><small>admin@stockflow.com</small></span></button>
-                <button type="button" class="demo-account" data-demo-role="MANAGER" aria-label="Đăng nhập demo Manager" aria-pressed="false"><span class="demo-emoji">📊</span><span><strong>Manager</strong><small>manager@stockflow.com</small></span></button>
-                <button type="button" class="demo-account" data-demo-role="WAREHOUSE_STAFF" aria-label="Đăng nhập demo Staff Kho HN" aria-pressed="false"><span class="demo-emoji">📦</span><span><strong>Staff Kho HN</strong><small>staff.hn@stockflow.com</small></span></button>
-                <button type="button" class="demo-account" data-demo-role="CUSTOMER" aria-label="Đăng nhập demo Customer" aria-pressed="false"><span class="demo-emoji">🛒</span><span><strong>Customer</strong><small>customer@stockflow.com</small></span></button>
-            </div>
-        </section>
-
         <div id="api-notice" class="notice" role="status" hidden></div>
-        <section class="overview" aria-label="Tổng quan danh mục">
-            <div class="metric"><span class="metric-icon teal"><svg class="icon"><use href="#i-box"/></svg></span><div><span>Sản phẩm trong bộ lọc</span><strong id="overview-products">—</strong></div></div>
-            <div class="metric"><span class="metric-icon blue"><svg class="icon"><use href="#i-grid"/></svg></span><div><span>Danh mục</span><strong id="overview-categories">—</strong></div></div>
-            <div class="metric"><span class="metric-icon purple"><svg class="icon"><use href="#i-warehouse"/></svg></span><div><span>Kho đang hoạt động</span><strong id="overview-warehouses">—</strong></div></div>
-            <div class="metric"><span class="metric-icon amber"><svg class="icon"><use href="#i-cart"/></svg></span><div><span>Số lượng trong giỏ</span><strong id="overview-cart">0</strong></div></div>
-        </section>
 
-        <!-- Danh mục công khai, giỏ nhiều mặt hàng; chỉ CUSTOMER được gửi tạo đơn. -->
-        <section id="tab-catalog" class="tab-panel" aria-labelledby="catalog-title">
-            <div class="section-heading"><div><span class="eyebrow">DANH MỤC & BÁN HÀNG</span><h2 id="catalog-title">Sản phẩm & đặt hàng</h2><p>Chọn sản phẩm, chọn kho. Hệ thống sẽ giữ hàng trong 15 phút.</p></div><button type="button" class="button secondary" data-action="refresh"><svg class="icon"><use href="#i-refresh"/></svg>Làm mới</button></div>
-            <div class="catalog-layout">
-                <div class="panel">
-                    <div class="panel-heading"><h3>Danh sách sản phẩm</h3><span class="badge neutral" id="catalog-count">Đang tải…</span></div>
-                    <form id="catalog-filter" class="filter-bar">
-                        <label>Danh mục<select id="catalog-category"><option value="">Tất cả danh mục</option></select></label>
-                        <label>Trạng thái<select id="catalog-status"><option value="">Tất cả trạng thái</option><option value="ACTIVE">Đang kinh doanh</option><option value="INACTIVE">Ngừng kinh doanh</option></select></label>
-                        <button class="button secondary" type="submit">Áp dụng</button>
-                    </form>
-                    <div class="table-scroll"><table><thead><tr><th>Sản phẩm / SKU</th><th>Danh mục</th><th class="align-right">Giá bán</th><th><span class="sr-only">Thêm vào giỏ</span></th></tr></thead><tbody id="catalog-rows"><tr><td colspan="4" class="empty-cell">Đang tải sản phẩm…</td></tr></tbody></table></div>
+        <!-- StockFlow Tech bán phụ kiện máy tính; storefront công khai và dashboard vẫn kiểm tra quyền riêng. -->
+        <div id="storefront-view">
+            <!-- Khi mở danh mục, nền tối và mờ giữ nội dung menu sáng; nhấn nền để đóng. -->
+            <button
+                id="category-menu-backdrop"
+                class="category-menu-backdrop"
+                type="button"
+                data-action="close-category-menu"
+                aria-label="Đóng danh mục và quay lại cửa hàng"
+                tabindex="-1"
+                hidden
+            ></button>
+            <header class="shop-header">
+                <a href="/#shop" class="shop-brand" data-shop-link>
+                    <span class="brand-mark"
+                        ><svg class="icon"><use href="#i-box" /></svg
+                    ></span>
+                    <span>StockFlow<span class="brand-shop">Tech</span><small>CÔNG NGHỆ CHO GÓC LÀM VIỆC</small></span>
+                </a>
+                <!-- Menu lấy danh mục thật từ API; khoảng giá được áp dụng tại database, không tạo thương hiệu giả. -->
+                <div class="category-menu-anchor">
+                    <button
+                        id="category-menu-toggle"
+                        class="category-menu-toggle"
+                        type="button"
+                        data-action="toggle-category-menu"
+                        aria-expanded="false"
+                        aria-controls="category-menu-panel"
+                    >
+                        <svg class="icon"><use href="#i-grid" /></svg>
+                        <span>Danh mục</span>
+                        <span class="menu-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <section
+                        id="category-menu-panel"
+                        class="category-menu-panel"
+                        aria-label="Danh mục và khoảng giá"
+                        hidden
+                    >
+                        <div class="category-menu-rail">
+                            <div class="category-menu-heading">
+                                <span>Danh mục sản phẩm</span>
+                                <button
+                                    class="icon-button"
+                                    type="button"
+                                    data-action="close-category-menu"
+                                    aria-label="Đóng danh mục"
+                                >
+                                    <svg class="icon"><use href="#i-close" /></svg>
+                                </button>
+                            </div>
+                            <nav id="category-menu-list" class="category-menu-list" aria-label="Chọn danh mục sản phẩm">
+                                <p class="category-menu-message">Đang tải danh mục…</p>
+                            </nav>
+                        </div>
+                        <div id="category-menu-detail" class="category-menu-detail"></div>
+                    </section>
+                </div>
+                <form id="catalog-filter" class="search-box" role="search">
+                    <label class="sr-only" for="catalog-query">Tìm sản phẩm theo tên hoặc mã SKU</label>
+                    <input
+                        id="catalog-query"
+                        type="search"
+                        placeholder="Tìm bàn phím, chuột, tai nghe hoặc mã SKU…"
+                        maxlength="200"
+                    />
+                    <button type="submit" class="icon-button" aria-label="Tìm sản phẩm">
+                        <svg class="icon"><use href="#i-search" /></svg>
+                    </button>
+                </form>
+                <label class="branch-picker"
+                    >Chi nhánh phục vụ
+                    <select id="shop-warehouse" data-store-warehouse aria-label="Chọn chi nhánh phục vụ">
+                        <option value="">Đang tải chi nhánh…</option>
+                    </select>
+                </label>
+                <div class="shop-header-actions">
+                    <button type="button" class="header-button" data-action="my-orders">
+                        <svg class="icon"><use href="#i-order" /></svg><span>Đơn hàng của tôi</span>
+                    </button>
+                    <button type="button" class="header-button" id="open-login" data-action="open-auth">
+                        <svg class="icon"><use href="#i-user" /></svg><span>Đăng nhập / Đăng ký</span>
+                    </button>
+                    <button type="button" class="cart-trigger" data-action="open-cart" aria-label="Mở giỏ hàng">
+                        <svg class="icon"><use href="#i-cart" /></svg><span>Giỏ hàng</span><b id="cart-badge">0</b>
+                    </button>
+                </div>
+            </header>
+            <nav class="shop-nav" aria-label="Điều hướng cửa hàng">
+                <div class="shop-nav-links">
+                    <button type="button" class="active" data-shop-tab="catalog">Cửa hàng</button>
+                    <button type="button" data-shop-tab="orders">Đơn hàng của tôi</button>
+                </div>
+                <button type="button" class="portal-link" data-action="open-portal">
+                    👉 Chuyển sang Cổng Quản trị
+                </button>
+            </nav>
+
+            <main class="shop-main">
+                <section id="shop-catalog" class="shop-panel" aria-labelledby="catalog-title">
+                    <!-- Nút Danh mục trên desktop ghim chính ô cạnh banner; không mở thêm một menu trùng. -->
+                    <div class="shop-discovery">
+                        <aside id="home-categories" class="home-categories" aria-labelledby="home-categories-title">
+                            <div class="home-categories-heading">
+                                <svg class="icon" aria-hidden="true"><use href="#i-grid" /></svg>
+                                <h2 id="home-categories-title" tabindex="-1">Danh mục sản phẩm</h2>
+                                <button
+                                    class="home-categories-close"
+                                    type="button"
+                                    data-action="close-category-menu"
+                                    aria-label="Đóng bảng danh mục"
+                                >
+                                    <svg class="icon" aria-hidden="true"><use href="#i-close" /></svg>
+                                </button>
+                            </div>
+                            <nav
+                                id="home-category-list"
+                                class="home-category-list"
+                                aria-label="Khám phá danh mục cửa hàng"
+                            >
+                                <p class="category-menu-message">Đang tải danh mục…</p>
+                            </nav>
+                            <p class="home-categories-hint">Vuốt để xem thêm danh mục →</p>
+                            <section
+                                id="home-category-detail"
+                                class="home-category-detail"
+                                aria-label="Nhóm sản phẩm, thương hiệu và khoảng giá"
+                                hidden
+                            ></section>
+                        </aside>
+                        <div class="shop-hero">
+                            <div class="hero-copy">
+                                <span class="eyebrow">PHỤ KIỆN MÁY TÍNH · THIẾT BỊ CÔNG NGHỆ</span>
+                                <h1>Trang bị góc làm việc.<br /><em>Theo cách của bạn.</em></h1>
+                                <p>
+                                    Bàn phím, chuột, âm thanh và thiết bị kết nối cho học tập, làm việc và giải trí.
+                                    Chọn món bạn cần, chúng tôi chuẩn bị từ chi nhánh bạn chọn.
+                                </p>
+                                <a class="button primary" href="#product-shelf"
+                                    >Khám phá sản phẩm <svg class="icon"><use href="#i-arrow" /></svg
+                                ></a>
+                                <div class="hero-details">
+                                    <span>✦ Giá bán rõ ràng</span><span>✦ Theo dõi từng bước giao hàng</span>
+                                </div>
+                            </div>
+                            <!-- Minh họa góc làm việc bằng SVG: màn hình, bàn phím, tai nghe và chuột; ảnh card lấy từ API. -->
+                            <div class="hero-art" aria-hidden="true">
+                                <svg viewBox="0 0 470 330" fill="none">
+                                    <defs>
+                                        <linearGradient
+                                            id="tech-screen"
+                                            x1="192"
+                                            y1="65"
+                                            x2="371"
+                                            y2="161"
+                                            gradientUnits="userSpaceOnUse"
+                                        >
+                                            <stop stop-color="#88cbb4" />
+                                            <stop offset="1" stop-color="#9bb7d6" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="259" cy="163" r="139" fill="#dbe7ed" />
+                                    <ellipse cx="245" cy="283" rx="170" ry="18" fill="#c9d9de" />
+                                    <rect x="171" y="47" width="219" height="146" rx="14" fill="#21483f" />
+                                    <rect x="183" y="59" width="195" height="118" rx="7" fill="url(#tech-screen)" />
+                                    <path
+                                        d="m198 149 43-57 43 35 31-49 47 59"
+                                        stroke="#eef8f3"
+                                        stroke-width="7"
+                                        stroke-linecap="round"
+                                    />
+                                    <circle cx="280" cy="185" r="3" fill="#b5d4c8" />
+                                    <path d="M268 193h25v30h-25z" fill="#4d7267" />
+                                    <rect x="240" y="220" width="80" height="8" rx="4" fill="#4d7267" />
+                                    <g transform="rotate(-6 223 258)">
+                                        <rect x="114" y="233" width="217" height="50" rx="10" fill="#f5faf7" />
+                                        <path
+                                            d="M127 246h190 M127 259h190 M127 271h55 M199 271h74 M290 271h27"
+                                            stroke="#9ab4aa"
+                                            stroke-width="6"
+                                            stroke-linecap="round"
+                                        />
+                                    </g>
+                                    <ellipse
+                                        cx="373"
+                                        cy="251"
+                                        rx="25"
+                                        ry="37"
+                                        fill="#f5faf7"
+                                        transform="rotate(12 373 251)"
+                                    />
+                                    <path d="m375 224-3 16" stroke="#8aa89b" stroke-width="4" stroke-linecap="round" />
+                                    <path
+                                        d="M63 144v-18a38 38 0 0 1 76 0v18"
+                                        stroke="#bd9461"
+                                        stroke-width="13"
+                                        stroke-linecap="round"
+                                    />
+                                    <rect x="54" y="133" width="23" height="53" rx="11" fill="#365d50" />
+                                    <rect x="125" y="133" width="23" height="53" rx="11" fill="#365d50" />
+                                    <path d="m111 50 3 9 9 3-9 3-3 9-3-9-9-3 9-3 3-9Z" fill="#bd9461" />
+                                    <path d="m419 120 3 9 9 3-9 3-3 9-3-9-9-3 9-3 3-9Z" fill="#4e806b" />
+                                </svg>
+                                <div class="hero-stamp">
+                                    <svg class="icon"><use href="#i-check" /></svg
+                                    ><span>Chọn chi nhánh<br /><strong>Mua sắm thuận tiện</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="shop-benefits">
+                        <span
+                            ><svg class="icon"><use href="#i-warehouse" /></svg>Hà Nội · Đà Nẵng · TP.HCM</span
+                        >
+                        <span
+                            ><svg class="icon"><use href="#i-clock" /></svg>Giữ hàng 15 phút khi đặt đơn</span
+                        >
+                        <span
+                            ><svg class="icon"><use href="#i-truck" /></svg>Theo dõi mã vận đơn</span
+                        >
+                    </div>
+                    <div id="product-shelf" class="shelf-heading">
+                        <div>
+                            <span class="eyebrow">THIẾT BỊ CHO GÓC LÀM VIỆC</span>
+                            <h2 id="catalog-title">Sản phẩm & đặt hàng</h2>
+                        </div>
+                        <span id="catalog-count" class="subtle">—</span>
+                    </div>
+                    <div class="catalog-toolbar">
+                        <!-- Các nhóm chính đã chuyển sang menu bên trái; bộ chọn vẫn lọc được mọi cấp con. -->
+                        <div id="category-chips" class="category-chips" aria-label="Lọc danh mục" hidden></div>
+                        <label class="sr-only" for="catalog-category">Danh mục</label>
+                        <select id="catalog-category" form="catalog-filter" class="compact-select">
+                            <option value="">Tất cả danh mục</option>
+                        </select>
+                        <button class="text-button" type="button" data-action="refresh">Làm mới</button>
+                    </div>
+                    <!-- Hai đầu mút giá và thứ tự sắp xếp gửi cùng danh mục/từ khóa, áp dụng trước phân trang. -->
+                    <div class="catalog-discovery-filters">
+                        <!-- Hãng là dữ liệu riêng, kết hợp với danh mục và giá bằng ID từ API. -->
+                        <label class="catalog-brand-label" for="catalog-brand">
+                            Thương hiệu
+                            <select id="catalog-brand">
+                                <option value="">Tất cả thương hiệu</option>
+                            </select>
+                        </label>
+                        <form id="catalog-price-filter" class="catalog-price-form">
+                            <span class="catalog-filter-label">Khoảng giá</span>
+                            <label for="catalog-min-price"
+                                >Từ (đ)<input
+                                    id="catalog-min-price"
+                                    type="number"
+                                    min="0"
+                                    max="9999999999.99"
+                                    step="0.01"
+                                    placeholder="Không giới hạn"
+                            /></label>
+                            <span class="price-range-separator" aria-hidden="true">—</span>
+                            <label for="catalog-max-price"
+                                >Đến (đ)<input
+                                    id="catalog-max-price"
+                                    type="number"
+                                    min="0"
+                                    max="9999999999.99"
+                                    step="0.01"
+                                    placeholder="Không giới hạn"
+                                    aria-describedby="catalog-price-error"
+                            /></label>
+                            <button class="button secondary" type="submit">Áp dụng</button>
+                            <p id="catalog-price-error" class="catalog-price-error" role="status" hidden></p>
+                        </form>
+                        <label class="catalog-sort-label" for="catalog-sort"
+                            >Sắp xếp
+                            <select id="catalog-sort">
+                                <option value="id,asc">Mặc định</option>
+                                <option value="unitPrice,asc">Giá tăng dần</option>
+                                <option value="unitPrice,desc">Giá giảm dần</option>
+                                <option value="createdAt,desc">Mới nhất</option>
+                            </select>
+                        </label>
+                    </div>
+                    <!-- Chip giá dùng cùng hai đầu mút và truy vấn hiện có, giữ nguyên danh mục/từ khóa/hãng. -->
+                    <div class="quick-price-filters" role="group" aria-label="Lọc nhanh theo giá">
+                        <span class="quick-filter-label">Chọn nhanh</span>
+                        <button type="button" data-action="quick-price" data-price-chip="all" aria-pressed="true">
+                            Mọi mức giá
+                        </button>
+                        <button
+                            type="button"
+                            data-action="quick-price"
+                            data-price-chip="under-500"
+                            aria-pressed="false"
+                        >
+                            Dưới 500k
+                        </button>
+                        <button type="button" data-action="quick-price" data-price-chip="500-2000" aria-pressed="false">
+                            500k – 2 triệu
+                        </button>
+                        <button
+                            type="button"
+                            data-action="quick-price"
+                            data-price-chip="2000-5000"
+                            aria-pressed="false"
+                        >
+                            2 – 5 triệu
+                        </button>
+                        <button
+                            type="button"
+                            data-action="quick-price"
+                            data-price-chip="over-5000"
+                            aria-pressed="false"
+                        >
+                            Trên 5 triệu
+                        </button>
+                    </div>
+                    <div
+                        id="catalog-active-filters"
+                        class="catalog-active-filters"
+                        aria-label="Bộ lọc đang áp dụng"
+                        hidden
+                    ></div>
+                    <div id="catalog-grid" class="product-grid" aria-live="polite"></div>
                     <div class="pagination" id="catalog-pagination"></div>
+                </section>
+
+                <!-- Trang model chọn phiên bản rồi màu; URL SKU giữ lựa chọn và tình trạng chi nhánh dùng API chỉ đọc. -->
+                <section id="shop-product" class="shop-panel shop-product-page" aria-label="Chi tiết sản phẩm" hidden>
+                    <nav class="product-page-breadcrumb" aria-label="Vị trí trang sản phẩm">
+                        <a href="/#shop" data-shop-link>Trang chủ</a>
+                        <span aria-hidden="true">›</span>
+                        <span id="product-breadcrumb-category" class="product-breadcrumb-path">Sản phẩm</span>
+                        <span aria-hidden="true">›</span>
+                        <span id="product-breadcrumb-name" aria-current="page">Chi tiết sản phẩm</span>
+                    </nav>
+                    <a class="product-page-back" href="/#shop" data-shop-link>← Tiếp tục mua sắm</a>
+                    <div id="shop-product-detail-body" aria-live="polite"></div>
+                    <!-- Chỉ hiện sau khi nút mua chính cuộn khỏi mép trên trên điện thoại; dùng chung form mua SKU. -->
+                    <aside
+                        id="mobile-purchase-bar"
+                        class="mobile-purchase-bar"
+                        aria-label="Mua sản phẩm đang chọn"
+                        hidden
+                    >
+                        <img id="mobile-purchase-image" class="mobile-purchase-image" alt="" data-sticky-image />
+                        <div class="mobile-purchase-info">
+                            <span id="mobile-purchase-name"></span>
+                            <strong id="mobile-purchase-price"></strong>
+                        </div>
+                        <button class="button primary" type="button" data-action="sticky-add-cart">
+                            <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>Thêm vào giỏ
+                        </button>
+                    </aside>
+                </section>
+
+                <section id="shop-orders" class="shop-panel" aria-labelledby="orders-title" hidden>
+                    <div class="section-heading">
+                        <div>
+                            <span class="eyebrow">HÀNH TRÌNH MUA SẮM</span>
+                            <h1 id="orders-title">Đơn hàng của tôi</h1>
+                            <p>Theo dõi thanh toán, đóng gói và giao hàng tại một nơi.</p>
+                        </div>
+                        <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                    </div>
+                    <div class="inline-info">
+                        Thanh toán được mô phỏng cho bản demo. Bạn có thể tự hủy đơn khi còn chờ thanh toán; sau thanh
+                        toán, liên hệ quản lý trước khi giao hàng.
+                    </div>
+                    <div class="order-layout">
+                        <section class="panel">
+                            <div class="panel-heading">
+                                <h3>Lịch sử mua hàng</h3>
+                                <span id="orders-count" class="badge neutral">—</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Đơn hàng / Chi nhánh</th>
+                                            <th>Trạng thái / Vận đơn</th>
+                                            <th class="align-right">Tổng tiền</th>
+                                            <th>Chi tiết</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="orders-rows"></tbody>
+                                </table>
+                            </div>
+                            <div id="orders-pagination" class="pagination"></div>
+                        </section>
+                        <article
+                            id="order-detail"
+                            class="panel order-detail"
+                            aria-label="Chi tiết đơn hàng của tôi"
+                        ></article>
+                    </div>
+                </section>
+                <footer class="shop-footer">
+                    <span class="footer-brand"
+                        >StockFlow Tech<small>Phụ kiện máy tính. Phục vụ từ chi nhánh bạn chọn.</small></span
+                    >
+                    <span>Thanh toán & vận chuyển mô phỏng · Bản trình diễn</span>
+                </footer>
+            </main>
+        </div>
+
+        <!-- Dashboard chỉ mở sau khi xác thực vai trò vận hành; mọi thao tác vẫn được backend kiểm tra. -->
+        <div id="dashboard-view" hidden>
+            <aside class="sidebar">
+                <a class="brand" href="/#portal/orders"
+                    ><span class="brand-mark"
+                        ><svg class="icon"><use href="#i-box" /></svg></span
+                    ><span>StockFlow<small>CỔNG QUẢN TRỊ</small></span></a
+                >
+                <div class="nav-caption">VẬN HÀNH CỬA HÀNG</div>
+                <nav aria-label="Chức năng quản trị">
+                    <button type="button" class="nav-item" data-portal-tab="queue">
+                        <svg class="icon"><use href="#i-order" /></svg><span>Vận hành đơn hàng</span>
+                    </button>
+                    <button type="button" class="nav-item" data-portal-tab="inventory">
+                        <svg class="icon"><use href="#i-warehouse" /></svg><span>Tồn kho & nhập hàng</span>
+                    </button>
+                    <button type="button" class="nav-item" data-portal-tab="ledger" data-roles="ADMIN,MANAGER" hidden>
+                        <svg class="icon"><use href="#i-lock" /></svg><span>Sổ cái kiểm toán</span>
+                    </button>
+                    <button type="button" class="nav-item" data-portal-tab="reports" data-roles="ADMIN,MANAGER" hidden>
+                        <svg class="icon"><use href="#i-chart" /></svg><span>Báo cáo kinh doanh</span>
+                    </button>
+                    <!-- Nhóm danh mục mở theo thao tác người dùng; chỉ ADMIN được nhìn thấy. -->
+                    <div class="nav-group" data-roles="ADMIN" id="nav-catalog-group" hidden>
+                        <button
+                            type="button"
+                            class="nav-item nav-group-toggle"
+                            id="catalog-group-toggle"
+                            data-action="toggle-catalog-menu"
+                            aria-expanded="false"
+                            aria-controls="catalog-subitems"
+                        >
+                            <span class="nav-group-toggle-label">
+                                <svg class="icon"><use href="#i-grid" /></svg><span>Danh mục & Sản phẩm</span>
+                            </span>
+                            <svg class="icon nav-chevron" aria-hidden="true"><use href="#i-arrow" /></svg>
+                        </button>
+                        <div class="nav-subitems" id="catalog-subitems" hidden>
+                            <button type="button" class="nav-subitem" data-portal-tab="categories">
+                                <svg class="icon"><use href="#i-tag" /></svg><span>Danh mục</span>
+                            </button>
+                            <button type="button" class="nav-subitem" data-portal-tab="products">
+                                <svg class="icon"><use href="#i-box" /></svg><span>Sản phẩm</span>
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+                <div class="sidebar-note">
+                    <svg class="icon"><use href="#i-lock" /></svg><strong>Lịch sử kho luôn được lưu giữ</strong>
+                    <p>Mỗi lần nhập, giữ, xuất và hoàn hàng đều có biến động để truy vết.</p>
                 </div>
-                <aside class="panel cart-panel" aria-labelledby="cart-title">
-                    <div class="panel-heading"><h3 id="cart-title"><svg class="icon"><use href="#i-cart"/></svg>Giỏ đặt hàng</h3><span class="count-pill" id="cart-count">0</span></div>
-                    <form id="order-create">
-                        <div class="cart-body"><label>Kho lấy hàng<select id="order-warehouse" data-warehouse="required" required><option value="">Đăng nhập để chọn kho</option></select></label><div id="cart-items" class="cart-items"></div></div>
-                        <div class="cart-footer"><div class="total-row"><span>Tạm tính</span><strong id="cart-total">0 ₫</strong></div><p class="subtle">Giá và tồn kho được xác nhận khi tạo đơn.</p><button class="button primary full-width" id="create-order" type="submit" data-mutation disabled><svg class="icon"><use href="#i-lock"/></svg>Tạo đơn hàng · Giữ hàng 15 phút</button><p id="cart-permission" class="permission-hint">Đăng nhập Customer để đặt hàng.</p></div>
-                    </form>
-                </aside>
+                <a class="sidebar-swagger" href="/swagger-ui/index.html" target="_blank" rel="noopener noreferrer"
+                    >Tài liệu API · Swagger ↗</a
+                >
+                <button type="button" class="sidebar-shop" data-action="open-shop">← Xem cửa hàng</button>
+            </aside>
+            <div class="workspace">
+                <header class="portal-header">
+                    <div>
+                        <span class="eyebrow">QUẢN TRỊ & VẬN HÀNH</span
+                        ><strong id="portal-title">Vận hành đơn hàng</strong>
+                    </div>
+                    <div class="portal-user">
+                        <span id="portal-name"></span><span id="portal-scope" class="subtle"></span>
+                        <button type="button" class="text-button" data-action="open-shop">← Xem cửa hàng</button>
+                    </div>
+                </header>
+                <main class="portal-main">
+                    <section id="portal-queue" class="portal-panel" hidden>
+                        <div class="section-heading">
+                            <div>
+                                <span class="eyebrow">XỬ LÝ ĐƠN THEO KHO</span>
+                                <h1>Vận hành đơn hàng</h1>
+                                <p>Đóng gói, giao hàng và xác nhận nhận trả theo từng bước.</p>
+                            </div>
+                            <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                        </div>
+                        <!-- Các nút lọc gửi một enum trạng thái như dropdown; không gộp dữ liệu sau phân trang. -->
+                        <div
+                            id="queue-status-tabs"
+                            class="queue-status-tabs"
+                            role="group"
+                            aria-label="Lọc nhanh trạng thái đơn hàng"
+                        >
+                            <button type="button" data-action="queue-status" data-queue-status="" aria-pressed="true">
+                                Tất cả
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="CONFIRMED"
+                                aria-pressed="false"
+                            >
+                                Đã thanh toán<small>Chờ đóng gói</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="PACKED"
+                                aria-pressed="false"
+                            >
+                                Đã đóng gói<small>PACKED</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="SHIPPED"
+                                aria-pressed="false"
+                            >
+                                Đang giao<small>SHIPPED</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="DELIVERED"
+                                aria-pressed="false"
+                            >
+                                Đã giao<small>DELIVERED</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="CANCELLED"
+                                aria-pressed="false"
+                            >
+                                Đã hủy<small>CANCELLED</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="RETURNED"
+                                aria-pressed="false"
+                            >
+                                Hoàn hàng<small>RETURNED</small>
+                            </button>
+                        </div>
+                        <div class="panel">
+                            <form id="queue-filter" class="filter-bar">
+                                <label>Kho xử lý<select id="queue-warehouse" data-warehouse="all"></select></label>
+                                <label
+                                    >Trạng thái<select id="queue-status">
+                                        <option value="">Tất cả trạng thái</option>
+                                        <option value="CONFIRMED">Đã thanh toán · CONFIRMED</option>
+                                        <option value="PACKED">Đã đóng gói · PACKED</option>
+                                        <option value="SHIPPED">Đang giao · SHIPPED</option>
+                                        <option value="DELIVERED">Đã giao · DELIVERED</option>
+                                        <option value="PENDING">Chờ thanh toán · PENDING</option>
+                                        <option value="CANCELLED">Đã hủy · CANCELLED</option>
+                                        <option value="EXPIRED">Hết hạn · EXPIRED</option>
+                                        <option value="RETURNED">Đã trả hàng · RETURNED</option>
+                                    </select></label
+                                >
+                                <button class="button primary" type="submit">Lọc đơn hàng</button>
+                            </form>
+                            <form id="order-lookup" class="lookup-bar">
+                                <label
+                                    >Tra nhanh theo ID<input
+                                        id="order-id"
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        required
+                                        placeholder="VD: 12"
+                                /></label>
+                                <button class="button secondary" type="submit">Xem chi tiết</button>
+                                <span class="subtle">Chỉ truy cập đơn trong phạm vi được phép.</span>
+                            </form>
+                        </div>
+                        <div class="queue-layout">
+                            <section class="panel">
+                                <div class="panel-heading">
+                                    <h3>Danh sách cần xử lý</h3>
+                                    <span id="queue-count" class="badge neutral">—</span>
+                                </div>
+                                <div class="table-scroll">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Đơn hàng / Khách</th>
+                                                <th>Kho / Trạng thái</th>
+                                                <th class="align-right">Tổng tiền</th>
+                                                <th>Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="queue-rows"></tbody>
+                                    </table>
+                                </div>
+                                <div id="queue-pagination" class="pagination"></div>
+                            </section>
+                            <article
+                                id="queue-detail"
+                                class="panel order-detail"
+                                aria-label="Chi tiết đơn cần xử lý"
+                            ></article>
+                        </div>
+                    </section>
+
+                    <section id="portal-inventory" class="portal-panel" hidden>
+                        <div class="section-heading">
+                            <div>
+                                <span class="eyebrow">VẬN HÀNH KHO</span>
+                                <h1>Tồn kho & nhập hàng</h1>
+                                <p>Phân biệt hàng khả dụng, hàng đang giữ và tổng tồn thực tế.</p>
+                            </div>
+                            <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                        </div>
+                        <div class="panel">
+                            <form id="inventory-filter" class="filter-bar">
+                                <label>Kho hàng<select id="inventory-warehouse" data-warehouse="all"></select></label>
+                                <label>Sản phẩm<select id="inventory-product" data-product="all"></select></label>
+                                <button class="button secondary" type="submit">Tra cứu tồn kho</button>
+                            </form>
+                        </div>
+                        <div class="stock-metrics">
+                            <div class="stock-metric">
+                                <span class="stock-dot available"></span>
+                                <div><span>Khả dụng</span><strong id="stock-available">—</strong></div>
+                            </div>
+                            <div class="stock-metric">
+                                <span class="stock-dot reserved"></span>
+                                <div><span>Đang giữ</span><strong id="stock-reserved">—</strong></div>
+                            </div>
+                            <div class="stock-metric">
+                                <span class="stock-dot physical"></span>
+                                <div><span>Tổng thực tế</span><strong id="stock-physical">—</strong></div>
+                            </div>
+                        </div>
+                        <p class="metric-caption">
+                            Tổng số lượng trên trang đang xem. Tổng thực tế = Khả dụng + Đang giữ.
+                        </p>
+                        <div class="panel">
+                            <div class="panel-heading">
+                                <h3>Chi tiết tồn kho</h3>
+                                <span class="badge neutral" id="inventory-count">—</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm / ID tồn kho</th>
+                                            <th>Kho</th>
+                                            <th class="align-right">Khả dụng</th>
+                                            <th class="align-right">Đang giữ</th>
+                                            <th class="align-right">Tổng thực tế</th>
+                                            <th>Cập nhật</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventory-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="inventory-pagination"></div>
+                        </div>
+                        <section class="panel stock-in-panel" data-roles="ADMIN,WAREHOUSE_STAFF" hidden>
+                            <div class="panel-heading">
+                                <div>
+                                    <h3>Nhập hàng vào kho</h3>
+                                    <p class="subtle">Lưu số tồn và biến động nhập hàng cùng một giao dịch.</p>
+                                </div>
+                            </div>
+                            <form id="stock-in" class="stock-form">
+                                <label
+                                    >Kho nhận<select
+                                        name="warehouse_id"
+                                        id="receipt-warehouse"
+                                        data-warehouse="required"
+                                        required
+                                    ></select
+                                ></label>
+                                <label
+                                    >Sản phẩm<select
+                                        name="product_id"
+                                        id="receipt-product"
+                                        data-product="required"
+                                        required
+                                    ></select
+                                ></label>
+                                <label
+                                    >Số lượng<input
+                                        name="quantity"
+                                        type="number"
+                                        min="1"
+                                        max="2147483647"
+                                        step="1"
+                                        value="10"
+                                        required
+                                /></label>
+                                <label
+                                    >Ghi chú<input
+                                        name="note"
+                                        maxlength="255"
+                                        placeholder="VD: Nhập hàng từ nhà cung cấp"
+                                /></label>
+                                <button class="button primary" type="submit">Nhập kho</button>
+                            </form>
+                        </section>
+                    </section>
+
+                    <section id="portal-ledger" class="portal-panel" hidden>
+                        <div class="section-heading">
+                            <div>
+                                <span class="eyebrow">KIỂM TOÁN KHO</span>
+                                <h1>Sổ cái biến động bất biến</h1>
+                                <p>Chỉ đọc. Mỗi thay đổi tồn kho được ghi bằng một biến động mới.</p>
+                            </div>
+                            <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-heading">
+                                <h3>Lịch sử biến động</h3>
+                                <span class="badge neutral" id="ledger-count">—</span>
+                            </div>
+                            <form id="ledger-filter" class="filter-bar">
+                                <label
+                                    >ID tồn kho<input
+                                        id="ledger-inventory"
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        placeholder="Tất cả dòng tồn kho" /></label
+                                ><button class="button secondary" type="submit">Xem lịch sử</button>
+                            </form>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Biến động</th>
+                                            <th class="align-right">Số lượng</th>
+                                            <th>Tồn trước ➔ Tồn sau</th>
+                                            <th>Tham chiếu / Người thực hiện</th>
+                                            <th>Thời điểm / Ghi chú</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ledger-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="ledger-pagination"></div>
+                        </div>
+                    </section>
+
+                    <section id="portal-reports" class="portal-panel" hidden>
+                        <div class="section-heading">
+                            <div>
+                                <span class="eyebrow">PHÂN TÍCH KINH DOANH</span>
+                                <h1>Báo cáo quản trị</h1>
+                                <p>Doanh thu, sản phẩm bán chạy và cảnh báo bổ sung hàng.</p>
+                            </div>
+                            <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                        </div>
+                        <div id="order-summary" class="report-metrics"></div>
+                        <div id="summary-statuses" class="summary-statuses"></div>
+                        <div class="panel">
+                            <form id="report-filter" class="filter-bar report-filter">
+                                <label>Từ ngày (UTC)<input id="report-from" type="date" /></label>
+                                <label>Đến ngày (UTC)<input id="report-to" type="date" /></label>
+                                <label
+                                    >Nhóm doanh thu<select id="report-group">
+                                        <option value="DAY">Theo ngày</option>
+                                        <option value="MONTH">Theo tháng</option>
+                                    </select></label
+                                >
+                                <label>Kho<select id="report-warehouse" data-warehouse="all"></select></label>
+                                <label
+                                    >Ngưỡng tồn thấp<input
+                                        id="report-threshold"
+                                        type="number"
+                                        min="0"
+                                        max="2147483647"
+                                        step="1"
+                                        value="10"
+                                        required
+                                /></label>
+                                <button class="button primary" type="submit">Áp dụng bộ lọc</button>
+                            </form>
+                        </div>
+                        <div class="panel report-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <h3>Doanh thu theo kỳ & kho</h3>
+                                    <p class="subtle">
+                                        Đơn đã thanh toán và đang thực hiện; nhóm theo ngày tạo đơn UTC.
+                                    </p>
+                                </div>
+                                <span class="badge neutral" id="revenue-count">—</span>
+                            </div>
+                            <!-- Biểu đồ bổ trợ bảng và chỉ biểu diễn các dòng của trang API hiện tại. -->
+                            <div id="revenue-chart" class="report-chart" aria-live="polite"></div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Ngày / Tháng</th>
+                                            <th>Kho hàng</th>
+                                            <th class="align-right">Số đơn</th>
+                                            <th class="align-right">Doanh thu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="revenue-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="revenue-pagination"></div>
+                        </div>
+                        <div class="panel report-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <h3>Top sản phẩm bán chạy</h3>
+                                    <p class="subtle">Theo doanh thu của mọi kho trong khoảng ngày đã chọn.</p>
+                                </div>
+                                <span class="badge neutral" id="top-count">—</span>
+                            </div>
+                            <!-- Tỷ trọng tính trên doanh thu trang hiện tại, không thay thế thống kê toàn kỳ. -->
+                            <div id="top-chart" class="report-chart" aria-live="polite"></div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm / SKU</th>
+                                            <th>Danh mục</th>
+                                            <th class="align-right">Đã bán</th>
+                                            <th class="align-right">Doanh thu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="top-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="top-pagination"></div>
+                        </div>
+                        <div class="panel report-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <h3>Cảnh báo hàng sắp hết</h3>
+                                    <p class="subtle">Theo hàng khả dụng; phần đang giữ không được bán thêm.</p>
+                                </div>
+                                <span class="badge neutral" id="low-count">—</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm / SKU</th>
+                                            <th>Kho</th>
+                                            <th class="align-right">Khả dụng</th>
+                                            <th class="align-right">Đang giữ</th>
+                                            <th class="align-right">Tổng thực tế</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="low-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="low-pagination"></div>
+                        </div>
+                    </section>
+
+                    <!-- Hai trang catalog độc lập; thao tác thêm/sửa chỉ xuất hiện trong hộp thoại riêng. -->
+                    <section id="portal-products" class="portal-panel catalog-panel" hidden>
+                        <div class="section-heading catalog-heading">
+                            <div>
+                                <span class="eyebrow">DANH MỤC & SẢN PHẨM</span>
+                                <h1>Sản phẩm</h1>
+                                <p>Quản lý sản phẩm, hình ảnh và giá bán của cửa hàng.</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="button secondary catalog-refresh" type="button" data-action="refresh">
+                                    <svg class="icon"><use href="#i-refresh" /></svg><span>Làm mới</span>
+                                </button>
+                                <button class="button primary" type="button" data-action="open-product-create">
+                                    <svg class="icon"><use href="#i-plus" /></svg><span>Thêm sản phẩm</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="panel catalog-list-panel">
+                            <div class="catalog-list-heading">
+                                <div>
+                                    <h2>Danh sách sản phẩm</h2>
+                                    <span id="manage-count" class="catalog-count">—</span>
+                                </div>
+                                <span class="catalog-list-note">Thông tin mới nhất từ cửa hàng</span>
+                            </div>
+                            <form id="manage-filter" class="filter-bar catalog-filter">
+                                <label class="catalog-search-label" for="manage-query">
+                                    Tìm kiếm
+                                    <span class="catalog-search">
+                                        <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+                                        <input
+                                            id="manage-query"
+                                            type="search"
+                                            maxlength="200"
+                                            placeholder="Nhập tên sản phẩm hoặc SKU…"
+                                        />
+                                    </span>
+                                </label>
+                                <label for="manage-category">
+                                    Danh mục<select id="manage-category">
+                                        <option value="">Tất cả danh mục</option>
+                                    </select>
+                                </label>
+                                <label for="manage-status">
+                                    Trạng thái<select id="manage-status">
+                                        <option value="">Tất cả trạng thái</option>
+                                        <option value="ACTIVE">Đang bán</option>
+                                        <option value="INACTIVE">Đã ẩn</option>
+                                    </select>
+                                </label>
+                                <div class="catalog-filter-actions">
+                                    <button class="button primary catalog-filter-submit" type="submit">Áp dụng</button>
+                                    <button
+                                        class="catalog-reset"
+                                        type="button"
+                                        data-action="reset-manage-filter"
+                                        title="Bỏ bộ lọc"
+                                    >
+                                        <svg class="icon"><use href="#i-refresh" /></svg><span>Đặt lại</span>
+                                    </button>
+                                </div>
+                            </form>
+                            <div class="table-scroll catalog-table-wrap">
+                                <table class="catalog-table">
+                                    <caption>
+                                        Danh sách sản phẩm và các thao tác quản trị
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm</th>
+                                            <th>Danh mục</th>
+                                            <th class="align-right">Giá bán</th>
+                                            <th>Trạng thái</th>
+                                            <th class="catalog-actions-heading">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="manage-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="manage-pagination"></div>
+                        </div>
+                    </section>
+
+                    <section id="portal-categories" class="portal-panel catalog-panel" hidden>
+                        <div class="section-heading catalog-heading">
+                            <div>
+                                <span class="eyebrow">DANH MỤC & SẢN PHẨM</span>
+                                <h1>Danh mục</h1>
+                                <p>Sắp xếp sản phẩm theo nhóm để khách dễ tìm và lựa chọn.</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="button secondary catalog-refresh" type="button" data-action="refresh">
+                                    <svg class="icon"><use href="#i-refresh" /></svg><span>Làm mới</span>
+                                </button>
+                                <button class="button primary" type="button" data-action="open-category-create">
+                                    <svg class="icon"><use href="#i-plus" /></svg><span>Thêm danh mục</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="panel catalog-list-panel">
+                            <div class="catalog-list-heading">
+                                <div>
+                                    <h2>Danh sách danh mục</h2>
+                                    <span id="category-count" class="catalog-count">—</span>
+                                </div>
+                                <span class="catalog-list-note">Bao gồm sản phẩm đang bán và đã ẩn</span>
+                            </div>
+                            <!-- Tìm trên cây đã tải để giữ đường dẫn cha/con, không gọi API theo từng phím. -->
+                            <label class="category-admin-search" for="category-admin-query">
+                                Tìm danh mục
+                                <input
+                                    id="category-admin-query"
+                                    type="search"
+                                    maxlength="150"
+                                    placeholder="Nhập tên, đường dẫn hoặc mã danh mục…"
+                                />
+                            </label>
+                            <div class="table-scroll catalog-table-wrap">
+                                <table class="catalog-table category-table">
+                                    <caption>
+                                        Danh mục sản phẩm của cửa hàng
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th>Mã danh mục</th>
+                                            <th>Tên danh mục</th>
+                                            <th>Đường dẫn nhận diện</th>
+                                            <th class="align-right">Tổng sản phẩm</th>
+                                            <th class="category-actions-heading">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="category-rows"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- ADMIN quản lý hãng riêng để không tạo Apple/Samsung thành danh mục cấp cao. -->
+                        <div class="panel catalog-list-panel brand-admin-panel">
+                            <div class="catalog-list-heading">
+                                <div>
+                                    <h2>Thương hiệu</h2>
+                                    <span id="brand-count" class="catalog-count">—</span>
+                                </div>
+                                <button class="button primary" type="button" data-action="open-brand-create">
+                                    <svg class="icon"><use href="#i-plus" /></svg>Thêm thương hiệu
+                                </button>
+                            </div>
+                            <p class="brand-admin-note">
+                                Chọn danh mục khi tạo sản phẩm, rồi chọn hãng ở trường Thương hiệu. Thêm logo giúp khách
+                                nhận diện hãng dễ hơn.
+                            </p>
+                            <label class="brand-admin-search" for="brand-admin-query">
+                                Tìm thương hiệu
+                                <input
+                                    id="brand-admin-query"
+                                    type="search"
+                                    placeholder="Nhập tên hãng, ví dụ: Samsung, Sony…"
+                                    maxlength="150"
+                                />
+                            </label>
+                            <div id="brand-admin-list" class="brand-admin-list"></div>
+                        </div>
+                    </section>
+                    <footer class="page-footer">
+                        <span>StockFlow · Cổng vận hành cửa hàng nhiều kho</span
+                        ><span id="last-sync">Dữ liệu trực tiếp từ hệ thống</span>
+                    </footer>
+                </main>
             </div>
-            <details class="panel admin-tools" data-roles="ADMIN" hidden>
-                <summary><svg class="icon"><use href="#i-plus"/></svg>Quản trị danh mục <span class="badge role-admin">ADMIN</span><span class="subtle">Thêm sản phẩm / cập nhật giá</span></summary>
-                <div class="form-columns">
-                    <form id="product-create" class="stacked-form"><h3>Thêm sản phẩm mới</h3><div class="form-grid"><label>SKU<input name="sku" required maxlength="80" placeholder="VD: ELE-SPEAKER-01"></label><label>Danh mục<select name="category_id" id="product-category" required></select></label></div><label>Tên sản phẩm<input name="name" required maxlength="200" placeholder="Tên sản phẩm"></label><div class="form-grid"><label>Giá bán (VND)<input name="unit_price" type="number" min="0.01" step="0.01" required></label><label>Trạng thái<select name="status"><option value="ACTIVE">Đang kinh doanh</option><option value="INACTIVE">Ngừng kinh doanh</option></select></label></div><button class="button primary" type="submit" data-mutation>Thêm sản phẩm</button></form>
-                    <form id="product-update" class="stacked-form"><h3>Cập nhật sản phẩm</h3><label>Sản phẩm<select id="update-product" name="product_id" data-product="required" required></select></label><label>Tên mới <span class="subtle">(tùy chọn)</span><input name="name" maxlength="200" placeholder="Giữ nguyên nếu để trống"></label><div class="form-grid"><label>Giá mới (VND)<input name="unit_price" type="number" min="0.01" step="0.01" placeholder="Giữ nguyên"></label><label>Trạng thái<select name="status"><option value="">Giữ nguyên</option><option value="ACTIVE">Đang kinh doanh</option><option value="INACTIVE">Ngừng kinh doanh</option></select></label></div><button class="button secondary" type="submit" data-mutation>Lưu thay đổi</button></form>
+        </div>
+
+        <!-- Giỏ ở bộ nhớ trình duyệt; API tạo đơn vẫn kiểm tra giá, tồn và quyền trong transaction. -->
+        <dialog id="cart-dialog" class="cart-drawer" aria-labelledby="cart-title">
+            <div class="dialog-header">
+                <div>
+                    <span class="eyebrow">SẮP SẴN SÀNG ĐẶT HÀNG</span>
+                    <h2 id="cart-title">Giỏ hàng của bạn <span id="cart-count" class="count-pill">0</span></h2>
                 </div>
-            </details>
-        </section>
-
-        <!-- Khách đọc danh sách của mình; người vận hành tra ID và được backend kiểm tra quyền trên từng đơn. -->
-        <section id="tab-orders" class="tab-panel" aria-labelledby="orders-title" hidden>
-            <div class="section-heading"><div><span class="eyebrow">VÒNG ĐỜI ĐƠN HÀNG</span><h2 id="orders-title">Quản lý đơn hàng</h2><p>Theo dõi giữ hàng, thanh toán mô phỏng và hoàn lại tồn kho.</p></div><button type="button" class="button secondary" data-action="refresh"><svg class="icon"><use href="#i-refresh"/></svg>Làm mới</button></div>
-            <form id="order-lookup" class="panel lookup-bar"><label>ID đơn hàng<input id="order-id" type="number" min="1" step="1" required placeholder="Nhập ID đơn cần xem"></label><button class="button primary" type="submit">Tra cứu đơn hàng <svg class="icon"><use href="#i-arrow"/></svg></button><p class="subtle">Quyền xem được kiểm tra theo chủ đơn và kho phụ trách.</p></form>
-            <div class="order-layout">
-                <div class="panel"><div class="panel-heading"><h3 id="orders-list-title">Đơn hàng của tôi</h3><span class="badge neutral" id="orders-count">—</span></div><div id="orders-role-note" class="inline-info">Đăng nhập Customer để xem lịch sử. Người vận hành tra cứu đơn bằng ID.</div><div id="customer-order-list" hidden><div class="table-scroll"><table><thead><tr><th>Đơn hàng</th><th>Trạng thái</th><th class="align-right">Tổng tiền</th><th></th></tr></thead><tbody id="orders-rows"></tbody></table></div><div class="pagination" id="orders-pagination"></div></div></div>
-                <article class="panel order-detail" id="order-detail" aria-label="Chi tiết đơn hàng"><div class="empty-state"><svg class="icon"><use href="#i-order"/></svg><h3>Mỗi đơn hàng, một hành trình.</h3><p>Chọn một đơn hoặc nhập ID để xem mặt hàng và các thao tác phù hợp.</p></div></article>
+                <button class="icon-button" type="button" data-action="close-cart" aria-label="Đóng giỏ hàng">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
             </div>
-        </section>
+            <form id="order-create">
+                <label
+                    >Chi nhánh chuẩn bị đơn<select id="order-warehouse" data-store-warehouse required></select
+                ></label>
+                <div id="cart-items" class="cart-items"></div>
+                <!-- Người nhận được lưu cố định trên đơn; không dùng hồ sơ làm dữ liệu giao hàng thay thế. -->
+                <fieldset class="checkout-delivery">
+                    <legend>Thông tin nhận hàng</legend>
+                    <p class="checkout-intro">Giao đến địa chỉ của bạn · Miễn phí giao hàng</p>
+                    <div class="checkout-contact-grid">
+                        <label>
+                            Họ và tên người nhận
+                            <input
+                                id="delivery-name"
+                                data-delivery-field
+                                name="recipient_name"
+                                required
+                                maxlength="150"
+                                autocomplete="shipping name"
+                                placeholder="Nguyễn Văn An"
+                            />
+                        </label>
+                        <label>
+                            Số điện thoại
+                            <input
+                                id="delivery-phone"
+                                data-delivery-field
+                                name="recipient_phone"
+                                type="tel"
+                                required
+                                maxlength="30"
+                                autocomplete="shipping tel"
+                                placeholder="0901234567"
+                            />
+                        </label>
+                    </div>
+                    <label>
+                        Địa chỉ giao hàng
+                        <textarea
+                            id="delivery-address"
+                            data-delivery-field
+                            name="address"
+                            required
+                            maxlength="500"
+                            rows="3"
+                            autocomplete="shipping street-address"
+                            placeholder="Số nhà, tên đường, phường/xã, tỉnh/thành phố"
+                        ></textarea>
+                    </label>
+                    <label>
+                        Ghi chú giao hàng <span class="checkout-optional">(tùy chọn)</span>
+                        <textarea
+                            id="delivery-note"
+                            data-delivery-field
+                            name="note"
+                            maxlength="1000"
+                            rows="2"
+                            placeholder="Ví dụ: gọi trước khi giao, giao trong giờ hành chính"
+                        ></textarea>
+                    </label>
+                    <p class="checkout-policy">
+                        Kiểm tra kỹ trước khi đặt. Muốn đổi thông tin nhận hàng, hãy hủy đơn đang chờ thanh toán và đặt
+                        lại.
+                    </p>
+                </fieldset>
+                <div class="cart-footer">
+                    <div class="total-row"><span>Tạm tính</span><strong id="cart-total">0 ₫</strong></div>
+                    <div class="checkout-shipping-row"><span>Phí giao hàng</span><strong>Miễn phí</strong></div>
+                    <p class="subtle">
+                        Giá và tồn kho được xác nhận khi đặt đơn. Thanh toán mô phỏng trong 15 phút để hoàn tất giữ
+                        hàng.
+                    </p>
+                    <button class="button primary full-width" id="create-order" type="submit" disabled>
+                        Tiến hành đặt hàng <svg class="icon"><use href="#i-arrow" /></svg>
+                    </button>
+                    <p id="cart-permission" class="permission-hint">Đăng nhập để đặt hàng.</p>
+                </div>
+            </form>
+        </dialog>
 
-        <!-- Tồn kho tách rõ available/reserved/physical; sổ cái chỉ được mở cho MANAGER/ADMIN. -->
-        <section id="tab-inventory" class="tab-panel" aria-labelledby="inventory-title" hidden>
-            <div class="section-heading"><div><span class="eyebrow">VẬN HÀNH KHO</span><h2 id="inventory-title">Tồn kho & sổ cái bất biến</h2><p>Nhìn rõ hàng có thể bán, hàng đang giữ và tổng tồn thực tế.</p></div><button type="button" class="button secondary" data-action="refresh"><svg class="icon"><use href="#i-refresh"/></svg>Làm mới</button></div>
-            <div id="inventory-denied" class="panel permission-card"><svg class="icon"><use href="#i-lock"/></svg><h3>Khu vực vận hành kho</h3><p>ADMIN, MANAGER và WAREHOUSE_STAFF được xem tồn kho. Nhân viên chỉ truy cập kho được phân công.</p><button type="button" class="button secondary" data-action="probe-inventory">Thử quyền truy cập</button></div>
-            <div id="inventory-content" hidden>
-                <div class="panel"><form id="inventory-filter" class="filter-bar"><label>Kho hàng<select id="inventory-warehouse" data-warehouse="all"></select></label><label>Sản phẩm<select id="inventory-product" data-product="all"></select></label><button class="button secondary" type="submit">Tra cứu tồn kho</button></form></div>
-                <div class="stock-metrics"><div class="stock-metric"><span class="stock-dot available"></span><div><span>Khả dụng · Available</span><strong id="stock-available">—</strong></div></div><div class="stock-metric"><span class="stock-dot reserved"></span><div><span>Đang giữ · Reserved</span><strong id="stock-reserved">—</strong></div></div><div class="stock-metric"><span class="stock-dot physical"></span><div><span>Tổng thực tế · Physical</span><strong id="stock-physical">—</strong></div></div></div>
-                <p class="metric-caption">Tổng số lượng trên trang đang xem. Tổng thực tế = Khả dụng + Đang giữ.</p>
-                <div class="panel"><div class="panel-heading"><h3>Chi tiết tồn kho</h3><span class="badge neutral" id="inventory-count">—</span></div><div class="table-scroll"><table><thead><tr><th>Sản phẩm</th><th>Kho</th><th class="align-right">Khả dụng</th><th class="align-right">Đang giữ</th><th class="align-right">Tổng thực tế</th><th>Cập nhật</th></tr></thead><tbody id="inventory-rows"></tbody></table></div><div class="pagination" id="inventory-pagination"></div></div>
-                <div class="panel stock-in-panel" data-roles="ADMIN,WAREHOUSE_STAFF" hidden><div class="panel-heading"><div><h3>Nhập kho</h3><p class="subtle">Mỗi lần nhập thành công tự tạo một biến động GOODS_RECEIPT.</p></div><span class="badge teal">NHẬP HÀNG</span></div><form id="stock-in" class="stock-form"><label>Kho nhận<select name="warehouse_id" id="receipt-warehouse" data-warehouse="required" required></select></label><label>Sản phẩm<select name="product_id" id="receipt-product" data-product="required" required></select></label><label>Số lượng<input name="quantity" type="number" min="1" max="2147483647" step="1" value="10" required></label><label>Ghi chú<input name="note" maxlength="255" placeholder="VD: Nhập hàng từ nhà cung cấp"></label><button class="button primary" type="submit" data-mutation><svg class="icon"><use href="#i-plus"/></svg>Nhập kho</button></form><p class="permission-hint" data-roles="WAREHOUSE_STAFF" hidden>Staff Kho HN được phân công WH-HAN-01. Kho ngoài phạm vi sẽ bị từ chối.</p></div>
-                <div class="panel ledger-panel" data-roles="ADMIN,MANAGER" hidden><div class="panel-heading"><div><h3><svg class="icon"><use href="#i-lock"/></svg>Sổ cái biến động bất biến</h3><p class="subtle">Chỉ đọc. Mọi điều chỉnh được ghi bằng biến động mới.</p></div><span class="badge neutral" id="ledger-count">—</span></div><form id="ledger-filter" class="filter-bar"><label>ID tồn kho<input id="ledger-inventory" type="number" min="1" step="1" placeholder="Tất cả dòng tồn kho"></label><button class="button secondary" type="submit">Xem lịch sử</button></form><div class="table-scroll"><table><thead><tr><th>Biến động</th><th class="align-right">Số lượng</th><th>Tồn trước ➔ Tồn sau</th><th>Tham chiếu / Người thực hiện</th><th>Thời điểm / Ghi chú</th></tr></thead><tbody id="ledger-rows"></tbody></table></div><div class="pagination" id="ledger-pagination"></div></div>
-                <div class="panel inline-info" data-roles="WAREHOUSE_STAFF" hidden><svg class="icon"><use href="#i-lock"/></svg>Sổ cái kiểm toán dành cho MANAGER và ADMIN.<button type="button" class="button secondary small" data-action="probe-ledger">Thử quyền xem sổ cái</button></div>
+        <!-- Hộp đăng nhập dùng chung; đăng ký chỉ tạo CUSTOMER, không cho tự chọn quyền vận hành. -->
+        <dialog id="auth-dialog" aria-labelledby="auth-title">
+            <div class="dialog-header">
+                <span class="brand-mark"
+                    ><svg class="icon"><use href="#i-box" /></svg></span
+                ><button class="icon-button" type="button" data-action="close-auth" aria-label="Đóng đăng nhập">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
             </div>
-        </section>
-
-        <!-- Báo cáo được lấy trực tiếp từ SQL backend; không tạo số liệu hoặc biểu đồ giả. -->
-        <section id="tab-reports" class="tab-panel" aria-labelledby="reports-title" hidden>
-            <div class="section-heading"><div><span class="eyebrow">PHÂN TÍCH KINH DOANH</span><h2 id="reports-title">Báo cáo quản trị</h2><p>Doanh thu thực, sản phẩm bán chạy và cảnh báo bổ sung hàng.</p></div><button type="button" class="button secondary" data-action="refresh"><svg class="icon"><use href="#i-refresh"/></svg>Làm mới</button></div>
-            <div id="reports-denied" class="panel permission-card"><svg class="icon"><use href="#i-chart"/></svg><h3>Góc nhìn dành cho quản lý</h3><p>Chuyển sang MANAGER hoặc ADMIN để xem các báo cáo kinh doanh.</p><button type="button" class="button secondary" data-action="probe-reports">Thử quyền truy cập báo cáo</button></div>
-            <div id="reports-content" hidden>
-                <div id="order-summary" class="report-metrics"></div><div id="summary-statuses" class="summary-statuses"></div>
-                <div class="panel"><form id="report-filter" class="filter-bar report-filter"><label>Từ ngày (UTC)<input id="report-from" type="date"></label><label>Đến ngày (UTC)<input id="report-to" type="date"></label><label>Nhóm doanh thu<select id="report-group"><option value="DAY">Theo ngày</option><option value="MONTH">Theo tháng</option></select></label><label>Kho<select id="report-warehouse" data-warehouse="all"></select></label><label>Ngưỡng tồn thấp<input id="report-threshold" type="number" min="0" max="2147483647" step="1" value="10" required></label><button class="button primary" type="submit">Áp dụng bộ lọc</button></form></div>
-                <div class="panel report-panel"><div class="panel-heading"><div><h3>Doanh thu theo kỳ & kho</h3><p class="subtle">Đơn CONFIRMED, PACKED, SHIPPED, DELIVERED; nhóm theo ngày tạo đơn UTC.</p></div><span class="badge teal" id="revenue-count">—</span></div><div class="table-scroll"><table><thead><tr><th>Ngày / Tháng</th><th>Kho hàng</th><th class="align-right">Số đơn</th><th class="align-right">Doanh thu</th></tr></thead><tbody id="revenue-rows"></tbody></table></div><div class="pagination" id="revenue-pagination"></div></div>
-                <div class="panel report-panel"><div class="panel-heading"><div><h3>Top sản phẩm bán chạy</h3><p class="subtle">Xếp theo doanh thu của mọi kho trong khoảng ngày đã chọn.</p></div><span class="badge neutral" id="top-count">—</span></div><div class="table-scroll"><table><thead><tr><th>Sản phẩm / SKU</th><th>Danh mục</th><th class="align-right">Đã bán</th><th class="align-right">Doanh thu</th></tr></thead><tbody id="top-rows"></tbody></table></div><div class="pagination" id="top-pagination"></div></div>
-                <div class="panel report-panel"><div class="panel-heading"><div><h3><svg class="icon"><use href="#i-alert"/></svg>Cảnh báo hàng sắp hết</h3><p class="subtle">Theo hàng khả dụng; phần đã giữ không được coi là hàng có thể bán.</p></div><span class="badge amber" id="low-count">—</span></div><div class="table-scroll"><table><thead><tr><th>Sản phẩm / SKU</th><th>Kho</th><th class="align-right">Khả dụng</th><th class="align-right">Đang giữ</th><th class="align-right">Tổng thực tế</th></tr></thead><tbody id="low-rows"></tbody></table></div><div class="pagination" id="low-pagination"></div></div>
+            <h2 id="auth-title">Chào mừng đến StockFlow</h2>
+            <div class="auth-tabs">
+                <button type="button" class="active" data-auth-mode="login">Đăng nhập</button
+                ><button type="button" data-auth-mode="register">Đăng ký</button>
             </div>
-        </section>
-        <footer class="page-footer"><span>StockFlow · Quản lý rõ ràng. Tồn kho chính xác.</span><span id="last-sync">Dữ liệu được tải trực tiếp từ hệ thống</span></footer>
-    </main>
-</div>
+            <form id="auth-form" class="stacked-form">
+                <label id="auth-name-field" hidden
+                    >Họ và tên<input id="auth-name" autocomplete="name" maxlength="150"
+                /></label>
+                <label
+                    >Email<input
+                        id="auth-email"
+                        type="email"
+                        required
+                        autocomplete="username"
+                        maxlength="255"
+                        placeholder="ten@stockflow.com"
+                /></label>
+                <label
+                    >Mật khẩu<input
+                        id="auth-password"
+                        type="password"
+                        minlength="1"
+                        maxlength="100"
+                        required
+                        autocomplete="current-password"
+                /></label>
+                <div id="auth-error" class="form-error" role="alert" hidden></div>
+                <button class="button primary full-width" type="submit" id="auth-submit">Đăng nhập</button>
+                <p class="subtle" id="auth-description"></p>
+            </form>
+        </dialog>
 
-<!-- Đăng nhập/đăng ký thủ công bổ sung cho các nút demo; JWT chỉ lưu trong session của tab. -->
-<dialog id="auth-dialog" aria-labelledby="auth-title">
-    <div class="dialog-header"><span class="brand-mark"><svg class="icon"><use href="#i-box"/></svg></span><button class="icon-button" type="button" data-action="close-auth" aria-label="Đóng cửa sổ đăng nhập"><svg class="icon"><use href="#i-close"/></svg></button></div>
-    <h2 id="auth-title">Chào mừng đến StockFlow</h2><p class="subtle">Đăng nhập để bắt đầu làm việc với đơn hàng và kho.</p>
-    <div class="auth-tabs"><button type="button" class="active" data-auth-mode="login">Đăng nhập</button><button type="button" data-auth-mode="register">Đăng ký</button></div>
-    <form id="auth-form" class="stacked-form"><label id="auth-name-field" hidden>Họ và tên<input id="auth-name" autocomplete="name" maxlength="150"></label><label>Email<input id="auth-email" type="email" required autocomplete="username" placeholder="ten@stockflow.com"></label><label>Mật khẩu<input id="auth-password" type="password" minlength="6" required autocomplete="current-password" placeholder="Nhập mật khẩu"></label><div id="auth-error" class="form-error" role="alert" hidden></div><button class="button primary full-width" type="submit" id="auth-submit">Đăng nhập</button><p class="subtle" id="auth-description">Tài khoản demo có sẵn khi ứng dụng chạy với profile demo.</p></form>
-</dialog>
-<div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
-<noscript><div class="noscript-message">Vui lòng bật JavaScript để sử dụng giao diện StockFlow.</div></noscript>
-</body>
+        <!-- Xác nhận cụ thể trước thao tác hủy/nhận trả, không dùng hộp thoại chặn của trình duyệt. -->
+        <dialog id="confirm-dialog" aria-labelledby="confirm-title">
+            <h2 id="confirm-title">Xác nhận thao tác</h2>
+            <p id="confirm-message" class="confirm-message"></p>
+            <div class="dialog-actions">
+                <button class="button secondary" type="button" data-action="dismiss-confirm">Quay lại</button
+                ><button id="confirm-submit" class="button danger" type="button" data-action="confirm-mutation">
+                    Xác nhận
+                </button>
+            </div>
+        </dialog>
+        <!-- Hộp thoại thêm sản phẩm mới -->
+        <dialog id="product-create-dialog" class="modal-wide catalog-dialog" aria-labelledby="product-create-title">
+            <div class="dialog-header">
+                <div>
+                    <span class="eyebrow">QUẢN LÝ SẢN PHẨM</span>
+                    <h2 id="product-create-title">Thêm sản phẩm mới</h2>
+                    <p class="catalog-dialog-description">Thông tin đầy đủ giúp khách dễ tìm và lựa chọn sản phẩm.</p>
+                </div>
+                <button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng hộp thoại">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <form id="product-create" class="stacked-form catalog-form">
+                <div class="form-grid">
+                    <label>SKU<input name="sku" required maxlength="80" placeholder="VD: TECH-KBD-01" /></label>
+                    <label>Danh mục<select name="category_id" id="product-category" required></select></label>
+                </div>
+                <label
+                    >Thương hiệu <span class="subtle">(tùy chọn)</span>
+                    <select name="brand_id" id="product-brand">
+                        <option value="">Chưa khai báo thương hiệu</option>
+                    </select>
+                </label>
+                <label
+                    >Tên sản phẩm chung<input
+                        name="name"
+                        required
+                        maxlength="200"
+                        placeholder="Ví dụ: Apple Watch SE 3"
+                /></label>
+                <!-- Mô tả do Admin nhập, được lưu cùng sản phẩm và hiển thị dưới dạng văn bản. -->
+                <label for="create-product-description"
+                    >Mô tả / Chi tiết sản phẩm <span class="subtle">(tùy chọn)</span></label
+                >
+                <textarea
+                    id="create-product-description"
+                    name="description"
+                    maxlength="5000"
+                    rows="5"
+                    placeholder="Giới thiệu sản phẩm, thông số, màu sắc, phụ kiện đi kèm, thông tin bảo hành..."
+                    aria-describedby="create-description-help"
+                ></textarea>
+                <p id="create-description-help" class="description-field-help">
+                    Tối đa 5.000 ký tự. Thông số kỹ thuật nhập riêng trong bảng bên dưới.
+                </p>
+                <!-- Thông số nhập theo từng dòng; không cần chỉnh JavaScript hoặc chèn HTML vào mô tả. -->
+                <fieldset class="spec-editor" data-spec-editor="create">
+                    <legend>Thông số kỹ thuật</legend>
+                    <p class="subtle">Nhập tên và giá trị, ví dụ “Bộ nhớ trong — 256 GB”. Tối đa 60 dòng.</p>
+                    <div class="spec-editor-rows"></div>
+                    <button class="button secondary small" type="button" data-action="add-spec-row">
+                        + Thêm thông số
+                    </button>
+                </fieldset>
+                <label for="create-product-image"
+                    >Đường dẫn ảnh bìa <span class="subtle">(tùy chọn)</span>
+                    <input
+                        id="create-product-image"
+                        name="image_url"
+                        type="text"
+                        maxlength="2048"
+                        data-image-input="create"
+                        aria-describedby="create-product-image-help"
+                        placeholder="https://... hoặc /assets/products/..."
+                    />
+                </label>
+                <p id="create-product-image-help" class="image-field-help">
+                    Dán link ảnh HTTP/HTTPS hoặc đường dẫn /assets/. Để trống sẽ dùng ảnh minh họa dự phòng.
+                </p>
+                <figure class="product-image-preview" data-image-preview="create" hidden>
+                    <img class="product-image-preview-img" alt="Xem trước ảnh sản phẩm mới" decoding="async" />
+                    <figcaption data-image-preview-status role="status"></figcaption>
+                </figure>
+                <!-- Các ảnh bổ sung là góc chụp khác của cùng sản phẩm; thứ tự dòng là thứ tự xem ảnh. -->
+                <label for="create-product-gallery">Ảnh bổ sung <span class="subtle">(tối đa 8 ảnh)</span></label>
+                <textarea
+                    id="create-product-gallery"
+                    name="image_urls"
+                    rows="4"
+                    maxlength="16392"
+                    data-gallery-input="create"
+                    aria-describedby="create-gallery-help"
+                    placeholder="Mỗi dòng một link ảnh HTTP/HTTPS hoặc /assets/…"
+                ></textarea>
+                <p id="create-gallery-help" class="image-field-help">
+                    Dán các ảnh góc trước, góc sau hoặc chi tiết của cùng sản phẩm, mỗi dòng một link. Khách bấm ảnh nhỏ
+                    để xem ảnh lớn trên trang sản phẩm.
+                </p>
+                <div class="gallery-input-preview" data-gallery-preview="create" aria-live="polite" hidden></div>
+                <div class="form-grid">
+                    <label
+                        >Giá bán (VND)<input
+                            name="unit_price"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            required
+                            placeholder="0"
+                    /></label>
+                    <label
+                        >Trạng thái<select name="status">
+                            <option value="ACTIVE">Đang kinh doanh</option>
+                            <option value="INACTIVE">Ngừng kinh doanh</option>
+                        </select></label
+                    >
+                </div>
+                <div class="dialog-actions">
+                    <button class="button secondary" type="button" data-action="close-dialog">Hủy</button>
+                    <button class="button primary" type="submit">Thêm sản phẩm</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Hộp thoại cập nhật sản phẩm -->
+        <dialog id="product-edit-dialog" class="modal-wide catalog-dialog" aria-labelledby="product-edit-title">
+            <div class="dialog-header">
+                <div>
+                    <span class="eyebrow">QUẢN LÝ SẢN PHẨM</span>
+                    <h2 id="product-edit-title">Cập nhật sản phẩm</h2>
+                    <p class="catalog-dialog-description">
+                        Chỉnh sửa tên, mô tả, giá, ảnh và trạng thái bán của sản phẩm.
+                    </p>
+                </div>
+                <button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng hộp thoại">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <form id="product-update" class="stacked-form catalog-form">
+                <input type="hidden" id="update-product" name="product_id" />
+                <div class="product-edit-meta">
+                    <span class="badge neutral mono" id="update-product-sku-badge">SKU</span>
+                    <span class="subtle" id="update-product-category-text">Danh mục</span>
+                </div>
+                <!-- Bỏ chọn hãng rồi lưu là thao tác xóa rõ ràng, không dùng null PATCH để xóa ngầm. -->
+                <label
+                    >Thương hiệu
+                    <select name="brand_id" id="update-product-brand">
+                        <option value="">Chưa khai báo thương hiệu</option>
+                    </select>
+                </label>
+                <label
+                    >Tên sản phẩm<input
+                        id="update-product-name"
+                        name="name"
+                        maxlength="200"
+                        placeholder="Tên sản phẩm..."
+                /></label>
+                <!-- Để trống mô tả rồi lưu sẽ xóa nội dung; ảnh có thao tác xóa riêng bên dưới. -->
+                <label for="update-product-description">Mô tả / Chi tiết sản phẩm</label>
+                <textarea
+                    id="update-product-description"
+                    name="description"
+                    maxlength="5000"
+                    rows="5"
+                    placeholder="Nhập thông tin chi tiết để khách tìm hiểu sản phẩm..."
+                    aria-describedby="update-description-help"
+                ></textarea>
+                <p id="update-description-help" class="description-field-help">
+                    Tối đa 5.000 ký tự. Xóa toàn bộ nội dung rồi lưu để bỏ mô tả đã có.
+                </p>
+                <!-- Bảng thông số là nội dung chung cho các màu; bỏ hết dòng rồi lưu sẽ xóa bảng. -->
+                <fieldset class="spec-editor" data-spec-editor="update">
+                    <legend>Thông số kỹ thuật</legend>
+                    <p class="subtle">
+                        Thông số chung của model. Khai báo phần khác nhau trong từng phiên bản; xóa hết dòng rồi lưu để
+                        bỏ bảng chung.
+                    </p>
+                    <div class="spec-editor-rows"></div>
+                    <button class="button secondary small" type="button" data-action="add-spec-row">
+                        + Thêm thông số
+                    </button>
+                </fieldset>
+                <label for="update-product-image"
+                    >Đường dẫn ảnh bìa mới <span class="subtle">(tùy chọn)</span>
+                    <input
+                        id="update-product-image"
+                        name="image_url"
+                        type="text"
+                        maxlength="2048"
+                        data-image-input="update"
+                        aria-describedby="update-product-image-help"
+                        placeholder="Để trống giữ nguyên ảnh hiện tại"
+                    />
+                </label>
+                <p id="update-product-image-help" class="image-field-help">
+                    Ảnh hiện tại hiển thị bên dưới. Nhập link mới để thay ảnh hoặc chọn xóa ảnh đã lưu.
+                </p>
+                <label class="image-remove-label">
+                    <input id="remove-product-image" name="remove_image" type="checkbox" />
+                    Xóa ảnh bìa đã lưu
+                </label>
+                <figure class="product-image-preview" data-image-preview="update" hidden>
+                    <img
+                        class="product-image-preview-img"
+                        alt="Xem trước ảnh sản phẩm được cập nhật"
+                        decoding="async"
+                    />
+                    <figcaption data-image-preview-status role="status"></figcaption>
+                </figure>
+                <!-- Xóa trắng danh sách rồi lưu chỉ xóa ảnh bổ sung, không xóa ảnh bìa hay dữ liệu đơn hàng. -->
+                <label for="update-product-gallery">Ảnh bổ sung <span class="subtle">(tối đa 8 ảnh)</span></label>
+                <textarea
+                    id="update-product-gallery"
+                    name="image_urls"
+                    rows="4"
+                    maxlength="16392"
+                    data-gallery-input="update"
+                    aria-describedby="update-gallery-help"
+                    placeholder="Mỗi dòng một link ảnh HTTP/HTTPS hoặc /assets/…"
+                ></textarea>
+                <p id="update-gallery-help" class="image-field-help">
+                    Mỗi dòng một link; đổi thứ tự dòng để đổi thứ tự ảnh. Xóa toàn bộ link rồi lưu để bỏ ảnh bổ sung.
+                </p>
+                <div class="gallery-input-preview" data-gallery-preview="update" aria-live="polite" hidden></div>
+                <div class="form-grid">
+                    <label
+                        >Giá bán mới (VND)<input
+                            id="update-product-price"
+                            name="unit_price"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="Giữ nguyên"
+                    /></label>
+                    <label
+                        >Trạng thái<select id="update-product-status" name="status">
+                            <option value="">Giữ nguyên</option>
+                            <option value="ACTIVE">Đang kinh doanh</option>
+                            <option value="INACTIVE">Ngừng kinh doanh</option>
+                        </select></label
+                    >
+                </div>
+                <div class="dialog-actions">
+                    <button class="button secondary" type="button" data-action="close-dialog">Hủy</button>
+                    <button class="button primary" type="submit">Lưu thay đổi</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Hộp thoại xem chi tiết sản phẩm -->
+        <dialog id="product-detail-dialog" class="modal-wide catalog-dialog" aria-labelledby="product-detail-title">
+            <div class="dialog-header">
+                <div>
+                    <span class="eyebrow">THÔNG TIN CHI TIẾT</span>
+                    <h2 id="product-detail-title">Chi tiết sản phẩm</h2>
+                    <p class="catalog-dialog-description">Thông tin sản phẩm và số lượng tại từng chi nhánh.</p>
+                </div>
+                <button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng chi tiết">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <div id="product-detail-body" class="product-detail-body"></div>
+            <div class="dialog-actions">
+                <button class="button secondary" type="button" data-action="close-dialog">Đóng</button>
+                <button class="button primary" type="button" id="detail-edit-shortcut">
+                    <svg class="icon"><use href="#i-edit" /></svg><span>Chỉnh sửa sản phẩm</span>
+                </button>
+            </div>
+        </dialog>
+
+        <!-- Mỗi màu có SKU, giá, ảnh riêng; thêm màu không tự sinh tồn kho hoặc movement. -->
+        <dialog
+            id="product-variants-dialog"
+            class="modal-wide catalog-dialog variants-dialog"
+            aria-labelledby="variants-dialog-title"
+        >
+            <div class="dialog-header">
+                <div>
+                    <!-- Một model có nhiều phiên bản; mỗi phiên bản chứa SKU màu với tồn kho riêng. -->
+                    <span class="eyebrow">CẤU HÌNH SẢN PHẨM</span>
+                    <h2 id="variants-dialog-title">Phiên bản sản phẩm</h2>
+                    <p id="variants-product-name" class="subtle"></p>
+                </div>
+                <button
+                    class="icon-button"
+                    type="button"
+                    data-action="close-dialog"
+                    aria-label="Đóng quản lý phiên bản và màu"
+                >
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <div id="product-variants-body"></div>
+        </dialog>
+
+        <!-- Thêm hãng dùng API chỉ dành cho ADMIN; tên/slug và danh mục gợi ý lưu tại database. -->
+        <dialog
+            id="brand-create-dialog"
+            class="catalog-dialog catalog-dialog-small"
+            aria-labelledby="brand-create-title"
+        >
+            <div class="dialog-header">
+                <div>
+                    <span class="eyebrow">QUẢN LÝ THƯƠNG HIỆU</span>
+                    <h2 id="brand-create-title">Thêm thương hiệu</h2>
+                    <p class="catalog-dialog-description">Hãng dùng chung cho nhiều loại sản phẩm.</p>
+                </div>
+                <button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng hộp thoại">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <form id="brand-create" class="stacked-form catalog-form">
+                <label
+                    >Tên thương hiệu<input
+                        id="create-brand-name"
+                        name="name"
+                        required
+                        maxlength="150"
+                        placeholder="VD: ASUS"
+                /></label>
+                <label
+                    >Đường dẫn ngắn (Slug)<input
+                        id="create-brand-slug"
+                        name="slug"
+                        required
+                        maxlength="180"
+                        placeholder="VD: asus"
+                /></label>
+                <label
+                    >Danh mục gợi ý trong menu<select id="brand-category" name="category_id">
+                        <option value="">Chưa chọn</option>
+                    </select></label
+                >
+                <p class="subtle">Hãng cũng xuất hiện trong các danh mục có sản phẩm được gán hãng đó.</p>
+                <!-- Logo tùy chọn lưu bằng URL, dùng cùng kiểm tra ảnh an toàn với catalog hiện có. -->
+                <label
+                    >Link ảnh / Logo thương hiệu
+                    <input
+                        id="create-brand-logo"
+                        name="logo_url"
+                        type="text"
+                        maxlength="2048"
+                        data-brand-logo-input="create"
+                        placeholder="https://…/logo.png hoặc /assets/logo.svg"
+                    />
+                </label>
+                <p class="subtle">Dán link ảnh trực tiếp. Nên dùng PNG/SVG nền trong suốt để logo rõ trên nền trắng.</p>
+                <div class="brand-logo-preview" data-brand-logo-preview="create" hidden></div>
+                <div class="dialog-actions">
+                    <button class="button secondary" type="button" data-action="close-dialog">Hủy</button>
+                    <button class="button primary" type="submit">Thêm thương hiệu</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- ADMIN sửa logo của hãng đã có; tên/slug và liên kết sản phẩm được giữ nguyên. -->
+        <dialog id="brand-logo-dialog" class="catalog-dialog catalog-dialog-small" aria-labelledby="brand-logo-title">
+            <div class="dialog-header">
+                <div>
+                    <span class="eyebrow">NHẬN DIỆN THƯƠNG HIỆU</span>
+                    <h2 id="brand-logo-title">Cập nhật logo</h2>
+                    <p id="brand-logo-name" class="catalog-dialog-description"></p>
+                </div>
+                <button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng hộp thoại">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <form id="brand-logo-edit" class="stacked-form catalog-form">
+                <label
+                    >Link ảnh / Logo thương hiệu
+                    <input
+                        id="edit-brand-logo"
+                        name="logo_url"
+                        type="text"
+                        maxlength="2048"
+                        data-brand-logo-input="edit"
+                        placeholder="https://…/logo.png hoặc /assets/logo.svg"
+                    />
+                </label>
+                <p class="subtle">
+                    Dán link ảnh trực tiếp; để trống rồi bấm Lưu để xóa logo. Tên hãng vẫn được giữ nguyên.
+                </p>
+                <div class="brand-logo-preview" data-brand-logo-preview="edit" hidden></div>
+                <div class="dialog-actions">
+                    <button class="button secondary" type="button" data-action="remove-brand-logo">Xóa logo</button>
+                    <button class="button primary" type="submit">Lưu logo</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- ADMIN sửa tên/slug; danh mục cha được giữ nguyên để bảo toàn cây và sản phẩm đã gán. -->
+        <dialog
+            id="category-edit-dialog"
+            class="catalog-dialog catalog-dialog-small"
+            aria-labelledby="category-edit-title"
+        >
+            <div class="dialog-header">
+                <div>
+                    <span class="eyebrow">QUẢN LÝ DANH MỤC</span>
+                    <h2 id="category-edit-title">Sửa danh mục</h2>
+                    <p id="edit-category-path" class="catalog-dialog-description"></p>
+                </div>
+                <button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng hộp thoại">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <form id="category-edit" class="stacked-form catalog-form">
+                <label>Tên danh mục<input id="edit-category-name" name="name" required maxlength="150" /></label>
+                <label
+                    >Đường dẫn ngắn (Slug)<input id="edit-category-slug" name="slug" required maxlength="180"
+                /></label>
+                <p class="subtle">Cập nhật tên và đường dẫn, giữ nguyên mã danh mục và vị trí trong cây.</p>
+                <div class="dialog-actions">
+                    <button class="button secondary" type="button" data-action="close-dialog">Hủy</button>
+                    <button class="button primary" type="submit">Lưu thay đổi</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Hộp thoại thêm danh mục mới -->
+        <dialog
+            id="category-create-dialog"
+            class="catalog-dialog catalog-dialog-small"
+            aria-labelledby="category-create-title"
+        >
+            <div class="dialog-header">
+                <div>
+                    <span class="eyebrow">QUẢN LÝ DANH MỤC</span>
+                    <h2 id="category-create-title">Thêm danh mục mới</h2>
+                    <p class="catalog-dialog-description">Tạo một nhóm sản phẩm mới cho catalog của cửa hàng.</p>
+                </div>
+                <button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng hộp thoại">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <form id="category-create" class="stacked-form catalog-form">
+                <!-- Chọn cha tạo nhóm con thật trong database; bỏ trống để thêm nhóm cấp đầu. -->
+                <label
+                    >Danh mục cha
+                    <select id="category-parent" name="parent_id">
+                        <option value="">Không có — danh mục cấp đầu</option>
+                    </select>
+                </label>
+                <label
+                    >Tên danh mục<input
+                        id="create-category-name"
+                        name="name"
+                        required
+                        maxlength="150"
+                        placeholder="VD: Thiết bị mạng"
+                /></label>
+                <label
+                    >Đường dẫn ngắn (Slug)<input
+                        id="create-category-slug"
+                        name="slug"
+                        required
+                        maxlength="180"
+                        placeholder="VD: thiet-bi-mang"
+                /></label>
+                <p class="subtle" style="font-size: 11px">Slug dùng để lọc hoặc nhận diện danh mục trên hệ thống.</p>
+                <div class="dialog-actions">
+                    <button class="button secondary" type="button" data-action="close-dialog">Hủy</button>
+                    <button class="button primary" type="submit">Thêm danh mục</button>
+                </div>
+            </form>
+        </dialog>
+
+        <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+        <noscript><div class="noscript-message">Vui lòng bật JavaScript để mua sắm tại StockFlow Tech.</div></noscript>
+    </body>
 </html>

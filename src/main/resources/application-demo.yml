@@ -1,5 +1,8 @@
-# Chỉ profile demo nạp tài khoản mẫu và dùng secret local để chạy portfolio ngay.
+# Profile StockFlow Tech giữ tài khoản/kho/năm danh mục công nghệ; catalog và tồn chỉ nạp khi được yêu cầu.
 app:
+  demo:
+    # Mặc định để cửa hàng tự thêm sản phẩm; bật true khi cần fixture portfolio đầy đủ.
+    seed-catalog: ${DEMO_SEED_CATALOG:false}
   security:
     jwt:
       secret: ${JWT_SECRET:stockflow-demo-secret-for-local-use-only-2026}

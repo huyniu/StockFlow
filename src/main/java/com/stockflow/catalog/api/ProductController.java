@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.math.BigDecimal;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -43,15 +44,22 @@ public class ProductController {
     }
 
     /**
-     * Liệt kê sản phẩm có phân trang và filter tùy chọn theo categoryId/status.
+     * Lọc danh mục, hãng, tên/SKU và khoảng giá tại database trước phân trang; đọc catalog vẫn công khai.
      */
     @GetMapping
-    @Operation(summary = "List products by category and status")
+    @Operation(summary = "List products with category, keyword, price range and sorting")
     public PageResponse<ProductResponse> listProducts(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) ProductStatus status,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Long brandId,
+            // Storefront gộp model/phiên bản/màu và lọc theo giá từ; mặc định giữ danh sách SKU vận hành.
+            @RequestParam(defaultValue = "false") boolean grouped,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        return PageResponse.from(productService.listProducts(categoryId, status, pageable));
+        return PageResponse.from(productService.listProducts(
+                categoryId, status, q, minPrice, maxPrice, brandId, grouped, pageable));
     }
 
     /**
@@ -75,10 +83,10 @@ public class ProductController {
     }
 
     /**
-     * Cập nhật tên, giá hoặc trạng thái sản phẩm. Quyền này chỉ dành cho ADMIN để kiểm soát thay đổi giá bán.
+     * Cập nhật nội dung và bộ ảnh trong transaction; chỉ ADMIN được thay catalog, role khác bị chặn.
      */
     @PatchMapping("/{id}")
-    @Operation(summary = "Update product name, price or status (ADMIN)")
+    @Operation(summary = "Update product details, cover image and gallery (ADMIN)")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     public ProductResponse updateProduct(@PathVariable Long id, @Valid @RequestBody UpdateProductRequest request) {

@@ -6,7 +6,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Khai báo thông tin API và cơ chế Authorize bằng Bearer JWT cho Swagger UI. */
+/** Khai báo API của StockFlow Tech và cơ chế Authorize bằng Bearer JWT cho Swagger UI. */
 @Configuration
 public class OpenApiConfig {
 
@@ -18,7 +18,8 @@ public class OpenApiConfig {
                         .title("StockFlow API")
                         .version("1.0")
                         .description("""
-                                Multi-warehouse order and inventory management API.
+                                StockFlow Tech: computer accessories and technology storefront
+                                for one retailer owning multiple warehouses.
                                 Reserve stock atomically, inspect an immutable inventory ledger,
                                 simulate payments and query business reports.
                                 Log in through /api/v1/auth/login, then paste access_token into Authorize.

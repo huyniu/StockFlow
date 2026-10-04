@@ -1,5 +1,7 @@
 package com.stockflow.demo;
 
+import static com.stockflow.order.support.CheckoutTestData.orderRequest;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,11 +32,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Khởi động runner demo trên database H2 riêng, kiểm tra đăng nhập, ledger và việc nạp lại an toàn.
+ * Khởi động fixture StockFlow Tech trên database H2 riêng, kiểm tra đăng nhập, ledger và nạp lại an toàn.
  * Mỗi test rollback thay đổi nghiệp vụ để dữ liệu seed ban đầu luôn ổn định, không xóa ledger.
  */
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:stockflow_demo;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH"
+        "spring.datasource.url=jdbc:h2:mem:stockflow_demo;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
+        // Suite fixture chủ động bật catalog đầy đủ; ứng dụng nhập tay dùng mặc định false.
+        "app.demo.seed-catalog=true"
 })
 @AutoConfigureMockMvc
 @ActiveProfiles({"test", "demo"})
@@ -75,6 +79,26 @@ class DemoDataIntegrationTest {
     @Test
     void seedCreatesCatalogAndValidReceiptLedger() {
         assertSeedCounts();
+        // Năm nhóm hàng đều có sản phẩm; không còn fixture gia dụng hoặc thời trang trên database mới.
+        List<Map<String, Object>> categoryCounts = jdbc.queryForList("""
+                SELECT c.slug, COUNT(p.id) AS product_count
+                FROM categories c
+                JOIN products p ON p.category_id = c.id
+                GROUP BY c.slug
+                ORDER BY c.slug
+                """);
+        assertThat(categoryCounts).hasSize(5);
+        assertThat(categoryCounts).extracting(row -> row.get("slug"))
+                .containsExactly(
+                        "ban-phim-chuot",
+                        "hub-cap-sac",
+                        "man-hinh-ban-lam-viec",
+                        "tai-nghe-loa",
+                        "webcam-micro");
+        assertThat(categoryCounts).extracting(row -> ((Number) row.get("product_count")).longValue())
+                .containsExactly(6L, 5L, 4L, 5L, 4L);
+        assertThat(products.findBySku("TECH-KBD-01").orElseThrow().getImageUrl())
+                .startsWith("https://images.unsplash.com/");
         Long adminId = users.findByEmail("admin@stockflow.com").orElseThrow().getId();
         List<Map<String, Object>> ledger = jdbc.queryForList("""
                 SELECT i.available_quantity, i.reserved_quantity, m.quantity,
@@ -124,11 +148,11 @@ class DemoDataIntegrationTest {
     /** Seed không nạp lại hàng đã bán hết và không ghi đè giá hay mật khẩu đã thay đổi. */
     @Test
     void restartPreservesSoldOutStockAndExistingAccountData() {
-        Long productId = products.findBySku("ELE-PHONE-01").orElseThrow().getId();
+        Long productId = products.findBySku("TECH-KBD-01").orElseThrow().getId();
         Long warehouseId = warehouses.findByCode("WH-HAN-01").orElseThrow().getId();
         Long customerId = users.findByEmail("customer@stockflow.com").orElseThrow().getId();
         Integer quantity = available(productId, warehouseId);
-        var order = orders.createOrder(new CreateOrderRequest(warehouseId,
+        var order = orders.createOrder(orderRequest(warehouseId,
                 List.of(new CreateOrderRequest.Item(productId, quantity))), customerId);
         orders.confirmPaymentSimulation(order.id(), customerId);
 
@@ -173,7 +197,7 @@ class DemoDataIntegrationTest {
     /** JWT của nhân viên demo chỉ nhập được kho Hà Nội đã phân công, kho Đà Nẵng phải trả 403. */
     @Test
     void demoStaffIsRestrictedToHanoiWarehouse() throws Exception {
-        Long productId = products.findBySku("ELE-PHONE-01").orElseThrow().getId();
+        Long productId = products.findBySku("TECH-KBD-01").orElseThrow().getId();
         Long hanoiId = warehouses.findByCode("WH-HAN-01").orElseThrow().getId();
         Long danangId = warehouses.findByCode("WH-DAD-01").orElseThrow().getId();
         String bearer = "Bearer " + login("staff.hn@stockflow.com", "Staff@123").path("access_token").asText();
@@ -207,8 +231,9 @@ class DemoDataIntegrationTest {
                 """, Long.class)).isEqualTo(3);
         assertThat(jdbc.queryForObject("""
                 SELECT COUNT(*)
+                -- V13 có 125 nhóm tham chiếu, cộng năm nhóm Tech của runner demo.
                 FROM categories
-                """, Long.class)).isEqualTo(4);
+                """, Long.class)).isEqualTo(130);
         assertThat(jdbc.queryForObject("""
                 SELECT COUNT(*)
                 FROM products

@@ -1,6 +1,8 @@
 package com.stockflow.warehouse.service;
 
 import com.stockflow.common.exception.ConflictException;
+import com.stockflow.common.exception.ForbiddenException;
+import com.stockflow.user.domain.User;
 import com.stockflow.warehouse.domain.Warehouse;
 import com.stockflow.warehouse.domain.WarehouseStatus;
 import com.stockflow.warehouse.dto.CreateWarehouseRequest;
@@ -40,6 +42,19 @@ public class WarehouseService {
     @Transactional(readOnly = true)
     public List<WarehouseOrderOptionResponse> orderOptions() {
         return warehouseRepository.findByStatusOrderByIdAsc(WarehouseStatus.ACTIVE).stream()
+                .map(WarehouseOrderOptionResponse::from)
+                .toList();
+    }
+
+    /** Staff chỉ nhận kho được phân công; quản lý/admin nhận mọi kho, quyền được kiểm tra lại tại nghiệp vụ. */
+    @Transactional(readOnly = true)
+    public List<WarehouseOrderOptionResponse> operatingOptions(User actor) {
+        String role = actor.getRole().getName();
+        boolean unrestricted = role.equals("ADMIN") || role.equals("MANAGER");
+        if (!unrestricted && !role.equals("WAREHOUSE_STAFF")) {
+            throw new ForbiddenException("Bạn không có quyền xem lựa chọn kho vận hành.");
+        }
+        return warehouseRepository.findOperatingWarehouses(actor.getId(), unrestricted).stream()
                 .map(WarehouseOrderOptionResponse::from)
                 .toList();
     }
