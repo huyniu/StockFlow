@@ -3,7 +3,12 @@
 
 > Giai đoạn 1/2 đã nghiệm thu và commit. Giai đoạn 3 tách storefront/dashboard, thêm tìm kiếm và lựa chọn chi nhánh theo ngữ cảnh, giữ schema và nghiệp vụ đã có. Xem [kiểm chứng giai đoạn 3](storefront-dashboard-verification.md). Những đánh giá/test giai đoạn 1 dưới đây là lịch sử; các khoảng trống tại mốc đó không phải hiện trạng.
 
-## Ngành hàng đã chốt: phụ kiện máy tính và thiết bị công nghệ
+## Định vị hiện tại: cửa hàng điện thoại, laptop, âm thanh và phụ kiện
+
+<!-- Cập nhật hiện trạng V17; các kết quả giai đoạn khởi đầu phía dưới được giữ làm lịch sử. -->
+Trang chủ có các lối tắt danh mục đang tồn tại, bán chạy từ đơn đã thanh toán và hướng dẫn mua hàng. V17 bổ sung khóa chống tạo đơn trùng; CI thêm bộ kiểm chứng PostgreSQL thật. Không xóa danh mục/SKU đã được chủ cửa hàng nhập. Đánh giá xác thực mua hàng và nội dung liên hệ/bảo hành/đổi trả còn chờ quyết định nghiệp vụ. Xem [contract và kết quả kiểm chứng](storefront-quality-and-reliability.md).
+
+### Phạm vi phụ kiện ban đầu (lịch sử)
 
 Storefront mang tên **StockFlow Tech**, phục vụ một cửa hàng có nhiều kho. Năm nhóm đầu tiên là Bàn phím & Chuột, Tai nghe & Loa, Webcam & Micro, Hub/Cáp/Bộ sạc và Màn hình/Phụ kiện bàn làm việc. Mỗi cấu hình bán là một SKU riêng. Đổi định hướng không thay schema, không đổi giá/ảnh hay xóa lịch sử cũ trong startup runner. Xem [phạm vi công nghệ](tech-store.md).
 

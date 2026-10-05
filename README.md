@@ -1,15 +1,23 @@
-<!-- StockFlow Tech tập trung phụ kiện máy tính; phân biệt tính năng đã có với lộ trình mua hàng còn lại. -->
+<!-- StockFlow Tech bán điện thoại, laptop và phụ kiện; phân biệt tính năng đã có với quyết định nghiệp vụ còn chờ. -->
 # StockFlow – Technology Storefront & Multi-Warehouse Management
 
-A shopping website for **one computer-accessories and technology retailer owning multiple warehouses**, developed as a Java Backend Developer portfolio project. The customer-facing brand is **StockFlow Tech**. Customers browse products, build a cart, place orders, and follow their own purchases; administrators and warehouse staff manage catalog, inventory, fulfillment, and business reports. StockFlow focuses on transactional correctness: concurrent customers cannot oversell stock, every inventory change produces an immutable audit entry, and reports aggregate actual order data.
+A shopping website for **one technology retailer selling phones, laptops, audio devices and accessories across multiple warehouses**, developed as a Java Backend Developer portfolio project. The customer-facing brand is **StockFlow Tech**. Customers browse products, build a cart, place orders, and follow their own purchases; administrators and warehouse staff manage catalog, inventory, fulfillment, and business reports. StockFlow focuses on transactional correctness: concurrent customers cannot oversell stock, every inventory change produces an immutable audit entry, and reports aggregate actual order data.
 
 The backend and two Vietnamese interfaces are implemented: a **customer storefront** and an **operations dashboard**, served directly by Spring Boot using HTML, CSS, and vanilla JavaScript. Guests and customers use the shop; operational accounts enter the dashboard. This is a single-store system, with no seller/tenant marketplace model.
 
 <!-- Nhận diện xanh dương thống nhất hai giao diện; trạng thái kho/lỗi vẫn có màu riêng. -->
 StockFlow uses a blue visual identity: `#2563EB` for primary actions, `#1D4ED8` for hover, and `#EFF6FF` for soft accents. Dark mode uses `#60A5FA` on navy surfaces. Catalog navigation, product configuration choices, checkout, the dashboard sidebar and the SVG favicon share this palette. See [theme colors and verification](docs/blue-theme.md).
 
+<!-- V17 chống tạo đơn trùng; mục bán chạy dùng số lượng bán thật và không mở báo cáo tài chính cho khách. -->
+The home page includes shortcuts to existing phone, laptop, audio and accessory categories, plus **real bestsellers** from `GET /api/v1/storefront/bestsellers`. Paid orders in CONFIRMED/PACKED/SHIPPED/DELIVERED contribute to the ranking; cancelled/returned/refunded orders do not. Color/version SKUs are grouped into one model card. Saved product photos have no redundant image caption; fallback photos remain labelled as illustrations. Purchase guidance is available at `/#shop/help`.
+
+Checkout sends an optional **Idempotency-Key** header. Retrying the same customer/key/payload returns the original order, including its current status; changed content under that key returns 409. Flyway V17 stores the claim in the same transaction as the order, stock reservation and movements. Older API clients can still omit the header. See [contracts, PostgreSQL tests and remaining decisions](docs/storefront-quality-and-reliability.md).
+
 <!-- Banner trưng bày dùng catalog thật; menu cuộn riêng và chuyển động hỗ trợ giảm chuyển động. -->
 The storefront opens with a compact navy product showcase, displaying up to three models from the current catalog page with their saved photos, actual prices, and product-page links. Category navigation scrolls independently on desktop; mobile shows the showcase above a horizontal category strip. Image failures and empty/unavailable catalogs have explicit fallback states. See [showcase design and verification](docs/storefront-showcase.md).
+
+<!-- Gợi ý khi gõ dùng API catalog hiện có; không đổi bộ lọc đang áp dụng hoặc thêm endpoint/schema. -->
+Typing in the shop search box shows up to six active product models with thumbnails and current starting prices. Suggestions query the existing public catalog after a 250 ms debounce and match its name/SKU/version/color search rules. Arrow keys select a suggestion, Enter opens it or submits the normal catalog search, and Escape closes the list. Category/brand/price filters continue to apply when searching the shelf; suggestions search across the store. See [search behavior and verification](docs/search-suggestions.md).
 
 <!-- V15 bổ sung checkout người nhận đã chốt, giữ đơn lịch sử và các quy tắc tồn kho hiện có. -->
 Checkout now requires a recipient name, phone number, and delivery address, with an optional note. Shipping is free in this MVP. Each order stores its own fixed delivery snapshot, visible to its owner and authorized warehouse operators. To change delivery details, cancel a PENDING order and place a new one. Flyway V15 preserves existing orders without inventing historical addresses. See [checkout rules, API contract, and verification](docs/checkout-delivery.md).
@@ -63,7 +71,7 @@ The local `stockflow` database on PostgreSQL host port 5432 was backed up and re
 | Build and delivery | Maven Wrapper, Docker Compose, GitHub Actions |
 | Web interfaces | HTML5, CSS3, vanilla JavaScript, same-origin fetch; no frontend build |
 
-H2 provides isolated integration tests without requiring Docker. PostgreSQL remains the application database; its ledger trigger and report query plans are database-specific.
+H2 provides isolated integration tests without requiring Docker. A separate `postgres-tests` Maven profile runs Testcontainers PostgreSQL 17 with the production Flyway migrations, checking the real ledger trigger, database constraints, concurrent reservation and order idempotency. Both suites are mandatory in CI.
 
 ## Architecture
 
@@ -365,7 +373,7 @@ Public `GET /api/v1/storefront/branches` supplies only active branch IDs, codes,
 Product search uses optional `q` on `GET /api/v1/products`, matching name/SKU before pagination. Optional `minPrice`/`maxPrice` include both boundaries and combine with category/status filters. Use `sort=unitPrice,asc` or `sort=unitPrice,desc` for price ordering; unknown sort fields and invalid price ranges return 400. The shop explicitly requests `status=ACTIVE`; administration can filter all statuses. Products expose optional `image_url`, backed by Flyway V6. Admin can enter and preview an image URL when creating or editing a product. PATCH omitting the image or passing null preserves it; an empty string removes it. Only ADMIN can write catalog data.
 
 <!-- Thanh kéo chỉ đồng bộ bộ lọc giá hiện có; thả tay mới gửi truy vấn, không đổi hợp đồng API. -->
-The shop now has a two-handle price slider, exact-price inputs, and synchronized quick-price chips. Dragging previews the range; releasing applies it through the existing catalog GET and returns to page one while preserving category, brand, search, and sorting. The top endpoint means **no upper limit**; typing a larger amount expands the slider scale. Mouse, touch, keyboard, and light/dark mobile layouts are verified. See [price-filter behavior and verification](docs/price-filter.md).
+The shop now has a compact discovery strip: real page/total result counts beside the title, sorting in the heading, and one-click brand buttons synchronized with the brand dropdown. Brand choices follow the selected category and come from the existing API. The two-handle price slider and quick-price chips share a small panel; **Nhập giá chính xác** expands the exact-price form. Dragging previews the range; releasing applies it through the existing catalog GET and returns to page one while preserving category, brand, search, and sorting. The top endpoint means **no upper limit**; typing a larger amount expands the slider scale. Mouse, touch, keyboard, and light/dark mobile layouts are verified. See [price-filter behavior and verification](docs/price-filter.md).
 
 <!-- Giỏ lưu theo danh tính đã xác thực, chỉ giữ SKU/số lượng/chi nhánh; thông tin nhận hàng không được ghi vào storage. -->
 JWTs are kept in the tab's sessionStorage; manual passwords are not persisted. Logout or switching authenticated accounts clears cart/private results and aborts old requests. Guest-to-customer checkout login keeps the selected cart/branch and asks the customer to review and submit. Refresh validates the actor through `users/me`; invalid tokens return to the public shop. A separate versioned cart record stores only the verified owner, SKU IDs, quantities, and serving branch. Reloads fetch current product prices and version/color mappings; unavailable SKUs are removed, while temporary network errors preserve the saved cart for retry. Closing the tab ends this persistence; it is not a database or cross-device cart. Stored product images take priority over illustrative name/category fallbacks. Hard-coded ratings, sales counts and bestseller labels have been removed.
@@ -524,7 +532,11 @@ The catalog-discovery update adds **35 integration cases**, bringing the suite t
 <!-- Kết quả mới nhất của hãng/cây danh mục; các mốc phía trên là lịch sử, không phải tổng test hiện tại. -->
 The category/brand update brings the suite to **353 passing tests** with no failures, errors, or skips. Packaging succeeds after the full suite. Chrome passes **84 checks** (42 catalog/admin checks and 42 shopping/fulfillment regressions) on isolated PostgreSQL 13.2. Migration snapshots confirm that the local catalog's four existing products, photos, accounts, warehouse assignments, stock, ledger, and orders are preserved. See [verification, backup details, and changed files](docs/catalog-categories-and-brands.md).
 
-GitHub Actions runs `./mvnw test` on pushes and pull requests targeting `main`, using Ubuntu and Temurin Java 17. It then packages and uploads the application JAR. The database tests use H2 and do not require a database service in CI.
+GitHub Actions runs `./mvnw test` and `./mvnw --batch-mode -Ppostgres-tests verify` on pushes and pull requests targeting `main`, using Ubuntu and Temurin Java 17. The PostgreSQL step checks Docker availability and starts its own test container; it does not skip the tests if Docker is unavailable. CI then packages and uploads the application JAR. Local PostgreSQL container tests require Docker:
+
+```powershell
+.\mvnw.cmd '-Dmaven.repo.local=C:/Users/Admin/.m2/repository' '-Ppostgres-tests' verify
+```
 
 The packaged artifact is `target/stockflow-0.0.1-SNAPSHOT.jar`. To run it locally:
 
@@ -538,7 +550,7 @@ The current API includes catalog administration, warehouse-scoped inventory, sto
 
 The storefront and dashboard cover the existing shopping and fulfillment APIs, including stored product cover URLs, ordered image galleries, plain-text descriptions, public product details, and admin content editing. Customers choose the serving branch/warehouse, one order uses one warehouse, and stock dispatch remains at payment confirmation. Checkout stores a fixed recipient/address/note snapshot on the order and offers free simulated delivery. Structured attribute filters and image uploads remain future work. Partial returns, customer return-request workflows, and real shipping integrations are outside this MVP.
 
-Keep the browser cart for the first storefront version; do not add a `carts` table without a persistence requirement. Keep applied Flyway migrations unchanged, add new migrations only for required schema changes, and preserve the atomic reservations and immutable ledger. PostgreSQL Testcontainers in CI, token refresh/revocation, and operational observability are later hardening tasks. A public deployment or recorded demo can follow the completed shopping flow.
+Keep the browser cart for the first storefront version; do not add a `carts` table without a persistence requirement. Keep applied Flyway migrations unchanged, add new migrations only for required schema changes, and preserve the atomic reservations and immutable ledger. Token refresh/revocation and operational observability are later hardening tasks. Verified-purchase reviews and contact/warranty/return content still await the owner's business decisions; no review schema or invented sales policy has been published. A public deployment or recorded demo can follow the completed shopping flow.
 
 Integration references: [SpringDoc v2](https://springdoc.org/v2/), [GitHub Actions Java/Maven](https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-maven), [Compose startup dependencies](https://docs.docker.com/compose/how-tos/startup-order/).
 

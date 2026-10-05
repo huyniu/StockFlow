@@ -7,7 +7,7 @@
         <meta name="theme-color" content="#2563eb" />
         <meta
             name="description"
-            content="StockFlow Tech — Phụ kiện máy tính, thiết bị công nghệ và đặt hàng từ ba chi nhánh."
+            content="StockFlow Tech — Điện thoại, laptop và phụ kiện công nghệ. Chọn chi nhánh, đặt hàng và theo dõi giao hàng."
         />
         <title>StockFlow Tech — Cửa hàng công nghệ & Cổng quản trị</title>
         <!-- Nạp lựa chọn sáng/tối trước CSS để tránh chớp nền sáng khi đã chọn chế độ tối. -->
@@ -166,7 +166,7 @@
         </div>
         <div id="api-notice" class="notice" role="status" hidden></div>
 
-        <!-- StockFlow Tech bán phụ kiện máy tính; storefront công khai và dashboard vẫn kiểm tra quyền riêng. -->
+        <!-- Cửa hàng công nghệ có nhiều chi nhánh; storefront công khai và dashboard kiểm tra quyền riêng. -->
         <div id="storefront-view">
             <!-- Khi mở danh mục, nền tối và mờ giữ nội dung menu sáng; nhấn nền để đóng. -->
             <button
@@ -183,7 +183,10 @@
                     <span class="brand-mark"
                         ><svg class="icon"><use href="#i-box" /></svg
                     ></span>
-                    <span>StockFlow<span class="brand-shop">Tech</span><small>CÔNG NGHỆ CHO GÓC LÀM VIỆC</small></span>
+                    <span
+                        >StockFlow<span class="brand-shop">Tech</span
+                        ><small>ĐIỆN THOẠI · LAPTOP · PHỤ KIỆN</small></span
+                    >
                 </a>
                 <!-- Menu lấy danh mục thật từ API; khoảng giá được áp dụng tại database, không tạo thương hiệu giả. -->
                 <div class="category-menu-anchor">
@@ -224,17 +227,46 @@
                         <div id="category-menu-detail" class="category-menu-detail"></div>
                     </section>
                 </div>
-                <form id="catalog-filter" class="search-box" role="search">
+                <!-- Gợi ý dùng catalog thật; tắt lịch sử nhập native để không nhầm với sản phẩm của cửa hàng. -->
+                <form id="catalog-filter" class="search-box" role="search" autocomplete="off">
                     <label class="sr-only" for="catalog-query">Tìm sản phẩm theo tên hoặc mã SKU</label>
                     <input
                         id="catalog-query"
                         type="search"
-                        placeholder="Tìm bàn phím, chuột, tai nghe hoặc mã SKU…"
+                        placeholder="Tìm điện thoại, laptop, phụ kiện hoặc mã SKU…"
                         maxlength="200"
+                        autocomplete="off"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded="false"
+                        aria-controls="search-suggestions-list"
+                        aria-describedby="search-keyboard-hint"
                     />
                     <button type="submit" class="icon-button" aria-label="Tìm sản phẩm">
                         <svg class="icon"><use href="#i-search" /></svg>
                     </button>
+                    <span id="search-keyboard-hint" class="sr-only">
+                        Gõ tên, mã SKU, phiên bản hoặc màu. Dùng phím lên xuống để chọn gợi ý, Enter để mở hoặc tìm,
+                        Escape để đóng.
+                    </span>
+                    <div id="search-suggestions" class="search-suggestions" hidden>
+                        <div class="search-suggestions-heading">
+                            <strong>Gợi ý sản phẩm</strong>
+                            <span>Tên, mã SKU, phiên bản hoặc màu</span>
+                        </div>
+                        <div
+                            id="search-suggestions-list"
+                            role="listbox"
+                            aria-label="Sản phẩm phù hợp"
+                            tabindex="-1"
+                        ></div>
+                        <div id="search-suggestions-feedback" class="search-suggestions-feedback" hidden></div>
+                        <button type="submit" class="search-suggestions-all">
+                            <span id="search-suggestions-all-label">Tìm tất cả kết quả</span>
+                            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                        </button>
+                    </div>
+                    <span id="search-suggestions-status" class="sr-only" role="status" aria-live="polite"></span>
                 </form>
                 <label class="branch-picker"
                     >Chi nhánh phục vụ
@@ -316,14 +348,14 @@
                                 >
                                 <h1 id="hero-title">Công nghệ bạn thích.<br /><em>Phong cách của bạn.</em></h1>
                                 <p>
-                                    Từ thiết bị hằng ngày đến góc làm việc yêu thích. Khám phá, chọn phiên bản và tìm
-                                    màu sắc dành cho bạn.
+                                    Từ điện thoại đến laptop và phụ kiện. Khám phá, chọn phiên bản và tìm màu sắc dành
+                                    cho bạn.
                                 </p>
                                 <a class="button primary hero-shop-button" href="#product-shelf">
                                     Khám phá sản phẩm <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
                                 </a>
                                 <div class="hero-details">
-                                    <span>PHỤ KIỆN MÁY TÍNH & THIẾT BỊ CÔNG NGHỆ</span>
+                                    <span>CỬA HÀNG CÔNG NGHỆ STOCKFLOW TECH</span>
                                     <span
                                         ><svg class="icon" aria-hidden="true"><use href="#i-warehouse" /></svg>Chọn chi
                                         nhánh. Mua sắm theo cách của bạn.</span
@@ -371,12 +403,56 @@
                             ></span
                         >
                     </div>
-                    <div id="product-shelf" class="shelf-heading">
-                        <div>
-                            <span class="eyebrow">THIẾT BỊ CHO GÓC LÀM VIỆC</span>
-                            <h2 id="catalog-title">Sản phẩm & đặt hàng</h2>
+                    <!-- Lối tắt chỉ trỏ tới danh mục có thật; không sinh thêm danh mục hoặc SKU ở frontend. -->
+                    <section class="discovery-section category-discovery" aria-labelledby="category-discovery-title">
+                        <div class="discovery-heading">
+                            <div>
+                                <span class="eyebrow">CHỌN ĐÚNG THIẾT BỊ</span>
+                                <h2 id="category-discovery-title">Bạn đang tìm gì?</h2>
+                            </div>
+                            <a href="/#shop/catalog" data-catalog-link
+                                >Tất cả sản phẩm <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg
+                            ></a>
                         </div>
-                        <span id="catalog-count" class="subtle">—</span>
+                        <div id="discovery-categories" class="discovery-categories" aria-live="polite"></div>
+                    </section>
+                    <!-- Bán chạy dựa trên API tổng hợp đơn đã trả tiền; chưa có doanh số thì hiển thị đúng trạng thái trống. -->
+                    <section class="discovery-section bestseller-section" aria-labelledby="bestseller-title">
+                        <div class="discovery-heading">
+                            <div>
+                                <span class="eyebrow">TỪ LỰA CHỌN CỦA KHÁCH HÀNG</span>
+                                <h2 id="bestseller-title">Sản phẩm bán chạy</h2>
+                                <p>Xếp theo số lượng từ các đơn đã thanh toán còn hiệu lực.</p>
+                            </div>
+                            <button type="button" class="button secondary small" data-action="refresh-bestsellers">
+                                Làm mới
+                            </button>
+                        </div>
+                        <div
+                            id="bestseller-grid"
+                            class="product-grid bestseller-grid"
+                            aria-live="polite"
+                            aria-busy="true"
+                        ></div>
+                    </section>
+                    <!-- Tiêu đề, số kết quả thật và sắp xếp cùng hàng để khách duyệt kệ gọn hơn. -->
+                    <div id="product-shelf" class="shelf-heading catalog-shelf-heading">
+                        <div class="catalog-heading-copy">
+                            <span class="eyebrow">KHÁM PHÁ CÔNG NGHỆ</span>
+                            <div class="catalog-title-line">
+                                <h2 id="catalog-title">Sản phẩm & đặt hàng</h2>
+                                <span id="catalog-count" class="subtle" role="status">—</span>
+                            </div>
+                        </div>
+                        <label class="catalog-sort-label shelf-sort" for="catalog-sort"
+                            ><span>Sắp xếp</span>
+                            <select id="catalog-sort">
+                                <option value="id,asc">Mặc định</option>
+                                <option value="unitPrice,asc">Giá tăng dần</option>
+                                <option value="unitPrice,desc">Giá giảm dần</option>
+                                <option value="createdAt,desc">Mới nhất</option>
+                            </select>
+                        </label>
                     </div>
                     <div class="catalog-toolbar">
                         <!-- Các nhóm chính đã chuyển sang menu bên trái; bộ chọn vẫn lọc được mọi cấp con. -->
@@ -388,18 +464,34 @@
                         <button class="text-button" type="button" data-action="refresh">Làm mới</button>
                     </div>
                     <!-- Hai đầu mút giá và thứ tự sắp xếp gửi cùng danh mục/từ khóa, áp dụng trước phân trang. -->
-                    <div class="catalog-discovery-filters price-discovery">
-                        <!-- Hãng là dữ liệu riêng, kết hợp với danh mục và giá bằng ID từ API. -->
-                        <label class="catalog-brand-label" for="catalog-brand">
-                            Thương hiệu
-                            <select id="catalog-brand">
-                                <option value="">Tất cả thương hiệu</option>
-                            </select>
-                        </label>
+                    <div class="catalog-discovery-filters price-discovery compact-discovery">
+                        <!-- Chip hãng lấy cùng danh sách với select, không hardcode thương hiệu hoặc gọi API khác. -->
+                        <div class="catalog-brand-discovery">
+                            <div class="catalog-brand-heading">
+                                <span class="catalog-filter-label">Thương hiệu</span>
+                                <label class="catalog-brand-label" for="catalog-brand">
+                                    <span class="sr-only">Chọn thương hiệu</span>
+                                    <select id="catalog-brand">
+                                        <option value="">Tất cả thương hiệu</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div
+                                id="catalog-brand-chips"
+                                class="catalog-brand-chips"
+                                role="group"
+                                aria-label="Chọn nhanh thương hiệu"
+                            ></div>
+                        </div>
                         <form id="catalog-price-filter" class="catalog-price-form">
                             <!-- Thanh hai đầu dùng cùng điều kiện giá với ô nhập; mốc cuối giữ nghĩa không giới hạn. -->
                             <div class="catalog-price-heading">
                                 <span class="catalog-filter-label">Khoảng giá</span>
+                                <div class="price-range-summary" aria-hidden="true">
+                                    <strong id="catalog-price-low-label">0 ₫</strong>
+                                    <span aria-hidden="true">–</span>
+                                    <strong id="catalog-price-high-label">Không giới hạn</strong>
+                                </div>
                                 <button
                                     class="text-button"
                                     type="button"
@@ -408,10 +500,6 @@
                                 >
                                     Đặt lại
                                 </button>
-                            </div>
-                            <div class="price-range-summary" aria-hidden="true">
-                                <strong id="catalog-price-low-label">0 ₫</strong>
-                                <strong id="catalog-price-high-label">Không giới hạn</strong>
                             </div>
                             <div
                                 id="catalog-price-slider"
@@ -443,84 +531,92 @@
                                     aria-describedby="catalog-price-hint"
                                 />
                             </div>
-                            <p id="catalog-price-hint" class="catalog-price-hint">
-                                Kéo và thả để lọc. Nhập giá bên dưới để chọn chính xác.
-                            </p>
-                            <div class="catalog-price-inputs">
-                                <label for="catalog-min-price"
-                                    >Từ (đ)
-                                    <input
-                                        id="catalog-min-price"
-                                        type="number"
-                                        min="0"
-                                        max="9999999999.99"
-                                        step="0.01"
-                                        inputmode="decimal"
-                                        placeholder="0"
-                                        aria-describedby="catalog-price-error"
-                                    />
-                                </label>
-                                <span class="price-range-separator" aria-hidden="true">—</span>
-                                <label for="catalog-max-price"
-                                    >Đến (đ)
-                                    <input
-                                        id="catalog-max-price"
-                                        type="number"
-                                        min="0"
-                                        max="9999999999.99"
-                                        step="0.01"
-                                        inputmode="decimal"
-                                        placeholder="Không giới hạn"
-                                        aria-describedby="catalog-price-error"
-                                    />
-                                </label>
-                                <button class="button secondary" type="submit">Áp dụng</button>
+                            <!-- Mốc chọn nhanh nằm ngay dưới thanh kéo; các giá trị vẫn do logic hiện có xử lý. -->
+                            <div class="quick-price-filters" role="group" aria-label="Lọc nhanh theo giá">
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="all"
+                                    aria-pressed="true"
+                                    aria-label="Mọi mức giá"
+                                >
+                                    Mọi giá
+                                </button>
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="under-500"
+                                    aria-pressed="false"
+                                >
+                                    Dưới 500k
+                                </button>
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="500-2000"
+                                    aria-pressed="false"
+                                    aria-label="Từ 500 nghìn đến 2 triệu đồng"
+                                >
+                                    500k – 2tr
+                                </button>
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="2000-5000"
+                                    aria-pressed="false"
+                                    aria-label="Từ 2 đến 5 triệu đồng"
+                                >
+                                    2 – 5tr
+                                </button>
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="over-5000"
+                                    aria-pressed="false"
+                                    aria-label="Trên 5 triệu đồng"
+                                >
+                                    Trên 5tr
+                                </button>
                             </div>
+                            <p id="catalog-price-hint" class="catalog-price-hint sr-only">
+                                Kéo và thả để lọc. Mở Nhập giá chính xác để chọn giá tùy ý.
+                            </p>
+                            <!-- Details gốc hỗ trợ bàn phím, giữ bộ lọc gọn nhưng vẫn nhập được giá lẻ chính xác. -->
+                            <details id="catalog-price-details" class="catalog-price-details">
+                                <summary>Nhập giá chính xác</summary>
+                                <div class="catalog-price-inputs">
+                                    <label for="catalog-min-price"
+                                        >Từ (đ)
+                                        <input
+                                            id="catalog-min-price"
+                                            type="number"
+                                            min="0"
+                                            max="9999999999.99"
+                                            step="0.01"
+                                            inputmode="decimal"
+                                            placeholder="0"
+                                            aria-describedby="catalog-price-error"
+                                        />
+                                    </label>
+                                    <span class="price-range-separator" aria-hidden="true">—</span>
+                                    <label for="catalog-max-price"
+                                        >Đến (đ)
+                                        <input
+                                            id="catalog-max-price"
+                                            type="number"
+                                            min="0"
+                                            max="9999999999.99"
+                                            step="0.01"
+                                            inputmode="decimal"
+                                            placeholder="Không giới hạn"
+                                            aria-describedby="catalog-price-error"
+                                        />
+                                    </label>
+                                    <button class="button secondary" type="submit">Áp dụng</button>
+                                </div>
+                            </details>
                             <p id="catalog-price-error" class="catalog-price-error" role="status" hidden></p>
                         </form>
-                        <label class="catalog-sort-label" for="catalog-sort"
-                            >Sắp xếp
-                            <select id="catalog-sort">
-                                <option value="id,asc">Mặc định</option>
-                                <option value="unitPrice,asc">Giá tăng dần</option>
-                                <option value="unitPrice,desc">Giá giảm dần</option>
-                                <option value="createdAt,desc">Mới nhất</option>
-                            </select>
-                        </label>
-                    </div>
-                    <!-- Chip giá dùng cùng hai đầu mút và truy vấn hiện có, giữ nguyên danh mục/từ khóa/hãng. -->
-                    <div class="quick-price-filters" role="group" aria-label="Lọc nhanh theo giá">
-                        <span class="quick-filter-label">Chọn nhanh</span>
-                        <button type="button" data-action="quick-price" data-price-chip="all" aria-pressed="true">
-                            Mọi mức giá
-                        </button>
-                        <button
-                            type="button"
-                            data-action="quick-price"
-                            data-price-chip="under-500"
-                            aria-pressed="false"
-                        >
-                            Dưới 500k
-                        </button>
-                        <button type="button" data-action="quick-price" data-price-chip="500-2000" aria-pressed="false">
-                            500k – 2 triệu
-                        </button>
-                        <button
-                            type="button"
-                            data-action="quick-price"
-                            data-price-chip="2000-5000"
-                            aria-pressed="false"
-                        >
-                            2 – 5 triệu
-                        </button>
-                        <button
-                            type="button"
-                            data-action="quick-price"
-                            data-price-chip="over-5000"
-                            aria-pressed="false"
-                        >
-                            Trên 5 triệu
-                        </button>
                     </div>
                     <div
                         id="catalog-active-filters"
@@ -675,11 +771,90 @@
                         </section>
                     </div>
                 </section>
+                <!-- Hướng dẫn là một trang riêng, mô tả đúng MVP và không đưa ra chính sách bảo hành chưa chốt. -->
+                <section id="shop-help" class="shop-panel purchase-help" hidden aria-labelledby="purchase-help-title">
+                    <button class="text-button" type="button" data-shop-tab="catalog">← Tiếp tục mua sắm</button>
+                    <span class="eyebrow">MUA SẮM TẠI STOCKFLOW TECH</span>
+                    <h1 id="purchase-help-title" tabindex="-1">Hướng dẫn mua hàng</h1>
+                    <p class="help-intro">
+                        Chọn thiết bị, chọn chi nhánh phục vụ và theo dõi đơn trong cùng một tài khoản.
+                    </p>
+                    <ol class="purchase-steps">
+                        <li>
+                            <span>01</span>
+                            <div>
+                                <h2>Chọn chi nhánh và sản phẩm</h2>
+                                <p>
+                                    Duyệt danh mục, tìm tên hoặc mã SKU, lọc hãng và khoảng giá. Mỗi đơn được chuẩn bị
+                                    tại một chi nhánh. Với sản phẩm có nhiều lựa chọn, hãy chọn đúng phiên bản và màu
+                                    trên trang chi tiết.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span>02</span>
+                            <div>
+                                <h2>Kiểm tra giỏ hàng</h2>
+                                <p>
+                                    Thêm hoặc bỏ mặt hàng, điều chỉnh số lượng rồi đăng nhập tài khoản khách hàng. Nhập
+                                    họ tên, số điện thoại, địa chỉ nhận hàng và ghi chú nếu cần. Giỏ được giữ trong
+                                    phiên của tab trình duyệt; thông tin người nhận chưa đặt đơn không được lưu vào
+                                    trình duyệt.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span>03</span>
+                            <div>
+                                <h2>Đặt đơn và xác nhận thanh toán</h2>
+                                <p>
+                                    Đơn chờ thanh toán giữ hàng trong 15 phút. Nếu không đủ hàng, hệ thống báo lỗi để
+                                    bạn điều chỉnh. Mở “Đơn hàng của tôi”, xem thời hạn giữ hàng và bấm “Xác nhận thanh
+                                    toán mô phỏng”. Đây là bản trình diễn, không thu tiền hoặc yêu cầu thông tin thẻ.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span>04</span>
+                            <div>
+                                <h2>Theo dõi giao hàng</h2>
+                                <p>
+                                    Chi tiết đơn hiển thị các bước đã thanh toán, đóng gói, đang giao, đã giao và mã vận
+                                    đơn. Vận chuyển được mô phỏng; mã vận đơn không thuộc hãng giao hàng thật.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span>05</span>
+                            <div>
+                                <h2>Hủy đơn hoặc kiểm tra lần đặt chưa rõ kết quả</h2>
+                                <p>
+                                    Khách hàng có thể hủy đơn đang chờ thanh toán trước khi hết hạn. Đơn đã thanh toán
+                                    cần nhân viên có quyền xử lý; đã giao đi thì không thể hủy. Nếu mất kết nối khi đặt
+                                    hàng, thử lại với cùng giỏ và thông tin hoặc kiểm tra “Đơn hàng của tôi” trước khi
+                                    tạo lần đặt mới.
+                                </p>
+                            </div>
+                        </li>
+                    </ol>
+                    <div class="help-demo-notice">
+                        <strong>Phạm vi bản trình diễn</strong>
+                        <p>
+                            Thanh toán, vận chuyển và hoàn tiền đều mô phỏng. Chính sách bảo hành, đổi trả và thông tin
+                            liên hệ chính thức sẽ được cửa hàng bổ sung sau khi xác nhận.
+                        </p>
+                    </div>
+                </section>
                 <footer class="shop-footer">
                     <span class="footer-brand"
-                        >StockFlow Tech<small>Phụ kiện máy tính. Phục vụ từ chi nhánh bạn chọn.</small></span
+                        >StockFlow Tech<small
+                            >Điện thoại, laptop và phụ kiện. Phục vụ từ chi nhánh bạn chọn.</small
+                        ></span
                     >
-                    <span>Thanh toán & vận chuyển mô phỏng · Bản trình diễn</span>
+                    <div class="footer-links">
+                        <button class="text-button" type="button" data-shop-tab="help">Hướng dẫn mua hàng</button
+                        ><span>Thanh toán & vận chuyển mô phỏng · Bản trình diễn</span>
+                    </div>
                 </footer>
             </main>
         </div>

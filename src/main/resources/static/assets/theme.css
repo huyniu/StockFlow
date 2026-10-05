@@ -590,3 +590,8 @@
     --price-track-color: #365073;
     --price-thumb-surface: #111c30;
 }
+
+/* Bộ chọn sắp xếp nằm trong một control chung; không để nền select tạo thêm khung tối bên trong. */
+:root[data-theme='dark'] .catalog-shelf-heading .shelf-sort select {
+    background: transparent;
+}

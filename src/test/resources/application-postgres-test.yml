@@ -1,0 +1,23 @@
+# Bộ test PostgreSQL nạp đúng SQL production, tránh migration H2 trùng tên nằm trên test classpath.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: filesystem:src/main/resources/db/migration
+
+app:
+  # Không chạy scheduler nền hoặc seed demo để test kiểm soát dữ liệu và thời điểm chuyển trạng thái.
+  orders:
+    expiry:
+      enabled: false
+  security:
+    jwt:
+      secret: stockflow-postgres-test-secret-key-at-least-thirty-two-characters
+      expiration-ms: 3600000

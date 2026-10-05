@@ -1,4 +1,4 @@
-<!-- Bàn giao bổ sung ngày 05/10/2026: V16 có hồ sơ liên hệ; giữ model/phiên bản/màu và nghiệp vụ SKU. -->
+<!-- Bàn giao bổ sung ngày 05/10/2026: V17 chống tạo đơn trùng; storefront bán công nghệ, giữ nghiệp vụ SKU. -->
 # StockFlow — Handoff cho Antigravity
 
 > Mục đích: đọc file này trước khi tư vấn, viết prompt, review hoặc đề xuất thay đổi cho project. Ưu tiên yêu cầu của người dùng nếu có mâu thuẫn với file này.
@@ -11,11 +11,19 @@ Người dùng đang định hướng ứng tuyển vị trí **Java Backend Dev
 2. Một dự án theo hướng nghiên cứu kỹ thuật.
 3. Một dự án thương mại có người dùng, nghiệp vụ và quy trình rõ ràng.
 
-**StockFlow** là dự án thứ ba và là dự án thương mại chính: **website bán phụ kiện máy tính và thiết bị công nghệ cho một cửa hàng/doanh nghiệp sở hữu nhiều kho**. Tên storefront là **StockFlow Tech**. Người dùng được chọn ngành hàng cho bài tập lớn và đã đồng ý hướng công nghệ. Bản hoàn thiện có storefront cho khách và dashboard cho admin/nhân viên. Không làm marketplace, nhiều người bán hoặc hệ thống tenant. Project vẫn thể hiện năng lực backend Java, thiết kế database, transaction, SQL, test và tài liệu dự án.
+**StockFlow** là dự án thứ ba và là dự án thương mại chính: **website bán điện thoại, laptop, thiết bị âm thanh và phụ kiện công nghệ cho một cửa hàng/doanh nghiệp sở hữu nhiều kho**. Tên storefront là **StockFlow Tech**. Người dùng được chọn ngành hàng cho bài tập lớn và đã đồng ý hướng công nghệ. Bản hoàn thiện có storefront cho khách và dashboard cho admin/nhân viên. Không làm marketplace, nhiều người bán hoặc hệ thống tenant. Project vẫn thể hiện năng lực backend Java, thiết kế database, transaction, SQL, test và tài liệu dự án.
 
 Tên dự án dùng trên CV:
 
 > **StockFlow – Technology Storefront & Multi-Warehouse Management**
+
+<!-- Bổ sung V17 và bộ kiểm chứng PostgreSQL thật; không xem lựa chọn mặc định của câu hỏi là câu trả lời. -->
+**Hiện trạng ngày 05/10/2026:** trang chủ có lối tắt ngành hàng thật, thẻ ảnh gọn hơn, bán chạy từ đơn đã thanh toán và hướng dẫn `/#shop/help`. `POST /orders` nhận `Idempotency-Key` tùy chọn; V17 giữ UNIQUE khách/khóa trong cùng transaction với đặt đơn/reserve/ledger. CI có profile Testcontainers PostgreSQL 17. Đã kiểm chứng 580 test H2, 9 test PostgreSQL QA 18.3 và 241 kiểm tra Chrome; Docker/CI thật chưa chạy tại máy này. Xem [contract, phạm vi và quyết định còn chờ](docs/storefront-quality-and-reliability.md).
+
+Đánh giá xác thực mua hàng (mỗi khách/model hay mỗi đơn, duyệt hay hiển thị ngay) và liên hệ/bảo hành/đổi trả (thật hay demo có nhãn) còn chờ chủ cửa hàng trả lời. Chưa tạo schema reviews hoặc bịa chính sách. Người dùng yêu cầu làm toàn bộ các cải thiện đã đề xuất; tiếp tục hai phần phụ thuộc sau khi có quyết định này. Không reset hoặc seed catalog của database đang dùng trong lượt cải thiện giao diện.
+
+<!-- Bổ sung tìm kiếm khi gõ: cùng contract catalog công khai, không sửa nghiệp vụ backend. -->
+Ô tìm kiếm storefront có gợi ý tối đa sáu model ACTIVE với ảnh/tên/giá từ, debounce 250 ms, chọn bằng chuột hoặc ↑/↓ + Enter. Escape/đổi trang/đổi tài khoản hủy gợi ý và phản hồi cũ. Gợi ý tìm toàn cửa hàng; Enter không chọn gợi ý hoặc nút tìm tất cả dùng bộ lọc kệ hiện có. Không thêm endpoint, schema hoặc sửa migration. Chi tiết và kiểm chứng ở [docs/search-suggestions.md](docs/search-suggestions.md).
 
 Catalog giữ năm nhóm công nghệ ban đầu. Người dùng đã yêu cầu menu theo ảnh CellphoneS: **Điện thoại**, **Laptop**, **Âm thanh/Mic**, **Đồng hồ/Camera**, **Gia dụng/Làm đẹp**, cùng nhóm con và hãng. V9/V10 đã lưu tham chiếu và bổ sung form ADMIN; không tự thêm sản phẩm gia dụng hay model nổi bật. V11 có thông số nhập tay và nhóm màu; V12 mở rộng thành model → phiên bản → màu, **một thẻ chung cho model** theo quyết định người dùng. Dung lượng điện thoại, kích thước/kết nối đồng hồ hoặc RAM/SSD laptop có thể là phiên bản; mỗi tổ hợp có SKU/giá/ảnh/tồn riêng, giữ nguyên ID và lịch sử cũ. Serial/IMEI và bảo hành chưa có. Xem [Danh mục và hãng](docs/catalog-categories-and-brands.md), [Model/phiên bản/màu](docs/product-models-versions-and-colors.md) và [Trang bán lẻ](docs/retail-product-detail.md).
 
@@ -49,7 +57,7 @@ Khi nhận một yêu cầu code, Antigravity nên:
 | Migration | Flyway |
 | Authentication | Spring Security + JWT + BCrypt, đã triển khai |
 | API docs | SpringDoc 2.8.5, Swagger / OpenAPI, đã triển khai |
-| Test | JUnit 5, Spring Boot Test, MockMvc, H2; Testcontainers PostgreSQL chưa triển khai |
+| Test | JUnit 5, Spring Boot Test, MockMvc, H2; profile Testcontainers PostgreSQL đã có, Docker/CI thật chưa xác minh tại máy này |
 | Local infrastructure | Docker Compose |
 | CI | GitHub Actions test/package trên Java 17, đã có workflow |
 | Frontend | Storefront/dashboard riêng bằng HTML/CSS/JS thuần, chạy cùng Spring Boot; không cần Node.js |
@@ -454,3 +462,10 @@ Thay banner SVG bằng nền navy và tối đa ba model có ảnh/giá/liên k�
 Đã thêm thanh kéo hai đầu, nhãn VND, nút Đặt lại và đồng bộ ô nhập/chip chọn nhanh. Kéo chỉ xem trước; thả tay gửi một GET catalog. Giá nhập tay giữ hai chữ số thập phân, kiểm tra âm/vượt giới hạn/đảo hai đầu. Thang mặc định 0–50 triệu, đầu trên là “Không giới hạn”; nhập giá lớn tự mở rộng thang. Lọc mới về trang đầu, giữ danh mục/hãng/từ khóa/sắp xếp và URL; lỗi đọc cho phép thử lại cùng mức giá. Giữ nguyên API, giỏ, JWT, fulfillment và database.
 
 **555 test Maven PASS**, package BUILD SUCCESS. **85 kiểm chứng Chrome hồi quy và 56 kiểm chứng lọc giá PASS** ở sáng/tối, 1440/1024/768/390/375px, chuột/cảm ứng/bàn phím; không ngoại lệ JavaScript. Hai nhóm có kiểm tra chung; Chrome dùng API giả lập, Maven dùng H2 hiện có. Không ghi database hay khởi động lại app đang chạy. Bốn file tĩnh và ba file tài liệu; hướng dẫn, giới hạn và danh sách ở [docs/price-filter.md](docs/price-filter.md).
+
+<!-- Bố cục tham khảo chỉ dùng những điều kiện lọc có dữ liệu và API hiện hành. -->
+### Bố cục bộ lọc theo ảnh tham khảo — ngày 05/10/2026
+
+Đưa sắp xếp và số kết quả trang/tổng cạnh tiêu đề; hãng có nút chọn nhanh đồng bộ dropdown, theo danh mục hiện tại. Dải hãng dài cuộn ngang trong khung. Thanh giá và năm mốc chọn nhanh nằm trong panel gọn; mở “Nhập giá chính xác” khi cần, lỗi giá tự mở phần này để sửa. Mobile chia mốc giá thành hai hàng rõ ràng. Giữ màu xanh dương và toàn bộ contract lọc/giỏ/đơn. Các nhãn giảm giá, freeship, bảo hành và xếp hạng bán chạy trong ảnh tham khảo chưa có dữ liệu tương ứng nên không đưa vào bộ lọc.
+
+**555 test PASS**, thêm **14 test tài nguyên web PASS**, package BUILD SUCCESS. Ba nhóm Chrome riêng PASS: **85 hồi quy, 56 lọc giá, 55 bố cục/hãng/phần giá mở rộng**; kiểm tra cả hai theme và 1440/1024/768/390/375px, không ngoại lệ JavaScript. Chrome dùng API giả lập; ảnh cuối dùng snapshot catalog công khai từ lượt banner. Không sửa Java/migration/DTO/test JUnit hoặc database. Bốn file tĩnh và ba file tài liệu, log riêng trong `target/catalog-reference-qa/`; chi tiết tại [docs/price-filter.md](docs/price-filter.md).

@@ -1,7 +1,7 @@
 <!-- Tài liệu định hướng StockFlow Tech ngày 01/10/2026, phân biệt chức năng đã có và công việc dự kiến. -->
 # Hướng phát triển dự án StockFlow Tech
 
-> StockFlow Tech là website bán phụ kiện máy tính và thiết bị công nghệ của một cửa hàng sở hữu nhiều kho. Dự án đồng thời phục vụ bài tập lớn và portfolio ứng tuyển Java Backend Developer.
+> StockFlow Tech là website bán điện thoại, laptop, thiết bị âm thanh và phụ kiện công nghệ của một cửa hàng sở hữu nhiều kho. Dự án đồng thời phục vụ bài tập lớn và portfolio ứng tuyển Java Backend Developer.
 >
 > Tài liệu này tổng hợp hướng phát triển tiếp theo. Các mục dự kiến chưa phải chức năng đã triển khai; quyết định nghiệp vụ đã chốt trong [ANTIGRAVITY_HANDOFF.md](ANTIGRAVITY_HANDOFF.md) tiếp tục được giữ nguyên.
 
@@ -9,7 +9,10 @@
 
 Một cửa hàng trực tiếp quản lý sản phẩm, giá bán và tồn kho tại Hà Nội, Đà Nẵng, TP.HCM. Khách mua hàng từ cửa hàng; hệ thống không có người bán bên thứ ba, gian hàng độc lập hoặc chia doanh thu giữa nhiều người bán.
 
-Ngành hàng giai đoạn đầu gồm:
+<!-- Nhóm phụ kiện bên dưới là phạm vi khởi đầu; storefront hiện tại đã mở rộng theo catalog nhập tay. -->
+Ngành hàng hiện tại gồm điện thoại, laptop, âm thanh và phụ kiện. Mỗi model có phiên bản/màu với SKU và tồn kho riêng. Mục bán chạy dùng đơn đã thanh toán thật; xem [cải thiện storefront và độ tin cậy](docs/storefront-quality-and-reliability.md).
+
+Nhóm phụ kiện ở giai đoạn đầu gồm:
 
 - **Bàn phím & Chuột:** bàn phím cơ, chuột văn phòng, chuột chơi game.
 - **Tai nghe & Loa:** tai nghe có dây/không dây, tai nghe có micro, loa máy tính.

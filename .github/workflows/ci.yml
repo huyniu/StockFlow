@@ -12,7 +12,8 @@ permissions:
 
 jobs:
   test-and-package:
-    runs-on: ubuntu-latest
+    # Ghim bản Ubuntu để việc đổi nhãn latest không tự thay môi trường kiểm chứng.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout source
@@ -28,7 +29,12 @@ jobs:
         run: chmod +x mvnw
       - name: Run all integration tests
         run: ./mvnw test
-      # Test đã chạy ở bước trước; bước này tạo JAR có thể tải về từ trang Actions.
+      # Fail rõ nếu Docker không hoạt động; không âm thầm bỏ qua kiểm chứng PostgreSQL và ledger trigger.
+      - name: Check Docker for PostgreSQL tests
+        run: docker info
+      - name: Verify PostgreSQL migrations and concurrency
+        run: ./mvnw --batch-mode -Ppostgres-tests verify
+      # Test H2 và PostgreSQL đã chạy; bước này tạo JAR có thể tải về từ trang Actions.
       - name: Package executable JAR
         run: ./mvnw --batch-mode -DskipTests package
       - name: Upload JAR

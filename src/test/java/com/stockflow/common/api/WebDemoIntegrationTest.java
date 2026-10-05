@@ -43,7 +43,7 @@ class WebDemoIntegrationTest {
     @Autowired RoleRepository roles;
     @Autowired JwtTokenProvider jwt;
 
-    /** URL cửa hàng và chi tiết mở công khai, kể cả tải trực tiếp; dashboard vẫn cần role vận hành. */
+    /** URL cửa hàng công nghệ/chi tiết mở công khai; kiểm tra các khu khám phá và dashboard vẫn tách riêng. */
     @ParameterizedTest
     @ValueSource(strings = {"/", "/index.html", "/san-pham/1", "/san-pham/42", "/san-pham/99999"})
     void dashboardIsPublic(String path) {
@@ -51,7 +51,8 @@ class WebDemoIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getContentType().toString()).startsWith("text/html");
         assertThat(response.getBody()).contains("StockFlow Tech", "Sản phẩm & đặt hàng", "Báo cáo quản trị",
-                "PHỤ KIỆN MÁY TÍNH", "Tìm bàn phím, chuột, tai nghe",
+                "ĐIỆN THOẠI · LAPTOP · PHỤ KIỆN", "Tìm điện thoại, laptop, phụ kiện",
+                "id=\"discovery-categories\"", "id=\"bestseller-grid\"",
                 "src=\"/app.js\"", "href=\"/styles.css\"",
                 "id=\"storefront-view\"", "id=\"dashboard-view\" hidden",
                 "id=\"shop-product\"", "id=\"shop-product-detail-body\"", "Tiếp tục mua sắm",

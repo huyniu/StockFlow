@@ -8,6 +8,7 @@ import com.stockflow.order.dto.OrderResponse;
 import com.stockflow.order.dto.ShipOrderRequest;
 import com.stockflow.order.service.OrderQueryService;
 import com.stockflow.order.service.OrderService;
+import com.stockflow.order.service.OrderPlacementService;
 import com.stockflow.user.domain.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 /** API đơn hàng; actor luôn lấy từ JWT và quyền theo từng đơn được kiểm tra tại service. */
@@ -38,22 +40,25 @@ public class OrderController {
 
     private final OrderService service;
     private final OrderQueryService queries;
+    private final OrderPlacementService placement;
 
     /** Nhận dịch vụ vòng đời và truy vấn đơn, giữ độc lập thao tác ghi với danh sách chỉ đọc. */
-    public OrderController(OrderService service, OrderQueryService queries) {
+    public OrderController(OrderService service, OrderQueryService queries, OrderPlacementService placement) {
         this.service = service;
         this.queries = queries;
+        this.placement = placement;
     }
 
-    /** CUSTOMER tạo đơn với người nhận bắt buộc; server chụp địa chỉ, tính giá và giữ tồn kho. */
+    /** CUSTOMER tạo đơn; Idempotency-Key tùy chọn chống gửi lại, giá/địa chỉ và reserve cùng transaction. */
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
     @Operation(summary = "Tạo đơn có thông tin nhận hàng, miễn phí giao hàng và giữ tồn 15 phút")
     public ResponseEntity<OrderResponse> create(
             @Valid @RequestBody CreateOrderRequest request,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.createOrder(request, user.getId()));
+                .body(placement.place(request, user.getId(), idempotencyKey));
     }
 
     /** Danh sách vận hành dành cho quản lý và nhân viên; service áp dụng phạm vi kho trước phân trang. */

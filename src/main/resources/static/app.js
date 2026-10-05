@@ -1,10 +1,13 @@
-/* StockFlow Tech bán phụ kiện máy tính; quyền, số tồn và vòng đời đơn luôn do backend quyết định. */
+/* StockFlow Tech bán điện thoại, laptop và phụ kiện; quyền, số tồn và vòng đời đơn do backend quyết định. */
 (() => {
     'use strict';
 
     const SESSION_KEY = 'stockflow.web.session';
     // Giỏ chỉ tồn tại trong phiên của tab và gắn với danh tính đã được backend xác thực.
     const CART_KEY = 'stockflow.web.cart.v1';
+    // Khóa retry chỉ lưu chủ phiên, mã ngẫu nhiên và hash; không lưu địa chỉ/điện thoại hoặc nội dung đơn.
+    const CHECKOUT_ATTEMPT_KEY = 'stockflow.web.checkout-attempt.v1';
+    let checkoutAttempt = null;
     const MAX_CART_ITEMS = 100;
     const ORDER_REFRESH_MS = 15000;
     const EXPIRED_ORDER_REFRESH_MS = 5000;
@@ -153,6 +156,7 @@
         catalogMaxPrice: '',
         catalogSort: 'id,asc',
         catalogBrandId: '',
+        discoveryDirty: true,
         branchId: '',
         categories: [],
         categoryProductCounts: new Map(),
@@ -178,6 +182,17 @@
     };
     const requests = new Set();
     const channels = new Map();
+    /** Gợi ý chỉ giữ trong bộ nhớ; kênh GET riêng không ảnh hưởng kệ hàng, JWT hoặc giỏ. */
+    const searchSuggestions = {
+        timer: null,
+        timeout: null,
+        version: 0,
+        active: -1,
+        items: [],
+        composing: false,
+    };
+    const SEARCH_SUGGESTION_DELAY_MS = 250;
+    const SEARCH_SUGGESTION_LIMIT = 6;
     /* Ghi nhận URL đã xử lý để popstate/hashchange không tải cùng trang hai lần. */
     let routedLocation = '';
     /* Debounce xem trước ảnh để không tải CDN sau từng phím gõ; hủy khi chuyển tài khoản. */
@@ -440,6 +455,7 @@
 
     /** Hủy request cũ khi đổi tài khoản; epoch ngăn response chậm ghi dữ liệu sang vai trò mới. */
     function cancelRequests() {
+        closeSearchSuggestions();
         state.epoch++;
         requests.forEach((controller) => controller.abort());
         requests.clear();
@@ -562,7 +578,7 @@
     $$('dialog').forEach((dialog) => dialog.addEventListener('close', () => scheduleOrderRefresh(0)));
 
     /** API cùng origin với JWT; mỗi kênh GET chỉ nhận response mới nhất khi đổi filter/phân trang. */
-    async function api(path, { method = 'GET', body, query, anonymous = false, channel } = {}) {
+    async function api(path, { method = 'GET', body, query, anonymous = false, channel, idempotencyKey } = {}) {
         const epoch = state.epoch;
         const controller = new AbortController();
         if (channel) {
@@ -575,6 +591,7 @@
             if (value !== '' && value !== null && value !== undefined) url.searchParams.set(key, value);
         });
         const headers = { Accept: 'application/json' };
+        if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
         if (state.token && !anonymous) headers.Authorization = 'Bearer ' + state.token;
         if (body !== undefined) headers['Content-Type'] = 'application/json';
         try {
@@ -612,6 +629,7 @@
                 }
                 throw error;
             }
+            if (method !== 'GET' && /^\/(orders|products)(\/|$)/.test(path)) state.discoveryDirty = true;
             $('#last-sync').textContent = 'Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN');
             return payload;
         } catch (error) {
@@ -750,6 +768,7 @@
 
     /** Đăng xuất, đổi actor hoặc dữ liệu lưu sai định dạng đều bỏ giỏ cũ khỏi phiên của tab. */
     function forgetCart() {
+        forgetCheckoutAttempt();
         try {
             sessionStorage.removeItem(CART_KEY);
         } catch {
@@ -1102,7 +1121,9 @@
                         ? 'Tài khoản của tôi'
                         : state.shopTab === 'product'
                           ? 'Chi tiết sản phẩm'
-                          : 'Cửa hàng công nghệ')
+                          : state.shopTab === 'help'
+                            ? 'Hướng dẫn mua hàng'
+                            : 'Cửa hàng công nghệ')
                 : 'StockFlow — ' + PORTAL_TITLES[state.portalTab];
         renderIdentity();
         renderPermissions();
@@ -1197,6 +1218,7 @@
 
     /** Dialog native giữ focus và cho phép Escape; xóa phản hồi của lần mở trước. */
     function openDialog(id) {
+        closeSearchSuggestions();
         $$('dialog[open]').forEach((dialog) => dialog.close());
         const dialog = $('#' + id);
         $$('[data-dialog-notice]', dialog).forEach((element) => element.remove());
@@ -1305,7 +1327,7 @@
 
     /** Dữ liệu công khai tách khỏi lựa chọn kho vận hành; không gọi báo cáo hoặc kho nội bộ cho khách. */
     async function loadReferences() {
-        const operations = [loadCategories(), loadBrands(), loadBranches()];
+        const operations = [loadCategories(), loadBrands(), loadBranches(), loadBestsellers()];
         if (isOperator()) operations.push(loadOperatingWarehouses(), loadProductOptions());
         const results = await Promise.allSettled(operations);
         const failure = results.find((result) => result.status === 'rejected' && result.reason.name !== 'AbortError');
@@ -1350,6 +1372,102 @@
         renderCatalogBrandOptions();
         renderShopCategoryMenu();
         renderAdminBrands();
+        renderDiscoveryCategories();
+    }
+
+    /** Dùng ngành hàng thực tế trong catalog, không hardcode ID hoặc tạo đường dẫn tới danh mục chưa có. */
+    function renderDiscoveryCategories() {
+        const groups = [
+            {
+                keys: ['dien thoai', 'smartphone'],
+                label: 'Điện thoại',
+                symbol: 'phone',
+                description: 'Kết nối mỗi ngày',
+            },
+            {
+                keys: ['laptop', 'may tinh xach tay'],
+                label: 'Laptop',
+                symbol: 'laptop',
+                description: 'Học tập và làm việc',
+            },
+            {
+                keys: ['am thanh', 'tai nghe'],
+                label: 'Âm thanh',
+                symbol: 'headphones',
+                description: 'Nghe theo cách bạn thích',
+            },
+            { keys: ['phu kien'], label: 'Phụ kiện', symbol: 'keyboard', description: 'Hoàn thiện bộ thiết bị' },
+        ];
+        const symbols = {
+            phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M10 5h4m-3 14h2"/>',
+            laptop: '<rect x="4" y="4" width="16" height="12" rx="2"/><path d="m4 16-2 4h20l-2-4M10 19h4"/>',
+            headphones:
+                '<path d="M4 13v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="11" width="4" height="9" rx="2"/><rect x="17" y="11" width="4" height="9" rx="2"/>',
+            keyboard:
+                '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M5 9h1m3 0h1m3 0h1m3 0h1M5 13h1m3 0h1m3 0h1m3 0h1M7 16h10"/>',
+        };
+        const used = new Set();
+        // Ưu tiên nhóm cấp đầu (ví dụ Âm thanh, Mic thu âm) trước danh mục con Tai nghe.
+        const categories = [...state.categories].sort(
+            (left, right) => Boolean(left.parent_id) - Boolean(right.parent_id),
+        );
+        $('#discovery-categories').innerHTML = groups
+            .map((group) => {
+                const category = categories.find(
+                    (item) =>
+                        !used.has(item.id) &&
+                        group.keys.some((key) => {
+                            const name = normalizeProductName(item.name);
+                            return name === key || name.startsWith(key + ' ');
+                        }),
+                );
+                if (!category) return '';
+                used.add(category.id);
+                return `<a class="discovery-category" href="/?categoryId=${category.id}#shop/catalog" data-catalog-link>
+                <span class="discovery-category-art"><svg viewBox="0 0 24 24" aria-hidden="true">${symbols[group.symbol]}</svg></span>
+                <span><strong>${escapeHtml(category.name)}</strong><small>${group.description}</small></span>
+                ${icon('arrow')}
+            </a>`;
+            })
+            .join('');
+        $('.category-discovery').hidden = !used.size;
+    }
+
+    /** Tải bảng xếp hạng công khai riêng; lỗi mục gợi ý không làm hỏng kệ sản phẩm hoặc giỏ hàng. */
+    async function loadBestsellers() {
+        const grid = $('#bestseller-grid');
+        grid.setAttribute('aria-busy', 'true');
+        grid.innerHTML =
+            Array.from(
+                { length: 4 },
+                () => `<div class="product-skeleton" aria-hidden="true">
+            <div class="skeleton skeleton-card-image"></div><div class="skeleton-card-body">
+            <span class="skeleton skeleton-line"></span><span class="skeleton skeleton-card-price"></span>
+            </div></div>`,
+            ).join('') + '<span class="sr-only" role="status">Đang tải sản phẩm bán chạy…</span>';
+        try {
+            const products = await api('/storefront/bestsellers', {
+                query: { limit: 4 },
+                anonymous: true,
+                channel: 'storefront-bestsellers',
+            });
+            if (!Array.isArray(products)) throw new Error('Dữ liệu bán chạy chưa sẵn sàng.');
+            products.forEach((product) => state.products.set(product.id, product));
+            grid.innerHTML =
+                productCards(products, { bestseller: true }) ||
+                '<div class="discovery-empty"><strong>Những lựa chọn yêu thích sẽ xuất hiện ở đây.</strong>' +
+                    '<p>Khi cửa hàng có đơn đã thanh toán, sản phẩm bán chạy được cập nhật từ doanh số thực tế.</p></div>';
+            grid.setAttribute('aria-busy', 'false');
+            state.discoveryDirty = false;
+            prepareStorefrontReveals();
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            grid.setAttribute('aria-busy', 'false');
+            grid.innerHTML =
+                '<div class="discovery-empty"><strong>Chưa tải được sản phẩm bán chạy.</strong>' +
+                '<p>Bạn vẫn có thể duyệt và đặt sản phẩm trên kệ bên dưới.</p>' +
+                '<button class="button secondary small" type="button" data-action="refresh-bestsellers">Thử lại</button></div>';
+        }
     }
 
     /** Hãng do backend trả; không gán hãng bằng cách dò tên sản phẩm hoặc hardcode bộ lọc ở client. */
@@ -1383,6 +1501,44 @@
             '<option value="">Tất cả thương hiệu</option>' +
             brands.map((brand) => '<option value="' + brand.id + '">' + escapeHtml(brand.name) + '</option>').join('');
         $('#catalog-brand').value = state.catalogBrandId;
+        renderCatalogBrandChips(brands);
+    }
+
+    /** Chip dùng danh sách hãng hợp lệ của select; giữ nút để bàn phím không mất focus khi đổi hãng. */
+    function renderCatalogBrandChips(brands) {
+        const container = $('#catalog-brand-chips');
+        const signature = JSON.stringify(brands.map((brand) => [brand.id, brand.name]));
+        if (container.dataset.brands !== signature) {
+            const choices = [{ id: '', name: 'Tất cả' }, ...brands];
+            container.innerHTML = choices
+                .map(
+                    (
+                        brand,
+                    ) => `<button type="button" data-action="quick-brand" data-brand-chip="${escapeHtml(brand.id)}"
+                        aria-pressed="false">${escapeHtml(brand.name)}</button>`,
+                )
+                .join('');
+            container.dataset.brands = signature;
+        }
+        $$('[data-brand-chip]', container).forEach((button) => {
+            const selected = button.dataset.brandChip === state.catalogBrandId;
+            button.setAttribute('aria-pressed', String(selected));
+            // Chỉ cuộn ngang dải hãng, không kéo trang về kệ khi tải lại tham chiếu.
+            if (selected && container.clientWidth > 0) {
+                const bounds = button.getBoundingClientRect();
+                const viewport = container.getBoundingClientRect();
+                if (bounds.left < viewport.left) container.scrollLeft -= viewport.left - bounds.left;
+                else if (bounds.right > viewport.right) container.scrollLeft += bounds.right - viewport.right;
+            }
+        });
+    }
+
+    /** Chọn nhanh và dropdown dùng chung bộ lọc; giữ giá/từ khóa/sắp xếp và về trang đầu. */
+    async function applyCatalogBrand(id) {
+        if (![...$('#catalog-brand').options].some((option) => option.value === id)) return;
+        state.catalogBrandId = id;
+        renderCatalogBrandOptions();
+        await reloadCatalogFilters();
     }
 
     /** Logo dùng URL đã lưu; nếu chưa có/tải lỗi thì tên hãng và chữ viết tắt vẫn giúp nhận diện. */
@@ -1877,7 +2033,7 @@
             ? 'Thả tay để áp dụng khoảng giá đã chọn.'
             : draft
               ? 'Bấm Áp dụng để lọc theo giá đã nhập.'
-              : 'Kéo và thả để lọc. Nhập giá bên dưới để chọn chính xác.';
+              : 'Kéo và thả để lọc. Mở Nhập giá chính xác để chọn giá tùy ý.';
     }
 
     /** Chỉ đổi đầu mút đang kéo; giữ nguyên phần thập phân hoặc đầu mút trống ở bên còn lại. */
@@ -1932,6 +2088,8 @@
         const error = $('#catalog-price-error');
         error.hidden = !message;
         error.textContent = message;
+        // Mở ô nhập khi có lỗi để thông báo HTML có thể đưa focus đến trường cần sửa.
+        if (broken) $('#catalog-price-details').open = true;
         fields.forEach((field) => field.setAttribute('aria-invalid', String(!field.validity.valid)));
         return $('#catalog-price-filter').checkValidity();
     }
@@ -2003,6 +2161,7 @@
 
     /** Bất kỳ bộ lọc/thứ tự mới nào đều quay về trang đầu; điều hướng từ chi tiết vẫn dùng History API. */
     async function reloadCatalogFilters({ scroll = false } = {}) {
+        closeSearchSuggestions();
         state.pages.catalog = 0;
         if (state.view !== 'shop' || state.shopTab !== 'catalog') await activateView('shop', 'catalog');
         else await loadCatalog();
@@ -2286,6 +2445,271 @@
         };
     }
 
+    /** Đóng và hủy cả debounce/request; phản hồi đến muộn không được tự mở lại danh sách. */
+    function closeSearchSuggestions() {
+        searchSuggestions.version++;
+        window.clearTimeout(searchSuggestions.timer);
+        window.clearTimeout(searchSuggestions.timeout);
+        searchSuggestions.timer = null;
+        searchSuggestions.timeout = null;
+        searchSuggestions.items = [];
+        searchSuggestions.active = -1;
+        channels.get('search-suggestions')?.abort();
+        channels.delete('search-suggestions');
+        $('#search-suggestions').hidden = true;
+        $('#search-suggestions-list').replaceChildren();
+        $('#search-suggestions-list').removeAttribute('aria-busy');
+        $('#catalog-query').setAttribute('aria-expanded', 'false');
+        $('#catalog-query').removeAttribute('aria-activedescendant');
+        $('#search-suggestions-status').textContent = '';
+    }
+
+    /** Chỉ tìm khi đang dùng ô tìm kiếm của cửa hàng; không chạy trong dialog hay lúc đổi tài khoản. */
+    function canSuggestProducts() {
+        return (
+            state.view === 'shop' &&
+            !state.authBusy &&
+            !searchSuggestions.composing &&
+            $('#catalog-filter').contains(document.activeElement) &&
+            !document.querySelector('dialog[open]')
+        );
+    }
+
+    /** Chừa chỗ cho footer khi màn hình thấp hoặc bàn phím mobile mở; chỉ danh sách bên trong được cuộn. */
+    function updateSearchSuggestionsLayout() {
+        const popup = $('#search-suggestions');
+        if (popup.hidden) return;
+        const viewport = window.visualViewport;
+        const viewportTop = viewport?.offsetTop || 0;
+        const viewportBottom = viewportTop + (viewport?.height || window.innerHeight);
+        const inputBounds = $('#catalog-query').getBoundingClientRect();
+        if (inputBounds.bottom < viewportTop || inputBounds.top > viewportBottom) {
+            closeSearchSuggestions();
+            return;
+        }
+        const controlsHeight =
+            $('.search-suggestions-heading', popup).offsetHeight + $('.search-suggestions-all', popup).offsetHeight;
+        const availableHeight = Math.max(0, viewportBottom - popup.getBoundingClientRect().top - controlsHeight - 14);
+        popup.style.setProperty('--search-list-height', Math.min(480, availableHeight) + 'px');
+    }
+
+    /** Skeleton gọn cho danh sách; footer dùng textContent để từ khóa không thể chèn HTML. */
+    function renderSearchSuggestionsLoading(query) {
+        $('#search-suggestions').hidden = false;
+        $('#catalog-query').setAttribute('aria-expanded', 'true');
+        $('#search-suggestions-feedback').hidden = true;
+        $('#search-suggestions-all-label').textContent = 'Tìm tất cả kết quả cho “' + query + '”';
+        const list = $('#search-suggestions-list');
+        list.setAttribute('aria-busy', 'true');
+        list.innerHTML = Array.from(
+            { length: 3 },
+            () => `
+                <div class="search-suggestion-skeleton" aria-hidden="true">
+                    <span class="skeleton search-skeleton-image"></span>
+                    <span class="search-skeleton-lines">
+                        <span class="skeleton skeleton-line"></span>
+                        <span class="skeleton skeleton-line short"></span>
+                    </span>
+                </div>
+            `,
+        ).join('');
+        $('#search-suggestions-status').textContent = 'Đang tìm sản phẩm…';
+        updateSearchSuggestionsLayout();
+    }
+
+    /** Tối đa sáu model ACTIVE, ảnh/giá từ dữ liệu thật; tên/SKU/hãng luôn được escape. */
+    function renderSearchSuggestions(products) {
+        searchSuggestions.items = products;
+        const list = $('#search-suggestions-list');
+        list.removeAttribute('aria-busy');
+        list.innerHTML = products
+            .map((product, index) => {
+                const photo = productImage(product);
+                const price = product.min_price ?? product.unit_price;
+                const fromPrice = Number(product.max_price ?? price) > Number(price) ? 'Từ ' : '';
+                return `
+                    <a
+                        id="search-suggestion-${index}"
+                        class="search-suggestion"
+                        href="/san-pham/${product.id}"
+                        data-product-link
+                        data-product-id="${product.id}"
+                        role="option"
+                        aria-selected="false"
+                        tabindex="-1"
+                    >
+                        <span class="search-suggestion-photo">
+                            ${icon('box')}
+                            <img src="${escapeHtml(photo.src)}" alt="" decoding="async" data-search-image />
+                        </span>
+                        <span class="search-suggestion-content">
+                            <strong class="search-suggestion-name">${escapeHtml(product.name)}</strong>
+                            <span class="search-suggestion-meta">
+                                ${escapeHtml(product.brand_name || product.category_name || '')} · ${escapeHtml(product.sku)}
+                            </span>
+                            <span class="search-suggestion-price">${fromPrice}${amount(price)}</span>
+                        </span>
+                        ${icon('arrow')}
+                    </a>
+                `;
+            })
+            .join('');
+        const feedback = $('#search-suggestions-feedback');
+        feedback.hidden = products.length > 0;
+        feedback.textContent = 'Chưa tìm thấy sản phẩm phù hợp. Thử tên hoặc mã SKU khác.';
+        $('#search-suggestions-status').textContent = products.length
+            ? 'Có ' + products.length + ' gợi ý. Dùng phím lên xuống để chọn, Enter để xem chi tiết.'
+            : feedback.textContent;
+        updateSearchSuggestionsLayout();
+    }
+
+    /** Debounce tránh gọi DB sau từng phím; giữ nguyên toàn bộ bộ lọc cho lần tìm trên kệ. */
+    function queueSearchSuggestions({ immediate = false } = {}) {
+        closeSearchSuggestions();
+        const query = $('#catalog-query').value.trim();
+        if (!query || !canSuggestProducts()) return;
+        if (state.categoryMenuOpen) setShopCategoryMenu(false);
+        closeHomeCategoryMenu();
+        const version = searchSuggestions.version;
+        renderSearchSuggestionsLoading(query);
+        searchSuggestions.timer = window.setTimeout(
+            () => loadSearchSuggestions(query, version),
+            immediate ? 0 : SEARCH_SUGGESTION_DELAY_MS,
+        );
+    }
+
+    /** GET công khai gộp model, độc lập danh mục/giá đang lọc; hủy phản hồi cũ và có hạn chờ mạng. */
+    async function loadSearchSuggestions(query, version) {
+        searchSuggestions.timer = null;
+        const current = () =>
+            version === searchSuggestions.version &&
+            query === $('#catalog-query').value.trim() &&
+            canSuggestProducts() &&
+            !$('#search-suggestions').hidden;
+        if (!current()) return;
+        let timedOut = false;
+        const timeout = window.setTimeout(() => {
+            if (!current()) return;
+            timedOut = true;
+            channels.get('search-suggestions')?.abort();
+        }, READ_TIMEOUT_MS);
+        searchSuggestions.timeout = timeout;
+        try {
+            const result = await api('/products', {
+                anonymous: true,
+                channel: 'search-suggestions',
+                query: {
+                    q: query,
+                    status: 'ACTIVE',
+                    grouped: true,
+                    page: 0,
+                    size: SEARCH_SUGGESTION_LIMIT,
+                    sort: 'id,asc',
+                },
+            });
+            if (!current()) return;
+            renderSearchSuggestions(
+                result.content
+                    .filter(
+                        (product) => Number.isSafeInteger(product.id) && product.id > 0 && product.status === 'ACTIVE',
+                    )
+                    .slice(0, SEARCH_SUGGESTION_LIMIT),
+            );
+        } catch (error) {
+            if (!current() || (error.name === 'AbortError' && !timedOut)) return;
+            // Lỗi gợi ý chỉ ở dropdown; không tạo toast hoặc thay kết quả catalog đang xem.
+            $('#search-suggestions-list').replaceChildren();
+            $('#search-suggestions-list').removeAttribute('aria-busy');
+            const feedback = $('#search-suggestions-feedback');
+            feedback.hidden = false;
+            feedback.innerHTML = `
+                <p>Chưa tải được gợi ý. Bạn vẫn có thể nhấn Enter để tìm trên kệ hàng.</p>
+                <button type="button" class="button secondary small" data-action="retry-search-suggestions">Thử lại</button>
+            `;
+            $('#search-suggestions-status').textContent = 'Chưa tải được gợi ý. Thử lại hoặc nhấn Enter để tìm.';
+            updateSearchSuggestionsLayout();
+        } finally {
+            window.clearTimeout(timeout);
+            if (searchSuggestions.timeout === timeout) searchSuggestions.timeout = null;
+        }
+    }
+
+    /** Focus vẫn ở combobox khi chọn bằng mũi tên; trình đọc màn hình nhận option đang chọn qua ID. */
+    function selectSearchSuggestion(index) {
+        const options = $$('#search-suggestions-list [role="option"]');
+        if (!options.length) return;
+        searchSuggestions.active = (index + options.length) % options.length;
+        options.forEach((option, position) => {
+            option.setAttribute('aria-selected', String(position === searchSuggestions.active));
+        });
+        const option = options[searchSuggestions.active];
+        $('#catalog-query').setAttribute('aria-activedescendant', option.id);
+        // Chỉ cuộn trong danh sách gợi ý, không kéo cả trang và làm ô tìm kiếm rời màn hình.
+        const list = $('#search-suggestions-list');
+        const rowBounds = option.getBoundingClientRect();
+        const listBounds = list.getBoundingClientRect();
+        if (rowBounds.top < listBounds.top) list.scrollTop += rowBounds.top - listBounds.top;
+        else if (rowBounds.bottom > listBounds.bottom) list.scrollTop += rowBounds.bottom - listBounds.bottom;
+    }
+
+    /** Tôn trọng bộ gõ tiếng Việt/IME; không chọn nhầm hoặc gọi API giữa lúc đang ghép ký tự. */
+    $('#catalog-query').addEventListener('compositionstart', () => {
+        searchSuggestions.composing = true;
+        closeSearchSuggestions();
+    });
+    $('#catalog-query').addEventListener('compositionend', () => {
+        searchSuggestions.composing = false;
+        queueSearchSuggestions();
+    });
+    $('#catalog-query').addEventListener('input', () => queueSearchSuggestions());
+    $('#catalog-query').addEventListener('focus', () => {
+        // Trở lại cửa sổ không tải lại một danh sách đang mở hoặc làm mất lựa chọn bằng bàn phím.
+        if ($('#search-suggestions').hidden) queueSearchSuggestions();
+    });
+    $('#catalog-query').addEventListener('click', () => {
+        if ($('#search-suggestions').hidden) queueSearchSuggestions();
+    });
+    $('#catalog-query').addEventListener('search', () => {
+        if (!$('#catalog-query').value.trim()) closeSearchSuggestions();
+    });
+    $('#catalog-query').addEventListener('keydown', (event) => {
+        if (event.isComposing || searchSuggestions.composing || event.keyCode === 229) return;
+        if (event.key === 'Escape' && !$('#search-suggestions').hidden) {
+            event.preventDefault();
+            event.stopPropagation();
+            closeSearchSuggestions();
+        } else if (['ArrowDown', 'ArrowUp'].includes(event.key)) {
+            if (!$('#catalog-query').value.trim()) return;
+            event.preventDefault();
+            if ($('#search-suggestions').hidden) queueSearchSuggestions({ immediate: true });
+            else
+                selectSearchSuggestion(
+                    event.key === 'ArrowUp' && searchSuggestions.active < 0
+                        ? searchSuggestions.items.length - 1
+                        : searchSuggestions.active + (event.key === 'ArrowDown' ? 1 : -1),
+                );
+        } else if (event.key === 'Enter') {
+            const option = $('#search-suggestion-' + searchSuggestions.active);
+            if (option) {
+                event.preventDefault();
+                option.click();
+            } else closeSearchSuggestions();
+        }
+    });
+
+    /** Giữ focus khi bấm một option; click ngoài hoặc Tab ra ngoài đóng menu mà không chặn điều hướng native. */
+    document.addEventListener('pointerdown', (event) => {
+        if (!event.target.closest('#catalog-filter')) closeSearchSuggestions();
+        else if (event.target.closest('.search-suggestion') && event.button === 0) event.preventDefault();
+    });
+    document.addEventListener('focusin', (event) => {
+        if (!event.target.closest('#catalog-filter')) closeSearchSuggestions();
+    });
+    window.addEventListener('resize', updateSearchSuggestionsLayout, { passive: true });
+    window.addEventListener('scroll', updateSearchSuggestionsLayout, { passive: true });
+    window.visualViewport?.addEventListener('resize', updateSearchSuggestionsLayout, { passive: true });
+    window.visualViewport?.addEventListener('scroll', updateSearchSuggestionsLayout, { passive: true });
+
     /** Ảnh bìa tải lười; phân biệt ảnh đã lưu với ảnh minh họa dự phòng, không thay đổi dữ liệu giỏ hàng. */
     function productArt(product) {
         const photo = productImage(product);
@@ -2300,7 +2724,7 @@
                     data-image-fallback="${escapeHtml(photo.fallback)}"
                 />
                 ${product.brand_name ? '<span class="product-tag">' + escapeHtml(product.brand_name) + '</span>' : ''}
-                <span class="product-photo-caption">${photo.custom ? 'Ảnh sản phẩm' : 'Ảnh minh họa'}</span>
+                <span class="product-photo-caption" ${photo.custom ? 'hidden' : ''}>Ảnh minh họa</span>
                 <span class="product-image-error" hidden>Chưa tải được ảnh. Vui lòng kiểm tra kết nối.</span>
             </div>
         `;
@@ -2424,7 +2848,9 @@
 
     /** Cập nhật SKU đang chọn và danh sách chi nhánh; không nới quyền của API kho nội bộ. */
     function refreshProductStock() {
-        $$('#catalog-grid [data-product-stock], #shop-product [data-product-stock]').forEach((element) => {
+        $$(
+            '#catalog-grid [data-product-stock], #bestseller-grid [data-product-stock], #shop-product [data-product-stock]',
+        ).forEach((element) => {
             const product = element.closest('#shop-product')
                 ? state.detailSku
                 : state.products.get(Number(element.dataset.productStock));
@@ -2519,9 +2945,9 @@
         $('#product-breadcrumb-name').textContent = root.name;
     }
 
-    /** Cả thẻ là liên kết trang sản phẩm; nút thêm giỏ riêng không bị lồng vào liên kết. */
-    function renderProducts(products) {
-        const cards = products
+    /** Một mẫu thẻ dùng cho kệ và bán chạy; giữ đúng ID model và nút chọn SKU của giỏ hiện có. */
+    function productCards(products, { bestseller = false } = {}) {
+        return products
             .map((product) => {
                 const stock = productStock(product);
                 return `
@@ -2531,7 +2957,8 @@
                             <div class="product-card-body">
                                 <span class="product-category">${escapeHtml(product.category_name)}</span>
                                 <h3>${escapeHtml(product.name)}</h3>
-                                <span class="product-sku mono">${escapeHtml(product.sku)}</span>
+                                <span class="product-sku mono" title="${escapeHtml(product.sku)}">${escapeHtml(product.sku)}</span>
+                                ${bestseller ? '<span class="bestseller-label">Bán chạy</span>' : ''}
                                 ${configurationPreview(product)}
                                 <div class="product-card-footer">
                                     <strong class="product-price">${Number(product.min_price) !== Number(product.max_price) ? 'Từ ' : ''}${amount(product.min_price ?? product.unit_price)}</strong>
@@ -2557,6 +2984,11 @@
                 `;
             })
             .join('');
+    }
+
+    /** Cả thẻ là liên kết trang sản phẩm; nút thêm giỏ riêng không bị lồng vào liên kết. */
+    function renderProducts(products) {
+        const cards = productCards(products);
         $('#catalog-grid').innerHTML = cards
             ? cards +
               `
@@ -3115,7 +3547,8 @@
             renderProducts(result.content);
             renderHeroShowcase(result.content);
             $('#catalog-grid').dataset.catalogStatus = 'ready';
-            $('#catalog-count').textContent = integer(result.total_elements) + ' sản phẩm đang bán';
+            $('#catalog-count').textContent =
+                'Hiển thị ' + integer(result.content.length) + ' / ' + integer(result.total_elements) + ' sản phẩm';
             renderPager('catalog', result);
             renderCart();
             if (state.view === 'shop' && state.shopTab === 'catalog') replaceHash();
@@ -3262,6 +3695,63 @@
         });
     }
 
+    /** Đổi actor/đặt thành công thì bỏ khóa retry, tránh gắn một đơn mới với lần mua đã hoàn tất. */
+    function forgetCheckoutAttempt() {
+        checkoutAttempt = null;
+        try {
+            sessionStorage.removeItem(CHECKOUT_ATTEMPT_KEY);
+        } catch {
+            /* Trình duyệt chặn storage vẫn xóa khóa trong bộ nhớ. */
+        }
+    }
+
+    /** Giữ cùng khóa cho cùng nội dung sau lỗi mạng; storage chỉ có hash SHA-256, không có người nhận. */
+    async function checkoutKey(body, owner, epoch) {
+        const canonical = JSON.stringify({
+            ...body,
+            items: [...body.items].sort((left, right) => left.product_id - right.product_id),
+            delivery: {
+                ...body.delivery,
+                recipient_phone: body.delivery.recipient_phone.replace(/[\s()-]/g, ''),
+            },
+        });
+        const persistent = Boolean(window.crypto?.subtle);
+        const hash = persistent
+            ? [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical)))]
+                  .map((byte) => byte.toString(16).padStart(2, '0'))
+                  .join('')
+            : canonical;
+        if (epoch !== state.epoch || owner !== cartOwner()) {
+            throw new DOMException('Tài khoản đặt hàng đã thay đổi.', 'AbortError');
+        }
+        if (!checkoutAttempt && persistent) {
+            try {
+                const saved = JSON.parse(sessionStorage.getItem(CHECKOUT_ATTEMPT_KEY));
+                if (
+                    saved?.owner === owner &&
+                    /^[a-f0-9]{64}$/.test(saved.hash) &&
+                    /^SF-WEB-[a-f0-9]{32}$/.test(saved.key)
+                )
+                    checkoutAttempt = saved;
+            } catch {
+                /* Metadata hỏng hoặc storage bị chặn thì tạo khóa ngẫu nhiên mới. */
+            }
+        }
+        if (checkoutAttempt?.owner !== owner || checkoutAttempt.hash !== hash) {
+            const random = crypto.getRandomValues(new Uint8Array(16));
+            const key = 'SF-WEB-' + [...random].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+            checkoutAttempt = { owner, key, hash };
+        }
+        if (persistent) {
+            try {
+                sessionStorage.setItem(CHECKOUT_ATTEMPT_KEY, JSON.stringify(checkoutAttempt));
+            } catch {
+                /* HTTPS/localhost có SHA-256; nếu storage bị chặn thì vẫn bảo vệ retry trong phiên hiện tại. */
+            }
+        }
+        return checkoutAttempt.key;
+    }
+
     /** CUSTOMER tạo đơn có người nhận; lỗi 400/409 giữ giỏ, địa chỉ và chi nhánh để khách điều chỉnh. */
     async function createOrder() {
         if (!state.user) {
@@ -3273,22 +3763,45 @@
             throw new Error('Khôi phục giỏ và cập nhật giá trước khi đặt hàng.');
         if (!state.cart.size) throw new Error('Thêm ít nhất một sản phẩm vào giỏ.');
         if (!state.branchId) throw new Error('Chọn chi nhánh chuẩn bị đơn.');
-        const result = await api('/orders', {
-            method: 'POST',
-            body: {
-                warehouse_id: Number(state.branchId),
-                items: [...state.cart.values()].map((item) => ({
-                    product_id: item.product.id,
-                    quantity: item.quantity,
-                })),
-                delivery: {
-                    recipient_name: $('#delivery-name').value.trim(),
-                    recipient_phone: $('#delivery-phone').value.trim(),
-                    address: $('#delivery-address').value.trim(),
-                    note: $('#delivery-note').value.trim() || null,
-                },
+        const body = {
+            warehouse_id: Number(state.branchId),
+            items: [...state.cart.values()].map((item) => ({
+                product_id: item.product.id,
+                quantity: item.quantity,
+            })),
+            delivery: {
+                recipient_name: $('#delivery-name').value.trim(),
+                recipient_phone: $('#delivery-phone').value.trim(),
+                address: $('#delivery-address').value.trim(),
+                note: $('#delivery-note').value.trim() || null,
             },
-        });
+        };
+        const owner = cartOwner();
+        const epoch = state.epoch;
+        const idempotencyKey = await checkoutKey(body, owner, epoch);
+        if (epoch !== state.epoch || owner !== cartOwner()) {
+            throw new DOMException('Tài khoản đặt hàng đã thay đổi.', 'AbortError');
+        }
+        let result;
+        try {
+            result = await api('/orders', {
+                method: 'POST',
+                body,
+                idempotencyKey,
+            });
+        } catch (error) {
+            // Mất phản hồi không có nghĩa đặt thất bại; hướng dẫn thử lại cùng khóa thay vì tạo giỏ khác.
+            if (error instanceof ApiError && error.status === 0) {
+                error.message =
+                    'Không kết nối được hệ thống; chưa rõ kết quả đặt hàng. ' +
+                    'Hãy thử lại với cùng giỏ và thông tin, hoặc kiểm tra Đơn hàng của tôi trước khi đổi nội dung.';
+            }
+            throw error;
+        }
+        if (!Number.isSafeInteger(result?.id) || !result.order_code || !result.status) {
+            throw new Error('Chưa nhận được thông tin đơn hợp lệ. Thử lại để tra lại cùng lần đặt hàng.');
+        }
+        forgetCheckoutAttempt();
         state.cart.clear();
         saveCart();
         resetCheckoutDetails();
@@ -3299,7 +3812,11 @@
         renderOrder();
         notify(
             'success',
-            'Đơn ' + result.order_code + ' đã được giữ hàng 15 phút. Xác nhận thanh toán để tiếp tục.',
+            'Đơn ' +
+                result.order_code +
+                (result.status === 'PENDING'
+                    ? ' đang chờ thanh toán. Kiểm tra thời hạn giữ hàng trong chi tiết đơn.'
+                    : ' đã được ghi nhận: ' + (STATUS_LABELS[result.status] || result.status) + '.'),
             'HTTP 201 Created',
         );
         await activateView('shop', 'orders');
@@ -5386,7 +5903,9 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
                   ? '#shop/orders'
                   : state.shopTab === 'account'
                     ? '#shop/account'
-                    : '#shop';
+                    : state.shopTab === 'help'
+                      ? '#shop/help'
+                      : '#shop';
         return '/' + hash;
     }
 
@@ -5407,6 +5926,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
 
     /** Kiểm tra quyền trước khi mở không gian hoặc gọi API của tab nội bộ. */
     async function activateView(view, tab, { productId = null, navigation = 'push' } = {}) {
+        closeSearchSuggestions();
         if (view === 'portal') {
             if (!isOperator()) {
                 openAuth('portal');
@@ -5421,7 +5941,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
                 return;
             }
             state.view = 'shop';
-            state.shopTab = ['orders', 'product', 'account'].includes(tab) ? tab : 'catalog';
+            state.shopTab = ['orders', 'product', 'account', 'help'].includes(tab) ? tab : 'catalog';
         }
         invalidateOrderRefresh();
         // Rời trang chi tiết phải hủy GET chậm trước khi nó kịp cập nhật DOM hoặc giá trong giỏ.
@@ -5453,7 +5973,8 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             if (state.shopTab === 'orders') await loadOrders();
             else if (state.shopTab === 'account') await loadProfile();
             else if (state.shopTab === 'product') await loadShopProductDetail();
-            else await loadCatalog();
+            else if (state.shopTab === 'help') $('#purchase-help-title').focus({ preventScroll: true });
+            else await Promise.all([loadCatalog(), ...(state.discoveryDirty ? [loadBestsellers()] : [])]);
             return;
         }
         const loaders = {
@@ -5494,6 +6015,10 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         'error',
         (event) => {
             const image = event.target;
+            if (image instanceof HTMLImageElement && image.hasAttribute('data-search-image')) {
+                image.hidden = true;
+                return;
+            }
             if (image instanceof HTMLImageElement && image.hasAttribute('data-sticky-image')) {
                 image.hidden = true;
                 return;
@@ -5538,7 +6063,9 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             if (!image.dataset.fallbackAttempted && fallback && image.getAttribute('src') !== fallback) {
                 image.dataset.fallbackAttempted = 'true';
                 image.src = fallback;
-                $('.product-photo-caption', image.closest('.product-card-img-wrap')).textContent = 'Ảnh minh họa';
+                const caption = $('.product-photo-caption', image.closest('.product-card-img-wrap'));
+                caption.textContent = 'Ảnh minh họa';
+                caption.hidden = false;
                 return;
             }
             image.hidden = true;
@@ -5566,6 +6093,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         if (productLink) {
             // Giữ hành vi liên kết native khi mở tab mới bằng Ctrl/Cmd, Shift hoặc nút chuột giữa.
             if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+            closeSearchSuggestions();
             event.preventDefault();
             execute(() => activateView('shop', 'product', { productId: productLink.dataset.productId }));
             return;
@@ -5615,7 +6143,15 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         }
         const id = Number(button.dataset.id);
         const action = button.dataset.action;
-        if (action === 'quick-price') execute(() => busy(button, () => applyQuickPrice(button.dataset.priceChip)));
+        if (action === 'retry-search-suggestions') {
+            // Nút thử lại sẽ bị ẩn khi dựng skeleton; chuyển focus về input trước để không mất phiên gợi ý.
+            $('#catalog-query').focus({ preventScroll: true });
+            queueSearchSuggestions({ immediate: true });
+        } else if (action === 'quick-price')
+            execute(() => busy(button, () => applyQuickPrice(button.dataset.priceChip)));
+        // Đọc catalog có cơ chế hủy request cũ; giữ nút hãng có focus và cho phép đổi lựa chọn ngay.
+        else if (action === 'quick-brand') execute(() => applyCatalogBrand(button.dataset.brandChip));
+        else if (action === 'refresh-bestsellers') execute(() => busy(button, loadBestsellers));
         else if (action === 'queue-status')
             execute(() => busy(button, () => applyQueueStatus(button.dataset.queueStatus)));
         else if (action === 'sticky-add-cart') {
@@ -5818,8 +6354,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             renderCatalogBrandOptions();
             execute(reloadCatalogFilters);
         } else if (input.id === 'catalog-brand') {
-            state.catalogBrandId = input.value;
-            execute(reloadCatalogFilters);
+            execute(() => applyCatalogBrand(input.value));
         } else if (input.id === 'catalog-sort') {
             state.catalogSort = input.value;
             execute(reloadCatalogFilters);
