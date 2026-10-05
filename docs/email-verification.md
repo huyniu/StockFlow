@@ -9,6 +9,8 @@ V18 đánh dấu toàn bộ user đã tồn tại là `email_verified=true`; use
 
 Storefront mở modal OTP sau đăng ký hoặc lỗi login chưa xác thực; sau verify lưu session JWT và giữ giỏ hàng khách vãng lai.
 
-Mail được gửi sau commit qua executor `mailTaskExecutor` (core 2, max 5). Chưa cấu hình SMTP thì dùng mã trong console theo yêu cầu `[EMAIL_OTP]`. Để gửi email thật, cung cấp các biến Spring Boot: `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true`; địa chỉ gửi qua `APP_MAIL_FROM` (mặc định `no-reply@stockflow.com`). Không lưu mật khẩu SMTP vào Git.
+Mail được gửi sau commit qua executor `mailTaskExecutor` (core 2, max 5). `application.yml` cấu hình Gmail SMTP `smtp.gmail.com:587`, SMTP auth và STARTTLS. Cung cấp `MAIL_USERNAME` và `MAIL_PASSWORD` trong môi trường chạy ứng dụng; địa chỉ gửi mặc định là `MAIL_USERNAME`, có thể đổi qua `APP_MAIL_FROM`. Không lưu mật khẩu SMTP vào Git.
+
+Service hiện tại tên là `EmailService` (không có `EmailServiceImpl`). `sendVerificationOtp()` lấy bean `JavaMailSender`, tạo `SimpleMailMessage` và gọi `sender.send(message)` để gửi email thật. Console luôn in `[EMAIL_OTP]` theo yêu cầu. Profile `test`/`postgres-test` không bật cấu hình Gmail, không yêu cầu credential và dùng console OTP để tránh gửi email thật trong test.
 
 Kiểm tra: `.\mvnw.cmd "-Dmaven.repo.local=C:/Users/Admin/.m2/repository" test`. Test H2 có bản migration V18 riêng; PostgreSQL dùng migration main và profile `postgres-tests`.

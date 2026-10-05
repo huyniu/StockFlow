@@ -24,3 +24,25 @@ app:
       # Môi trường thông thường phải cung cấp secret; profile demo có giá trị mẫu riêng.
       secret: ${JWT_SECRET}
       expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+---
+# Test dùng console OTP, không kết nối Gmail hay yêu cầu credential SMTP.
+spring:
+  config:
+    activate:
+      on-profile: "!test & !postgres-test"
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
+app:
+  mail:
+    from: ${APP_MAIL_FROM:${MAIL_USERNAME}}
