@@ -25,6 +25,15 @@ app:
       secret: ${JWT_SECRET}
       expiration-ms: ${JWT_EXPIRATION_MS:3600000}
 
+vnpay:
+  pay-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  tmn-code: ${VNPAY_TMN_CODE:DEMOVNPAY}
+  hash-secret: ${VNPAY_HASH_SECRET:DEMOHASHSECRETKEY2026}
+  return-url: ${VNPAY_RETURN_URL:http://localhost:8080/api/v1/payments/vnpay/return}
+  storefront-url: ${VNPAY_STOREFRONT_URL:http://localhost:8080/}
+  version: 2.1.0
+  command: pay
+
 ---
 # Test dùng console OTP, không kết nối Gmail hay yêu cầu credential SMTP.
 spring:

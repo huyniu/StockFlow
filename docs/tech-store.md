@@ -19,9 +19,9 @@ Mỗi cấu hình được bán là một SKU riêng, có giá và tồn kho ri�
 
 ## Cách khởi động
 
-Profile `demo` mặc định chỉ chuẩn bị bốn tài khoản demo, ba kho, năm danh mục công nghệ và phân công nhân viên Hà Nội. Không tự tạo sản phẩm hoặc bơm tồn kho. Chủ cửa hàng thêm sản phẩm/ảnh, rồi nhập kho qua form để sinh GOODS_RECEIPT hợp lệ.
+Profile `demo` mặc định chuẩn bị bốn tài khoản demo, ba kho, catalog mẫu và tồn đầu kỳ **20–50 sản phẩm/SKU tại mỗi kho demo đang hoạt động**. Tồn được nạp qua `InventoryService.stockIn()`, tạo ledger `GOODS_RECEIPT` với actor admin và balance trước/sau.
 
-Đặt `DEMO_SEED_CATALOG=true` nếu muốn trình diễn fixture trên database mới: **24 sản phẩm TECH-**, **72 tồn kho**, **72 GOODS_RECEIPT**. Catalog chia thành 6 sản phẩm bàn phím/chuột, 5 âm thanh, 4 webcam/micro, 5 kết nối/sạc và 4 màn hình/phụ kiện bàn làm việc. Giá, cấu hình và ảnh Unsplash là dữ liệu minh họa.
+`DEMO_SEED_CATALOG=true` là mặc định: database mới có **24 sản phẩm TECH-**, **72 tồn kho**, **72 GOODS_RECEIPT**. Sản phẩm ACTIVE hiện có cũng được nạp ở ba kho demo nếu chưa có tồn đầu kỳ. Dòng inventory đã tồn tại nhưng tồn vật lý bằng 0 và chưa có movement được nạp một lần; hàng đã bán hết có ledger không tự được bổ sung khi restart. Đặt `DEMO_SEED_CATALOG=false` để giữ chế độ nhập tay. Giá, cấu hình và ảnh Unsplash là dữ liệu minh họa.
 
 Startup runner nhận diện SKU/slug đã có và giữ nguyên giá, ảnh, tồn kho, đơn hàng, danh mục cũ và ledger. Đổi ngành hàng hay đổi flag không xóa dữ liệu đã nhập. Khi dùng database cũ, danh mục và sản phẩm cũ vẫn xuất hiện cho tới khi chủ cửa hàng chủ động xử lý/reset.
 

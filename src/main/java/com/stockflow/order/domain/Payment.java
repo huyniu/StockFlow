@@ -15,8 +15,11 @@ public class Payment {
  protected Payment() {}
  /** Ghi nhận thanh toán thành công sau khi xuất phần tồn đã giữ. */
  public Payment(Long orderId, BigDecimal amount) {
+  this(orderId, amount, "SIMULATED_BANKING");
+ }
+ public Payment(Long orderId, BigDecimal amount, String method) {
   this.orderId = orderId; this.amount = amount; this.status = PaymentStatus.PAID;
-  this.method = "SIMULATED_BANKING"; this.paidAt = Instant.now();
+  this.method = method; this.paidAt = Instant.now();
  }
  /** Hoàn tiền mô phỏng khi đơn đã xác nhận bị hủy trước giao hàng. */
  public void refund() { status = PaymentStatus.REFUNDED; }

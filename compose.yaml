@@ -21,14 +21,18 @@ services:
     build: .
     environment:
       SPRING_PROFILES_ACTIVE: demo
-      # Mặc định nhập catalog thủ công; bật true để nạp fixture sản phẩm/tồn cho portfolio.
-      DEMO_SEED_CATALOG: ${DEMO_SEED_CATALOG:-false}
+      # Demo tự nạp catalog và tồn ban đầu; false để giữ chế độ nhập thủ công.
+      DEMO_SEED_CATALOG: ${DEMO_SEED_CATALOG:-true}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-stockflow}
       DB_USERNAME: ${DB_USERNAME:-stockflow}
       DB_PASSWORD: ${DB_PASSWORD:-stockflow_local_password}
       JWT_SECRET: ${JWT_SECRET:-stockflow-demo-secret-for-local-use-only-2026}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-DEMOVNPAY}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-DEMOHASHSECRETKEY2026}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8080/api/v1/payments/vnpay/return}
+      VNPAY_STOREFRONT_URL: ${VNPAY_STOREFRONT_URL:-http://localhost:8080/}
     ports:
       - "${APP_PORT:-8080}:8080"
     depends_on:

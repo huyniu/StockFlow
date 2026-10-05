@@ -83,6 +83,7 @@ public class SecurityConfig {
                         // Chỉ public catalog bán chạy; báo cáo doanh thu và lịch sử kho vẫn giữ quyền nội bộ.
                         .requestMatchers(HttpMethod.GET, "/api/v1/storefront/bestsellers").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/payments/vnpay/return").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)

@@ -1201,6 +1201,7 @@
             );
             await loadReferences();
             await refreshSection();
+            if (pendingVNPayReturn) await consumeVNPayReturn();
             if (intent === 'checkout' && hasRole('CUSTOMER') && state.cart.size) openDialog('cart-dialog');
             if (intent === 'portal' && hasRole('CUSTOMER')) {
                 notify(
@@ -4198,6 +4199,10 @@
                   icon('card') +
                   'Xác nhận thanh toán mô phỏng</button>'
                 : '') +
+            (hasRole('CUSTOMER') && order.status === 'PENDING'
+                ? '<button type="button" class="button secondary" data-action="vnpay-order" data-id="' +
+                  order.id + '">' + icon('card') + 'Thanh toán qua VNPay (Sandbox)</button>'
+                : '') +
             (canCancel
                 ? '<button type="button" class="button danger" data-action="cancel-order" data-id="' +
                   order.id +
@@ -4251,6 +4256,15 @@
                 ? 'Xác nhận đã nhận lại toàn bộ hàng của đơn. Hệ thống sẽ hoàn kho và hoàn tiền mô phỏng. Chỉ thực hiện sau khi kiểm tra hàng.'
                 : 'Đơn sẽ được hủy. Hệ thống giải phóng hàng đang giữ hoặc hoàn kho và hoàn tiền mô phỏng theo trạng thái hiện tại.';
         openDialog('confirm-dialog');
+    }
+
+    async function payWithVNPay(id) {
+        const result = await api('/payments/vnpay/create', { method: 'POST', body: { order_id: id } });
+        const paymentUrl = new URL(result.payment_url);
+        if (paymentUrl.protocol !== 'https:' || paymentUrl.hostname !== 'sandbox.vnpayment.vn') {
+            throw new Error('Đường dẫn VNPay Sandbox không hợp lệ.');
+        }
+        window.location.assign(paymentUrl.href);
     }
 
     /** Mọi hành động gửi POST thật; không trừ kho tại client hoặc ship lần hai. */
@@ -6327,6 +6341,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         } else if (action === 'refresh') execute(() => busy(button, refreshSection));
         else if (action === 'view-order') execute(() => busy(button, () => lookupOrder(id)));
         else if (action === 'pay-order') execute(() => busy(button, () => mutateOrder(id, 'pay')));
+        else if (action === 'vnpay-order') execute(() => busy(button, () => payWithVNPay(id)));
         else if (action === 'cancel-order') confirmOrderAction(id, 'cancel');
         else if (action === 'operate-order') {
             if (button.dataset.operation === 'return') confirmOrderAction(id, 'return');
@@ -6530,8 +6545,38 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         syncCatalogPriceFields();
     }
 
+    let pendingVNPayReturn = null;
+
+    async function consumeVNPayReturn() {
+        if (!pendingVNPayReturn || !hasRole('CUSTOMER')) return;
+        const result = pendingVNPayReturn;
+        pendingVNPayReturn = null;
+        await lookupOrder(result.orderId);
+        const paid = ['CONFIRMED', 'PACKED', 'SHIPPED', 'DELIVERED'].includes(state.order?.status);
+        if (result.status === 'success' && paid) {
+            notify('success', 'Thanh toán qua VNPay thành công!');
+        } else {
+            notify('error', 'Thanh toán VNPay chưa thành công. Vui lòng kiểm tra trạng thái đơn hàng.');
+        }
+    }
+
     /** Mở trực tiếp hoặc quay lại URL sản phẩm; hash quản trị vẫn kiểm tra quyền trước khi gọi API. */
     async function routeFromLocation() {
+        if (window.location.hash.startsWith('#orders?')) {
+            const query = new URLSearchParams(window.location.hash.slice('#orders?'.length));
+            const orderId = Number(query.get('order_id'));
+            const paymentStatus = query.get('payment_status');
+            if (Number.isSafeInteger(orderId) && orderId > 0 && ['success', 'failed'].includes(paymentStatus)) {
+                pendingVNPayReturn = { orderId, status: paymentStatus };
+                if (!state.user) {
+                    openAuth('orders');
+                    return;
+                }
+                await activateView('shop', 'orders', { navigation: 'replace' });
+                await consumeVNPayReturn();
+                return;
+            }
+        }
         const productRoute = window.location.pathname.match(/^\/san-pham\/(\d+)$/);
         if (productRoute) {
             await activateView('shop', 'product', { productId: productRoute[1], navigation: 'none' });

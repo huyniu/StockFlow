@@ -401,9 +401,9 @@ A fresh demo database contains three warehouses:
 - **WH-SGN-01** — Kho TP.HCM.
 
 <!-- Dữ liệu tham chiếu mới không thay thế catalog nhập tay hoặc làm thay đổi hàng đã có trong kho. -->
-V9/V10 prepare **71 category references** and **76 shared brands** on a fresh database. The `demo` profile adds the five original technology groups, demo accounts, three warehouses, and the Hanoi staff assignment: **76 categories** in total on a fresh demo database. New databases have no products or inventory by default, allowing the owner to add products and receive stock manually. Existing catalog, orders, images, and audit records are preserved.
+Flyway prepares the shared category/brand references. The `demo` profile adds the technology groups, demo accounts, three warehouses, and the Hanoi staff assignment. Demo catalog and initial inventory seeding are enabled by default; existing catalog, orders, images, and audit records are preserved.
 
-Set `DEMO_SEED_CATALOG=true` to opt into the full technology fixture: **24 products** with `TECH-` SKUs, **72 inventory rows**, and **72 GOODS_RECEIPT movements** on a fresh database. Docker Compose reads this setting from `.env`; a local IDE run uses an environment variable. Selected fixture products start below the low-stock threshold; prices and photos are demonstration data. Switching this flag does not delete existing products, orders, or audit records.
+`DEMO_SEED_CATALOG=true` is the default: **24 products** with `TECH-` SKUs, **72 inventory rows**, and **72 GOODS_RECEIPT movements** on a fresh database. Each active product starts with **20–50 units per demo warehouse**, including existing active products without initial stock. Empty inventory rows without movement history are initialized once; sold-out stock with ledger history is preserved. Set the flag to `false` for manual catalog/stock entry. Docker Compose reads `.env`; local IDE runs use an environment variable. Prices and photos are demonstration data. Switching this flag does not delete existing products, orders, or audit records.
 
 | Email | Password | Role | Scope |
 | --- | --- | --- | --- |

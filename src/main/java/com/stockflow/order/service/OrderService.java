@@ -167,6 +167,18 @@ public class OrderService {
         if (!role(customer).equals("CUSTOMER") || !order.getCustomerId().equals(customerId)) {
             throw new ForbiddenException("Bạn chỉ được thanh toán đơn của chính mình.");
         }
+        return confirmPayment(order, "SIMULATED_BANKING", "Xuất hàng sau thanh toán mô phỏng");
+    }
+
+    /** Chỉ luồng callback đã kiểm tra chữ ký/số tiền được gọi phương thức nội bộ này. */
+    @Transactional
+    public OrderResponse confirmVerifiedVNPayPayment(Long orderId) {
+        return confirmPayment(locked(orderId), "VNPAY", "Xuất hàng sau thanh toán VNPay");
+    }
+
+    private OrderResponse confirmPayment(Order order, String method, String description) {
+        Long orderId = order.getId();
+        Long customerId = order.getCustomerId();
         Optional<Payment> existing = payments.findByOrderId(orderId);
         if (existing.isPresent() && existing.get().getStatus() == PaymentStatus.PAID) {
             return response(order);
@@ -186,9 +198,9 @@ public class OrderService {
             if (inventories.dispatchStock(line.inventory().getId(), line.quantity()) == 0) {
                 throw new ConflictException("Số lượng đã giữ không đủ để xuất hàng.");
             }
-            record(order, line, MovementType.DISPATCH, customerId, "Xuất hàng sau thanh toán mô phỏng");
+            record(order, line, MovementType.DISPATCH, customerId, description);
         }
-        payments.save(new Payment(order.getId(), order.getTotalAmount()));
+        payments.save(new Payment(order.getId(), order.getTotalAmount(), method));
         order.changeStatus(OrderStatus.CONFIRMED);
         return response(order);
     }

@@ -96,7 +96,7 @@ class EmailVerificationIntegrationTest {
         var db = new JdbcTemplate(source);
         db.update("INSERT INTO users(email,password_hash,full_name,role_id) SELECT 'legacy@otp.test','hash','Legacy',id FROM roles WHERE name='CUSTOMER'");
         var migration = org.flywaydb.core.Flyway.configure().dataSource(source)
-                .locations("filesystem:src/test/resources/db/migration").cleanDisabled(false).load();
+                .locations("filesystem:src/test/resources/db/migration").target("18").cleanDisabled(false).load();
         try {
             assertThat(migration.migrate().migrationsExecuted).isEqualTo(1);
             assertThat(db.queryForObject("SELECT email_verified FROM users WHERE email='legacy@otp.test'", Boolean.class)).isTrue();

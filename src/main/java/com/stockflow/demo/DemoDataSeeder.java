@@ -50,7 +50,7 @@ public class DemoDataSeeder {
     public DemoDataSeeder(UserRepository users, RoleRepository roles, CategoryRepository categories,
             ProductRepository products, WarehouseRepository warehouses, InventoryRepository inventories,
             InventoryService inventoryService, PasswordEncoder passwords, NamedParameterJdbcTemplate jdbc,
-            @Value("${app.demo.seed-catalog:false}") boolean seedCatalog) {
+            @Value("${app.demo.seed-catalog:true}") boolean seedCatalog) {
         this.users = users;
         this.roles = roles;
         this.categories = categories;
@@ -153,13 +153,25 @@ public class DemoDataSeeder {
                     new BigDecimal(item.price()),
                     ProductStatus.ACTIVE,
                     item.imageUrl())));
+        }
+        // Nạp cả sản phẩm hiện có của cửa hàng, không chỉ 24 SKU TECH mẫu.
+        for (Product product : products.findAll()) {
+            if (product.getStatus() != ProductStatus.ACTIVE) continue;
             for (Warehouse warehouse : demoWarehouses) {
-                // Inventory đã tồn tại không được bơm lại tồn đầu kỳ, kể cả sau khi bán hết.
-                if (inventories.findByProductIdAndWarehouseId(product.getId(), warehouse.getId()).isEmpty()) {
-                    int quantity = index % 8 == 0 ? 6 : 40 + index * 2;
-                    inventoryService.stockIn(new StockInRequest(product.getId(), warehouse.getId(),
-                            quantity, "Nhập tồn ban đầu cho StockFlow Tech demo"), admin.getId());
+                if (warehouse.getStatus() != WarehouseStatus.ACTIVE) continue;
+                var existing = inventories.findByProductIdAndWarehouseId(product.getId(), warehouse.getId());
+                if (existing.isPresent()) {
+                    var inventory = existing.get();
+                    if (inventory.getPhysicalQuantity() != 0) continue;
+                    Long movements = jdbc.queryForObject(
+                            "SELECT COUNT(*) FROM inventory_movements WHERE inventory_id = :id",
+                            new MapSqlParameterSource("id", inventory.getId()), Long.class);
+                    // Tồn 0 có lịch sử là hàng đã vận hành/bán hết, không phải tồn đầu kỳ chưa nạp.
+                    if (movements != null && movements > 0) continue;
                 }
+                int quantity = 20 + Math.floorMod(Objects.hash(product.getSku(), warehouse.getCode()), 31);
+                inventoryService.stockIn(new StockInRequest(product.getId(), warehouse.getId(),
+                        quantity, "Nhập tồn ban đầu cho StockFlow Tech demo"), admin.getId());
             }
         }
     }

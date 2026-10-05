@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:stockflow_demo;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
-        // Suite fixture chủ động bật catalog đầy đủ; ứng dụng nhập tay dùng mặc định false.
+        // Suite fixture bật catalog đầy đủ; chế độ nhập tay vẫn có thể tắt flag.
         "app.demo.seed-catalog=true"
 })
 @AutoConfigureMockMvc
@@ -110,7 +110,7 @@ class DemoDataIntegrationTest {
         assertThat(ledger).hasSize(72);
         for (Map<String, Object> row : ledger) {
             int quantity = ((Number) row.get("available_quantity")).intValue();
-            assertThat(quantity).isPositive();
+            assertThat(quantity).isBetween(20, 50);
             assertThat(((Number) row.get("reserved_quantity")).intValue()).isZero();
             assertThat(((Number) row.get("quantity")).intValue()).isEqualTo(quantity);
             assertThat(((Number) row.get("balance_before")).intValue()).isZero();
@@ -122,7 +122,7 @@ class DemoDataIntegrationTest {
                 SELECT COUNT(*)
                 FROM inventories
                 WHERE available_quantity <= 10
-                """, Long.class)).isEqualTo(9);
+                """, Long.class)).isZero();
     }
 
     /** Gọi seed nhiều lần không nhân đôi catalog, tài khoản, phân công hay movement. */
@@ -200,17 +200,48 @@ class DemoDataIntegrationTest {
         Long productId = products.findBySku("TECH-KBD-01").orElseThrow().getId();
         Long hanoiId = warehouses.findByCode("WH-HAN-01").orElseThrow().getId();
         Long danangId = warehouses.findByCode("WH-DAD-01").orElseThrow().getId();
+        int hanoiBefore = available(productId, hanoiId);
+        int danangBefore = available(productId, danangId);
         String bearer = "Bearer " + login("staff.hn@stockflow.com", "Staff@123").path("access_token").asText();
 
         mvc.perform(post("/api/v1/inventories/stock-in").header("Authorization", bearer)
                 .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of(
                         "product_id", productId, "warehouse_id", hanoiId, "quantity", 2))))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.available_quantity").value(8));
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.available_quantity").value(hanoiBefore + 2));
         mvc.perform(post("/api/v1/inventories/stock-in").header("Authorization", bearer)
                 .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of(
                         "product_id", productId, "warehouse_id", danangId, "quantity", 2))))
                 .andExpect(status().isForbidden());
-        assertThat(available(productId, danangId)).isEqualTo(6);
+        assertThat(available(productId, danangId)).isEqualTo(danangBefore);
+    }
+
+    /** Dòng tồn rỗng chưa có ledger và SKU nhập tay đều được nạp một lần tại ba kho demo. */
+    @Test
+    void seedsExistingEmptyInventoryAndManualProductOnce() {
+        var category = products.findBySku("TECH-KBD-01").orElseThrow().getCategory();
+        var product = products.save(new com.stockflow.catalog.domain.Product(category, "MANUAL-SEED-01",
+                "Sản phẩm chưa nạp tồn", new BigDecimal("250000"), com.stockflow.catalog.domain.ProductStatus.ACTIVE));
+        var warehouse = warehouses.findByCode("WH-HAN-01").orElseThrow();
+        jdbc.update("""
+                INSERT INTO inventories(product_id, warehouse_id, available_quantity, reserved_quantity, version, updated_at)
+                VALUES (?, ?, 0, 0, 0, CURRENT_TIMESTAMP)
+                """, product.getId(), warehouse.getId());
+        seeder.seed();
+        seeder.seed();
+        var receipts = jdbc.queryForList("""
+                SELECT i.available_quantity, m.type, m.balance_before, m.balance_after, m.quantity
+                FROM inventories i JOIN inventory_movements m ON m.inventory_id = i.id
+                WHERE i.product_id = ?
+                """, product.getId());
+        assertThat(receipts).hasSize(3);
+        for (var row : receipts) {
+            int quantity = ((Number) row.get("available_quantity")).intValue();
+            assertThat(quantity).isBetween(20, 50);
+            assertThat(row.get("type")).isEqualTo("GOODS_RECEIPT");
+            assertThat(((Number) row.get("balance_before")).intValue()).isZero();
+            assertThat(((Number) row.get("balance_after")).intValue()).isEqualTo(quantity);
+            assertThat(((Number) row.get("quantity")).intValue()).isEqualTo(quantity);
+        }
     }
 
     /** Đăng nhập qua endpoint public và kiểm tra response có token thật trước khi dùng gọi API. */

@@ -1,8 +1,16 @@
 # Profile StockFlow Tech giữ tài khoản/kho/năm danh mục công nghệ; catalog và tồn chỉ nạp khi được yêu cầu.
+vnpay:
+  pay-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  tmn-code: ${VNPAY_TMN_CODE:DEMOVNPAY}
+  hash-secret: ${VNPAY_HASH_SECRET:DEMOHASHSECRETKEY2026}
+  return-url: ${VNPAY_RETURN_URL:http://localhost:8080/api/v1/payments/vnpay/return}
+  storefront-url: ${VNPAY_STOREFRONT_URL:http://localhost:8080/}
+  version: 2.1.0
+  command: pay
 app:
   demo:
-    # Mặc định để cửa hàng tự thêm sản phẩm; bật true khi cần fixture portfolio đầy đủ.
-    seed-catalog: ${DEMO_SEED_CATALOG:false}
+    # Demo tự nạp sản phẩm/tồn 20–50 qua ledger; đặt false khi muốn nhập dữ liệu thủ công.
+    seed-catalog: ${DEMO_SEED_CATALOG:true}
   security:
     jwt:
       secret: ${JWT_SECRET:stockflow-demo-secret-for-local-use-only-2026}
