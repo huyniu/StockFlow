@@ -1,5 +1,7 @@
 package com.stockflow.order;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static com.stockflow.order.support.CheckoutTestData.deliveryPayload;
 import static com.stockflow.order.support.CheckoutTestData.orderRequest;
 
@@ -310,7 +312,7 @@ class OrderIntegrationTest {
  }
  /** Tạo actor với role thật trong database để phát JWT. */
  private User user(String role) {
-  return users.save(new User(UUID.randomUUID() + "@example.com", "hash-kiểm-thử", "Người kiểm thử đơn", roles.findByName(role).orElseThrow()));
+  return users.save(verifiedUser(UUID.randomUUID() + "@example.com", "hash-kiểm-thử", "Người kiểm thử đơn", roles.findByName(role).orElseThrow()));
  }
  /** Header xác thực qua filter chain thật. */
  private String bearer(User user) { return "Bearer " + jwt.generateToken(user); }

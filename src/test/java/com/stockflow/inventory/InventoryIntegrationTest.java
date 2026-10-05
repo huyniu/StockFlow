@@ -1,5 +1,7 @@
 package com.stockflow.inventory;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -159,7 +161,7 @@ class InventoryIntegrationTest {
  }
  /** Tạo người dùng có role đã seed để sinh JWT thật. */
  private User user(String role) {
-  return users.save(new User(UUID.randomUUID() + "@example.com", "hash-kiểm-thử", "Người kiểm thử", roles.findByName(role).orElseThrow()));
+  return users.save(verifiedUser(UUID.randomUUID() + "@example.com", "hash-kiểm-thử", "Người kiểm thử", roles.findByName(role).orElseThrow()));
  }
  /** Tạo header xác thực từ người dùng trong database. */
  private String bearer(User user) { return "Bearer " + jwt.generateToken(user); }

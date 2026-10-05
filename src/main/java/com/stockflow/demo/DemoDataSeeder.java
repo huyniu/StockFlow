@@ -172,6 +172,7 @@ public class DemoDataSeeder {
         if (!user.getRole().getName().equals(role)) {
             throw new IllegalStateException("Email demo đã tồn tại với role khác: " + email);
         }
+        user.setEmailVerified(true);
         return user;
     }
 

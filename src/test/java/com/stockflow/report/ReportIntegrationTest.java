@@ -1,5 +1,7 @@
 package com.stockflow.report;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -320,7 +322,7 @@ class ReportIntegrationTest {
 
     /** Tạo actor thật để JWT filter đọc role hiện tại trong database. */
     private User user(String role) {
-        return users.save(new User(UUID.randomUUID() + "@example.com", "hash-kiem-thu",
+        return users.save(verifiedUser(UUID.randomUUID() + "@example.com", "hash-kiem-thu",
                 "Người kiểm thử báo cáo", roles.findByName(role).orElseThrow()));
     }
 

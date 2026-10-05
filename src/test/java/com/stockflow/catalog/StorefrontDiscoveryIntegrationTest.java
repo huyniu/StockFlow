@@ -1,5 +1,7 @@
 package com.stockflow.catalog;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -69,7 +71,7 @@ class StorefrontDiscoveryIntegrationTest {
     void setUp() {
         String key = UUID.randomUUID().toString();
         category = categories.save(new Category("Danh mục bán chạy " + key, key));
-        customer = users.save(new User(key + "@test.vn", "hash", "Khách bán chạy",
+        customer = users.save(verifiedUser(key + "@test.vn", "hash", "Khách bán chạy",
                 roles.findByName("CUSTOMER").orElseThrow()));
         warehouse = warehouses.save(new Warehouse(key, "Kho bán chạy", "Địa chỉ kiểm thử",
                 WarehouseStatus.ACTIVE));

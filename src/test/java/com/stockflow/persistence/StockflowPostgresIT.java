@@ -1,5 +1,7 @@
 package com.stockflow.persistence;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static com.stockflow.order.support.CheckoutTestData.orderRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -324,7 +326,7 @@ class StockflowPostgresIT {
 
     /** Actor có role thật trong database; tài khoản không được dùng cho cửa hàng đang chạy. */
     private User user(String role) {
-        return users.save(new User(UUID.randomUUID() + "@postgres.test", "test-hash", "Actor PostgreSQL",
+        return users.save(verifiedUser(UUID.randomUUID() + "@postgres.test", "test-hash", "Actor PostgreSQL",
                 roles.findByName(role).orElseThrow()));
     }
 }

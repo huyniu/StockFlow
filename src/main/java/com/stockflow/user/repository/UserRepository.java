@@ -15,6 +15,10 @@ import org.springframework.data.repository.query.Param;
  */
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.email = :email")
+    Optional<User> findByEmailForVerification(@Param("email") String email);
+
     /**
      * Kiểm tra email đã được sử dụng hay chưa khi register.
      */

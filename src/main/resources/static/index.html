@@ -1573,6 +1573,20 @@
         </dialog>
 
         <!-- Hộp đăng nhập dùng chung; đăng ký chỉ tạo CUSTOMER, không cho tự chọn quyền vận hành. -->
+        <dialog id="otp-dialog" aria-labelledby="otp-title">
+            <button class="icon-button" id="otp-close" type="button" aria-label="Đóng xác thực email">✕</button>
+            <h2 id="otp-title">Xác thực email</h2>
+            <p>Nhập mã 6 chữ số gửi tới <strong id="otp-email"></strong>. Mã có hiệu lực trong 15 phút.</p>
+            <form id="otp-form" class="stacked-form">
+                <label for="otp-code">Mã OTP</label>
+                <input id="otp-code" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code"
+                       pattern="[0-9]{6}" minlength="6" maxlength="6" required aria-describedby="otp-error">
+                <div id="otp-error" class="form-error" role="alert" hidden></div>
+                <button id="otp-submit" class="button primary full-width" type="submit">Xác thực</button>
+                <button id="otp-resend" class="button full-width" type="button">Gửi lại mã</button>
+            </form>
+        </dialog>
+
         <dialog id="auth-dialog" aria-labelledby="auth-title">
             <div class="dialog-header">
                 <span class="brand-mark"

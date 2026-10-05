@@ -20,6 +20,12 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<java.util.Map<String, String>> handleEmailNotVerified(EmailNotVerifiedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(java.util.Map.of("error", "EMAIL_NOT_VERIFIED", "email", exception.getEmail()));
+    }
+
     /** Đường dẫn không tồn tại trả 404 rõ ràng, không bị handler tổng quát đổi thành lỗi hệ thống 500. */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleMissingResource(

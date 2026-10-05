@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -218,7 +220,7 @@ class BrandLogoIntegrationTest {
 
     /** JWT dùng actor đã lưu thật và role từ database, đi qua filter chain của ứng dụng. */
     private String token(String role) {
-        User actor = users.save(new User(UUID.randomUUID() + "@logo.test", "hash", "Người kiểm tra logo",
+        User actor = users.save(verifiedUser(UUID.randomUUID() + "@logo.test", "hash", "Người kiểm tra logo",
                 roles.findByName(role).orElseThrow()));
         return "Bearer " + jwt.generateToken(actor);
     }

@@ -24,6 +24,10 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
         <!-- Sinh OpenAPI và Swagger UI để nhà tuyển dụng có thể thử API bằng JWT. -->
         <dependency>
             <groupId>org.springdoc</groupId>

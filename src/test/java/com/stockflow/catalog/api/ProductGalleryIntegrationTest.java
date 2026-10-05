@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -358,7 +360,7 @@ class ProductGalleryIntegrationTest {
 
     /** JWT lấy role của user đã lưu, đảm bảo filter và method security cùng được kiểm tra. */
     private String token(String role) {
-        User actor = users.save(new User(
+        User actor = users.save(verifiedUser(
                 "gallery-" + UUID.randomUUID() + "@example.com",
                 "hash-kiểm-thử",
                 "Người kiểm thử bộ ảnh",

@@ -1,5 +1,7 @@
 package com.stockflow.warehouse;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -170,7 +172,7 @@ class StorefrontApiIntegrationTest {
 
     /** Tài khoản có role thật trong database để filter reload trạng thái và phạm vi quyền. */
     private User actor(String role) {
-        return users.save(new User(UUID.randomUUID() + "@example.com", "hash-kiểm-thử",
+        return users.save(verifiedUser(UUID.randomUUID() + "@example.com", "hash-kiểm-thử",
                 "Người kiểm thử giao diện", roles.findByName(role).orElseThrow()));
     }
 

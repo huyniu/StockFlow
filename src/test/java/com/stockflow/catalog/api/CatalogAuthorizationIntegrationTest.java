@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.hamcrest.Matchers.blankOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,6 +41,9 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class CatalogAuthorizationIntegrationTest {
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Autowired
     private MockMvc mockMvc;
@@ -127,7 +133,7 @@ class CatalogAuthorizationIntegrationTest {
     }
 
     /**
-     * Đăng ký customer qua API public để token customer đi qua đúng luồng auth thật.
+     * Đăng ký và xác thực OTP qua API public để token customer đi qua đúng luồng auth thật.
      */
     private String registerCustomerAndGetToken() throws Exception {
         Map<String, String> payload = new HashMap<>();
@@ -135,10 +141,21 @@ class CatalogAuthorizationIntegrationTest {
         payload.put("password", "secret123");
         payload.put("full_name", "Khách hàng kiểm thử");
 
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(payload)))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.requires_verification").value(true));
+        String email = payload.get("email");
+        String otp = jdbc.queryForObject("""
+                SELECT t.otp_code FROM email_verification_tokens t
+                JOIN users u ON u.id = t.user_id
+                WHERE u.email = ? ORDER BY t.created_at DESC, t.id DESC LIMIT 1
+                """, String.class, email);
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of("email", email, "otp", otp))))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.access_token", not(blankOrNullString())))
                 .andReturn();
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
@@ -151,7 +168,7 @@ class CatalogAuthorizationIntegrationTest {
     private String createAdminToken() {
         Role adminRole = roleRepository.findByName("ADMIN")
                 .orElseThrow(() -> new IllegalStateException("Thiếu role ADMIN trong dữ liệu test."));
-        User admin = userRepository.save(new User(
+        User admin = userRepository.save(verifiedUser(
                 "admin-" + UUID.randomUUID() + "@example.com",
                 passwordEncoder.encode("secret123"),
                 "Quản trị viên kiểm thử",

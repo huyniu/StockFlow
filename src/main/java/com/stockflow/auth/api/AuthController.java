@@ -3,6 +3,9 @@ package com.stockflow.auth.api;
 import com.stockflow.auth.dto.AuthResponse;
 import com.stockflow.auth.dto.LoginRequest;
 import com.stockflow.auth.dto.RegisterRequest;
+import com.stockflow.auth.dto.RegistrationResponse;
+import com.stockflow.auth.dto.VerifyEmailRequest;
+import com.stockflow.auth.dto.ResendOtpRequest;
 import com.stockflow.auth.service.AuthService;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,12 +36,24 @@ public class AuthController {
     }
 
     /**
-     * Đăng ký tài khoản mới và trả về JWT để client có thể gọi các endpoint protected ngay sau khi đăng ký.
+     * Đăng ký tài khoản mới và yêu cầu xác thực OTP trước khi phát JWT.
      */
     @PostMapping("/register")
     @Operation(summary = "Register a customer account")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    }
+
+    @PostMapping("/verify-email")
+    @Operation(summary = "Verify a registration OTP and receive an access token")
+    public ResponseEntity<AuthResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        return ResponseEntity.ok(authService.verifyEmail(request));
+    }
+
+    @PostMapping("/resend-otp")
+    @Operation(summary = "Resend the registration OTP after 60 seconds")
+    public ResponseEntity<RegistrationResponse> resendOtp(@Valid @RequestBody ResendOtpRequest request) {
+        return ResponseEntity.ok(authService.resendOtp(request.email()));
     }
 
     /**

@@ -7384,3 +7384,15 @@ body.category-menu-open {
         scroll-behavior: auto !important;
     }
 }
+#otp-dialog {
+    width: min(440px, calc(100vw - 32px));
+}
+#otp-dialog > .icon-button {
+    float: right;
+}
+#otp-code {
+    text-align: center;
+    font-size: 1.75rem;
+    letter-spacing: .45em;
+    font-variant-numeric: tabular-nums;
+}

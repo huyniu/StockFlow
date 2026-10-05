@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static com.stockflow.order.support.CheckoutTestData.deliveryPayload;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -257,7 +259,7 @@ class ProductAvailabilityIntegrationTest {
 
     /** JWT của actor đã lưu giúp quyền và actor kho đi qua cùng đường xác thực như production. */
     private String token(String role) {
-        User user = users.save(new User(UUID.randomUUID() + "@example.com", "hash-kiểm-thử",
+        User user = users.save(verifiedUser(UUID.randomUUID() + "@example.com", "hash-kiểm-thử",
                 "Khách kiểm thử", roles.findByName(role).orElseThrow()));
         return jwt.generateToken(user);
     }

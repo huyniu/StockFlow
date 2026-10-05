@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -235,7 +237,7 @@ class ProductImageIntegrationTest {
 
     /** Actor đã lưu trong database để filter đọc role thực tế, không giả lập annotation phân quyền. */
     private String token(String role) {
-        User user = users.save(new User(
+        User user = users.save(verifiedUser(
                 "image-" + UUID.randomUUID() + "@example.com",
                 "hash-kiểm-thử",
                 "Người kiểm thử ảnh",

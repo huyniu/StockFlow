@@ -1,5 +1,7 @@
 package com.stockflow.order;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static com.stockflow.order.support.CheckoutTestData.orderRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -244,7 +246,7 @@ class OrderIdempotencyIntegrationTest {
 
     /** Tạo actor ACTIVE với role có sẵn từ migration; không dùng tài khoản demo hoặc dữ liệu thật. */
     private User user(String role) {
-        return users.save(new User(UUID.randomUUID() + "@retry.test", "test-hash", "Khách kiểm thử",
+        return users.save(verifiedUser(UUID.randomUUID() + "@retry.test", "test-hash", "Khách kiểm thử",
                 roles.findByName(role).orElseThrow()));
     }
 

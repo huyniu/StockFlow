@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -336,7 +338,7 @@ class BrandIntegrationTest {
 
     /** JWT thật của role được lấy từ database, không giả lập quyền bằng mock security. */
     private String token(String role) {
-        User actor = users.save(new User(
+        User actor = users.save(verifiedUser(
                 "brand-" + UUID.randomUUID() + "@example.com", "unused-hash", "Người kiểm chứng hãng",
                 roles.findByName(role).orElseThrow()));
         return "Bearer " + jwt.generateToken(actor);

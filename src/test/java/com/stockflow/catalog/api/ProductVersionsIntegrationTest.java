@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static com.stockflow.order.support.CheckoutTestData.deliveryPayload;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -405,7 +407,7 @@ class ProductVersionsIntegrationTest {
 
     /** Actor ngẫu nhiên để các bài kiểm thử không dùng mật khẩu demo. */
     private String token(String role) {
-        return jwt.generateToken(users.save(new User("version-" + UUID.randomUUID() + "@example.com",
+        return jwt.generateToken(users.save(verifiedUser("version-" + UUID.randomUUID() + "@example.com",
                 "hash", "Người thử cấu hình", roles.findByName(role).orElseThrow())));
     }
 

@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -216,7 +218,7 @@ class CatalogDiscoveryIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"CUSTOMER", "WAREHOUSE_STAFF", "MANAGER", "ADMIN"})
     void authenticatedRolesCanReadPriceFilteredCatalog(String role) throws Exception {
-        User actor = users.save(new User(
+        User actor = users.save(verifiedUser(
                 "discovery-" + UUID.randomUUID() + "@example.com", "unused-password-hash", "Người xem catalog",
                 roles.findByName(role).orElseThrow()));
         mvc.perform(catalog().param("maxPrice", "1000000")

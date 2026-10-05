@@ -3,6 +3,17 @@ package com.stockflow.auth.service;
 import com.stockflow.auth.dto.AuthResponse;
 import com.stockflow.auth.dto.LoginRequest;
 import com.stockflow.auth.dto.RegisterRequest;
+import com.stockflow.auth.dto.RegistrationResponse;
+import com.stockflow.auth.dto.VerifyEmailRequest;
+import com.stockflow.auth.domain.EmailVerificationToken;
+import com.stockflow.auth.repository.EmailVerificationTokenRepository;
+import com.stockflow.common.exception.BadRequestException;
+import com.stockflow.common.exception.EmailNotVerifiedException;
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.Locale;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import com.stockflow.auth.security.JwtTokenProvider;
 import com.stockflow.common.exception.ConflictException;
 import com.stockflow.common.exception.ResourceNotFoundException;
@@ -30,6 +41,9 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final EmailVerificationTokenRepository verificationTokens;
+    private final EmailService emailService;
+    private final SecureRandom random = new SecureRandom();
 
     /**
      * Inject repository, password encoder và JWT provider cần cho luồng authentication.
@@ -38,11 +52,15 @@ public class AuthService {
             UserRepository userRepository,
             RoleRepository roleRepository,
             PasswordEncoder passwordEncoder,
-            JwtTokenProvider jwtTokenProvider) {
+            JwtTokenProvider jwtTokenProvider,
+            EmailVerificationTokenRepository verificationTokens,
+            EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.verificationTokens = verificationTokens;
+        this.emailService = emailService;
     }
 
     /**
@@ -50,9 +68,9 @@ public class AuthService {
      * do khác biệt hoa/thường, và mật khẩu luôn được băm bằng BCrypt trước khi lưu.
      */
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public RegistrationResponse register(RegisterRequest request) {
         // Bước 1: Xóa khoảng trắng thừa và đổi email về chữ thường
-        String normalizedEmail = request.email().trim().toLowerCase();
+        String normalizedEmail = normalizeEmail(request.email());
         // Bước 2: Kiểm tra email này đã có ai dùng chưa
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new ConflictException("Email đã được sử dụng.");
@@ -64,16 +82,17 @@ public class AuthService {
         // Chỉ lưu password hash, không bao giờ lưu mật khẩu gốc vào database.
         String passwordHash = passwordEncoder.encode(request.password());
         User user = userRepository.save(new User(normalizedEmail, passwordHash, request.fullName().trim(), customerRole));
-        return buildAuthResponse(user);
+        issueOtp(user, Instant.now());
+        return RegistrationResponse.pending(normalizedEmail);
     }
 
     /**
-     * Đăng nhập bằng email/password và chỉ phát JWT cho tài khoản ACTIVE.
+     * Đăng nhập bằng email/password và chỉ phát JWT cho tài khoản ACTIVE đã xác thực email.
      * Sai mật khẩu hoặc tài khoản bị khóa trả cùng thông điệp để không tiết lộ trạng thái tài khoản.
      */
     @Transactional(readOnly = true) // readOnly = true: Báo DB là tôi chỉ đọc dữ liệu, giúp truy vấn nhanh hơn
     public AuthResponse login(LoginRequest request) {
-        String normalizedEmail = request.email().trim().toLowerCase();
+        String normalizedEmail = normalizeEmail(request.email());
         // Bước 1: Đi tìm user có email này trong DB. Nếu không tìm thấy -> Báo lỗi!
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new UnauthorizedException("Email hoặc mật khẩu không đúng."));
@@ -84,8 +103,71 @@ public class AuthService {
                 || user.getStatus() != UserStatus.ACTIVE) {
             throw new UnauthorizedException("Email hoặc mật khẩu không đúng.");
         }
-        // Chỉ phát token sau khi xác minh mật khẩu và trạng thái hoạt động của tài khoản.
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException(user.getEmail());
+        }
         return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public AuthResponse verifyEmail(VerifyEmailRequest request) {
+        User user = pendingUser(request.email());
+        Instant now = Instant.now();
+        EmailVerificationToken token = verificationTokens.findFirstByUserIdOrderByCreatedAtDescIdDesc(user.getId())
+                .orElseThrow(() -> new BadRequestException("Mã OTP không hợp lệ hoặc đã hết hạn."));
+        // Chỉ mã mới nhất có hiệu lực; khóa user ngăn verify/resend đồng thời.
+        if (token.getVerifiedAt() != null || !token.getExpiresAt().isAfter(now)
+                || !token.getOtpCode().equals(request.otp())) {
+            throw new BadRequestException("Mã OTP không hợp lệ hoặc đã hết hạn.");
+        }
+        token.markVerified(now);
+        user.setEmailVerified(true);
+        return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public RegistrationResponse resendOtp(String email) {
+        User user = pendingUser(email);
+        Instant now = Instant.now();
+        verificationTokens.findFirstByUserIdOrderByCreatedAtDescIdDesc(user.getId()).ifPresent(token -> {
+            if (token.getCreatedAt().plusSeconds(60).isAfter(now)) {
+                throw new com.stockflow.common.exception.AppException(
+                        org.springframework.http.HttpStatus.TOO_MANY_REQUESTS,
+                        "Vui lòng chờ 60 giây giữa hai lần gửi mã OTP.");
+            }
+        });
+        issueOtp(user, now);
+        return RegistrationResponse.pending(user.getEmail());
+    }
+
+    private User pendingUser(String email) {
+        User user = userRepository.findByEmailForVerification(normalizeEmail(email))
+                .orElseThrow(() -> new BadRequestException("Không thể xác thực email này."));
+        if (user.isEmailVerified() || user.getStatus() != UserStatus.ACTIVE) {
+            throw new BadRequestException("Không thể xác thực email này.");
+        }
+        return user;
+    }
+
+    private void issueOtp(User user, Instant now) {
+        String previous = verificationTokens.findFirstByUserIdOrderByCreatedAtDescIdDesc(user.getId())
+                .map(EmailVerificationToken::getOtpCode).orElse(null);
+        String candidate;
+        do {
+            candidate = String.format(Locale.ROOT, "%06d", random.nextInt(1_000_000));
+        } while (candidate.equals(previous));
+        String otp = candidate;
+        verificationTokens.save(new EmailVerificationToken(user, otp, now));
+        String email = user.getEmail();
+        // Không gửi OTP cho transaction đã rollback.
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() { emailService.sendVerificationOtp(email, otp); }
+        });
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     /**

@@ -1,5 +1,7 @@
 package com.stockflow.common.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -101,7 +103,7 @@ class WebDemoIntegrationTest {
 
     /** Tạo JWT từ actor đã lưu trong database để request đi qua filter chain thật. */
     private HttpEntity<Void> authenticated(String role) {
-        User actor = users.save(new User(UUID.randomUUID() + "@example.com", "hash-kiểm-thử", "Người kiểm thử web",
+        User actor = users.save(verifiedUser(UUID.randomUUID() + "@example.com", "hash-kiểm-thử", "Người kiểm thử web",
                 roles.findByName(role).orElseThrow()));
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(jwt.generateToken(actor));

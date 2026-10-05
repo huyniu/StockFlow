@@ -450,6 +450,7 @@
             this.status = status;
             this.reason = reason;
             this.path = path;
+            this.payload = payload;
         }
     }
 
@@ -1151,22 +1152,29 @@
     }
 
     /** Đăng nhập giữ giỏ vãng lai, xóa dữ liệu của actor cũ và chuyển không gian theo role thật. */
-    async function authenticate(credentials, register = false, demo = false) {
+    async function authenticate(credentials, register = false, demo = false, verification = false) {
         if (state.authBusy) return;
         const intent = demo ? 'login' : state.authIntent;
         const guestCart = !state.user ? readSavedCart() : null;
-        clearSession({ preserveCart: !state.user });
+        if (!verification) clearSession({ preserveCart: !state.user });
         state.authBusy = true;
+        if (verification) updateOtpCountdown();
         renderIdentity();
         renderPermissions();
         const epoch = state.epoch;
         $('#auth-error').hidden = true;
         try {
-            const result = await api(register ? '/auth/register' : '/auth/login', {
+            const result = await api(verification ? '/auth/verify-email' : register ? '/auth/register' : '/auth/login', {
                 method: 'POST',
                 body: credentials,
                 anonymous: true,
             });
+            if (result.requires_verification) {
+                $('#auth-password').value = '';
+                openOtp(result.email, true);
+                return;
+            }
+            $('#otp-dialog').close();
             state.token = result.access_token;
             state.user = result.user;
             saveSession();
@@ -1201,6 +1209,16 @@
                 );
             }
         } catch (error) {
+            if (epoch === state.epoch && error.payload?.error === 'EMAIL_NOT_VERIFIED') {
+                $('#auth-password').value = '';
+                openOtp(error.payload.email, false);
+                return;
+            }
+            if (verification && epoch === state.epoch && !state.token) {
+                $('#otp-error').textContent = error.message;
+                $('#otp-error').hidden = false;
+                return;
+            }
             if (epoch === state.epoch && error.name !== 'AbortError' && !state.token && !demo) {
                 openDialog('auth-dialog');
                 $('#auth-error').textContent = error.message;
@@ -1212,9 +1230,59 @@
                 state.authBusy = false;
                 renderIdentity();
                 renderPermissions();
+                if ($('#otp-dialog').open) updateOtpCountdown();
             }
         }
     }
+
+    let otpEmail = '';
+    let otpResendAt = 0;
+    let otpTimer;
+    let otpResendBusy = false;
+
+    function updateOtpCountdown() {
+        const seconds = Math.max(0, Math.ceil((otpResendAt - Date.now()) / 1000));
+        $('#otp-resend').disabled = seconds > 0 || otpResendBusy || state.authBusy;
+        $('#otp-resend').textContent = seconds ? `Gửi lại mã (${seconds}s)` : 'Gửi lại mã';
+        $('#otp-submit').disabled = state.authBusy || otpResendBusy;
+    }
+
+    function openOtp(email, justSent) {
+        if (otpEmail !== email) otpResendAt = 0;
+        otpEmail = email;
+        if (justSent) otpResendAt = Date.now() + 60000;
+        $('#otp-email').textContent = email;
+        $('#otp-code').value = '';
+        $('#otp-error').hidden = true;
+        openDialog('otp-dialog');
+        clearInterval(otpTimer);
+        otpTimer = setInterval(updateOtpCountdown, 1000);
+        updateOtpCountdown();
+        $('#otp-code').focus();
+    }
+
+    async function resendOtp() {
+        if (otpResendBusy || state.authBusy || Date.now() < otpResendAt) return;
+        otpResendBusy = true;
+        updateOtpCountdown();
+        $('#otp-error').hidden = true;
+        try {
+            await api('/auth/resend-otp', { method: 'POST', body: { email: otpEmail }, anonymous: true });
+            otpResendAt = Date.now() + 60000;
+            notify('success', 'Đã gửi mã OTP mới. Mã cũ không còn hiệu lực.');
+        } catch (error) {
+            if (error.status === 429) otpResendAt = Date.now() + 60000;
+            $('#otp-error').textContent = error.message;
+            $('#otp-error').hidden = false;
+        } finally {
+            otpResendBusy = false;
+            updateOtpCountdown();
+        }
+    }
+
+    $('#otp-dialog').addEventListener('close', () => clearInterval(otpTimer));
+    $('#otp-resend').addEventListener('click', () => execute(resendOtp));
+    $('#otp-close').addEventListener('click', () => $('#otp-dialog').close());
 
     /** Dialog native giữ focus và cho phép Escape; xóa phản hồi của lần mở trước. */
     function openDialog(id) {
@@ -6432,7 +6500,9 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             execute(() => busy(button, () => saveProductVariant(form)));
             return;
         }
-        if (form.id === 'auth-form') {
+        if (form.id === 'otp-form') {
+            execute(() => authenticate({ email: otpEmail, otp: $('#otp-code').value.trim() }, false, false, true));
+        } else if (form.id === 'auth-form') {
             const body = { email: $('#auth-email').value.trim(), password: $('#auth-password').value };
             if (state.authMode === 'register') body.full_name = $('#auth-name').value.trim();
             execute(() => authenticate(body, state.authMode === 'register'));

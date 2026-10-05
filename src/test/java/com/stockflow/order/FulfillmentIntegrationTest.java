@@ -1,5 +1,7 @@
 package com.stockflow.order;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static com.stockflow.order.support.CheckoutTestData.orderRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -460,7 +462,7 @@ class FulfillmentIntegrationTest {
 
     /** Tạo actor/role thật cho JWT, không mock authority hoặc quyền kho. */
     private User user(String role) {
-        return users.save(new User(
+        return users.save(verifiedUser(
                 UUID.randomUUID() + "@example.com", "hash-kiểm-thử", "Người kiểm thử giao nhận",
                 roles.findByName(role).orElseThrow()));
     }

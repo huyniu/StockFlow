@@ -1,5 +1,7 @@
 package com.stockflow.user;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -323,7 +325,7 @@ class UserProfileIntegrationTest {
 
     /** Lưu người dùng có email riêng; hash giả chỉ dùng ở bài không kiểm tra đăng nhập bằng mật khẩu. */
     private User user(String role) {
-        return users.save(new User(UUID.randomUUID() + "@profile.test", "existing-hash", "Khách ban đầu",
+        return users.save(verifiedUser(UUID.randomUUID() + "@profile.test", "existing-hash", "Khách ban đầu",
                 roles.findByName(role).orElseThrow()));
     }
 

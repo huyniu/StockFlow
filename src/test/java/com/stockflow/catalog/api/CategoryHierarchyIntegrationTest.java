@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -212,7 +214,7 @@ class CategoryHierarchyIntegrationTest {
 
     /** JWT dùng user và role trong database test thật. */
     private String token(String role) {
-        User user = users.save(new User(role + "-" + UUID.randomUUID() + "@tree.test", "unused",
+        User user = users.save(verifiedUser(role + "-" + UUID.randomUUID() + "@tree.test", "unused",
                 "Kiểm tra " + role, roles.findByName(role).orElseThrow()));
         return jwt.generateToken(user);
     }

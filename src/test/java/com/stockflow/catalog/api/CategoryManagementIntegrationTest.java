@@ -1,5 +1,7 @@
 package com.stockflow.catalog.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -276,7 +278,7 @@ class CategoryManagementIntegrationTest {
 
     /** Mỗi ca tạo user có role đã seed rồi phát JWT qua provider hiện có. */
     private String token(String role) {
-        User user = users.save(new User(UUID.randomUUID() + "@category-management.test", "hash", "Quản lý danh mục",
+        User user = users.save(verifiedUser(UUID.randomUUID() + "@category-management.test", "hash", "Quản lý danh mục",
                 roles.findByName(role).orElseThrow()));
         return "Bearer " + jwt.generateToken(user);
     }

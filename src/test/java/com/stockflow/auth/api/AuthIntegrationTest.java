@@ -1,5 +1,7 @@
 package com.stockflow.auth.api;
 
+import static com.stockflow.user.support.UserTestFixtures.verifiedUser;
+
 import static org.hamcrest.Matchers.blankOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -60,7 +62,7 @@ class AuthIntegrationTest {
     private JdbcTemplate jdbc;
 
     /**
-     * Kiểm tra đăng ký thành công phải tạo user CUSTOMER, trả về Bearer token và không làm lộ password hash.
+     * Đăng ký tạo CUSTOMER chưa xác thực, yêu cầu OTP và không phát JWT hay lộ password hash.
      */
     @Test
     void registerCreatesCustomerAndReturnsToken() throws Exception {
@@ -70,12 +72,18 @@ class AuthIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(registerPayload(email, "secret123", "Nguyen Van A"))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.access_token", not(blankOrNullString())))
-                .andExpect(jsonPath("$.token_type").value("Bearer"))
-                .andExpect(jsonPath("$.user.email").value(email))
-                .andExpect(jsonPath("$.user.full_name").value("Nguyen Van A"))
-                .andExpect(jsonPath("$.user.role").value("CUSTOMER"))
-                .andExpect(jsonPath("$.user.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.requires_verification").value(true))
+                .andExpect(jsonPath("$.message").value("Vui lòng nhập mã OTP để kích hoạt tài khoản."))
+                .andExpect(jsonPath("$.access_token").doesNotExist())
+                .andExpect(jsonPath("$.password_hash").doesNotExist());
+
+        User user = users.findByEmail(email).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(user.getFullName()).isEqualTo("Nguyen Van A");
+        org.assertj.core.api.Assertions.assertThat(user.getRole().getName()).isEqualTo("CUSTOMER");
+        org.assertj.core.api.Assertions.assertThat(user.getStatus()).isEqualTo(com.stockflow.user.domain.UserStatus.ACTIVE);
+        org.assertj.core.api.Assertions.assertThat(user.isEmailVerified()).isFalse();
+        org.assertj.core.api.Assertions.assertThat(passwords.matches("secret123", user.getPasswordHash())).isTrue();
     }
 
     /**
@@ -157,7 +165,7 @@ class AuthIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"ADMIN", "MANAGER", "WAREHOUSE_STAFF", "CUSTOMER"})
     void issuedTokenCannotAuthenticateInactiveAccount(String role) throws Exception {
-        User actor = users.save(new User(
+        User actor = users.save(verifiedUser(
                 uniqueEmail(), passwords.encode("secret123"), "Tài khoản kiểm thử trạng thái",
                 roles.findByName(role).orElseThrow()));
         String token = "Bearer " + jwt.generateToken(actor);
@@ -175,12 +183,24 @@ class AuthIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    /** Helper đăng ký user và trả về access token để các test khác dùng lại. */
+    /** Đăng ký rồi xác thực OTP từ database qua API thật trước khi lấy JWT. */
     private String registerUser(String email, String password) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(registerPayload(email, password, "Nguyen Van A"))))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.requires_verification").value(true));
+        String otp = jdbc.queryForObject("""
+                SELECT t.otp_code FROM email_verification_tokens t
+                JOIN users u ON u.id = t.user_id
+                WHERE u.email = ? ORDER BY t.created_at DESC, t.id DESC LIMIT 1
+                """, String.class, email);
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of("email", email, "otp", otp))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token", not(blankOrNullString())))
+                .andExpect(jsonPath("$.token_type").value("Bearer"))
                 .andReturn();
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
         return body.get("access_token").asText();
