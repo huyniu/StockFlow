@@ -1291,7 +1291,10 @@
         $$('dialog[open]').forEach((dialog) => dialog.close());
         const dialog = $('#' + id);
         $$('[data-dialog-notice]', dialog).forEach((element) => element.remove());
-        if (id === 'cart-dialog') prefillCheckoutFromProfile();
+        if (id === 'cart-dialog') {
+            prefillCheckoutFromProfile();
+            execute(loadCheckoutProvinces);
+        }
         dialog.showModal();
         syncMobilePurchase();
     }
@@ -3718,6 +3721,7 @@
             );
         }
         $('#cart-total').textContent = amount(total);
+        renderShippingTotal();
         $('#cart-badge').textContent = integer(quantity);
         $('#cart-count').textContent = integer(state.cart.size);
         renderPermissions();
@@ -3757,8 +3761,91 @@
         renderCart();
     }
 
+    let checkoutShippingQuote = null;
+    let shippingLocationVersion = 0;
+    let shippingFeeVersion = 0;
+
+    function resetLocationSelect(id, placeholder) {
+        const select = $('#' + id);
+        select.innerHTML = '<option value="">' + placeholder + '</option>';
+        select.disabled = true;
+    }
+
+    function renderShippingTotal() {
+        const subtotal = [...state.cart.values()].reduce((sum, item) => sum + Number(saleSku(state.products.get(item.product.id) || item.product).unit_price) * item.quantity, 0);
+        $('#checkoutShippingFee').textContent = checkoutShippingQuote ? amount(checkoutShippingQuote.fee) : 'Chọn địa chỉ / chờ tính phí';
+        $('#checkoutTotal').textContent = amount(subtotal + (checkoutShippingQuote?.fee || 0));
+    }
+
+    async function loadCheckoutProvinces() {
+        const select = $('#checkoutProvince');
+        if (select.options.length > 1) return;
+        const values = await api('/locations/provinces');
+        select.innerHTML = '<option value="">Chọn tỉnh / thành phố</option>' + values.map(p =>
+            '<option value="' + p.ProvinceID + '">' + escapeHtml(p.ProvinceName) + '</option>').join('');
+    }
+
+    async function changeCheckoutLocation(level) {
+        const version = ++shippingLocationVersion;
+        ++shippingFeeVersion;
+        checkoutShippingQuote = null;
+        renderShippingTotal();
+        if (level === 'province') {
+            resetLocationSelect('checkoutDistrict', 'Chọn quận / huyện');
+            resetLocationSelect('checkoutWard', 'Chọn phường / xã');
+            const id = $('#checkoutProvince').value;
+            if (!id) return;
+            const values = await api('/locations/districts', { query: { province_id: id } });
+            if (version !== shippingLocationVersion || id !== $('#checkoutProvince').value) return;
+            const select = $('#checkoutDistrict');
+            select.innerHTML += values.map(d => '<option value="' + d.DistrictID + '">' + escapeHtml(d.DistrictName) + '</option>').join('');
+            select.disabled = false;
+        } else {
+            resetLocationSelect('checkoutWard', 'Chọn phường / xã');
+            const id = $('#checkoutDistrict').value;
+            if (!id) return;
+            const values = await api('/locations/wards', { query: { district_id: id } });
+            if (version !== shippingLocationVersion || id !== $('#checkoutDistrict').value) return;
+            const select = $('#checkoutWard');
+            select.innerHTML += values.map(w => '<option value="' + escapeHtml(w.WardCode) + '">' + escapeHtml(w.WardName) + '</option>').join('');
+            select.disabled = false;
+        }
+    }
+
+    async function refreshCheckoutFee() {
+        const version = ++shippingFeeVersion;
+        checkoutShippingQuote = null;
+        renderShippingTotal();
+        const warehouse = String(state.branchId || '');
+        const district = $('#checkoutDistrict').value;
+        const ward = $('#checkoutWard').value;
+        if (!warehouse || !district || !ward) return;
+        const result = await api('/locations/calculate-fee', { method: 'POST', body: {
+            warehouse_id: Number(warehouse), to_district_id: Number(district), to_ward_code: ward, weight: 500,
+        } });
+        if (version !== shippingFeeVersion || warehouse !== String(state.branchId) || district !== $('#checkoutDistrict').value
+            || ward !== $('#checkoutWard').value) return;
+        const fee = Number(result.shipping_fee);
+        if (!Number.isFinite(fee) || fee < 0) throw new Error('Phí vận chuyển không hợp lệ.');
+        checkoutShippingQuote = { warehouse, district, ward, fee };
+        renderShippingTotal();
+    }
+
+    document.addEventListener('change', event => {
+        if (event.target.id === 'checkoutProvince') execute(() => changeCheckoutLocation('province'));
+        else if (event.target.id === 'checkoutDistrict') execute(() => changeCheckoutLocation('district'));
+        else if (event.target.id === 'checkoutWard') execute(refreshCheckoutFee);
+    });
+
     /** Xóa người nhận khi đổi tài khoản hoặc đặt xong, tránh giữ dữ liệu cá nhân của phiên trước. */
     function resetCheckoutDetails() {
+        shippingLocationVersion++;
+        shippingFeeVersion++;
+        checkoutShippingQuote = null;
+        $('#checkoutProvince').value = '';
+        resetLocationSelect('checkoutDistrict', 'Chọn quận / huyện');
+        resetLocationSelect('checkoutWard', 'Chọn phường / xã');
+        renderShippingTotal();
         $$('[data-delivery-field]').forEach((field) => {
             field.value = '';
         });
@@ -3832,8 +3919,22 @@
             throw new Error('Khôi phục giỏ và cập nhật giá trước khi đặt hàng.');
         if (!state.cart.size) throw new Error('Thêm ít nhất một sản phẩm vào giỏ.');
         if (!state.branchId) throw new Error('Chọn chi nhánh chuẩn bị đơn.');
+        const district = $('#checkoutDistrict').value;
+        const ward = $('#checkoutWard').value;
+        if (!checkoutShippingQuote || checkoutShippingQuote.warehouse !== String(state.branchId)
+            || checkoutShippingQuote.district !== district || checkoutShippingQuote.ward !== ward)
+            throw new Error('Vui lòng chọn địa chỉ và chờ tính phí vận chuyển.');
+        const streetAddress = $('#checkoutStreetAddress').value.trim();
+        if (!streetAddress) throw new Error('Vui lòng nhập số nhà, tên đường.');
+        const fullAddress = [streetAddress,
+            $('#checkoutWard').selectedOptions[0].textContent,
+            $('#checkoutDistrict').selectedOptions[0].textContent,
+            $('#checkoutProvince').selectedOptions[0].textContent].join(', ');
         const body = {
             warehouse_id: Number(state.branchId),
+            to_district_id: Number(district),
+            to_ward_code: ward,
+            shipping_fee: checkoutShippingQuote.fee,
             items: [...state.cart.values()].map((item) => ({
                 product_id: item.product.id,
                 quantity: item.quantity,
@@ -3841,7 +3942,7 @@
             delivery: {
                 recipient_name: $('#delivery-name').value.trim(),
                 recipient_phone: $('#delivery-phone').value.trim(),
-                address: $('#delivery-address').value.trim(),
+                address: fullAddress,
                 note: $('#delivery-note').value.trim() || null,
             },
         };
@@ -4106,7 +4207,7 @@
             (delivery.note
                 ? '<p class="delivery-note"><span>Ghi chú: </span>' + escapeHtml(delivery.note) + '</p>'
                 : '') +
-            '<span class="delivery-shipping">Phí giao hàng: Miễn phí</span></section>'
+            '<span class="delivery-shipping">Phí giao hàng GHN: ' + amount(order.shipping_fee || 0) + '</span></section>'
         );
     }
 
@@ -4175,6 +4276,9 @@
                   '<strong class="mono">' +
                   escapeHtml(shipment.tracking_code) +
                   '</strong>' +
+                  (['SHIPPED', 'DELIVERED'].includes(order.status)
+                    ? '<a class="button secondary" target="_blank" rel="noopener noreferrer" href="https://donhang.ghn.vn/?order_code=' +
+                      encodeURIComponent(shipment.tracking_code) + '">Tra cứu hành trình GHN</a>' : '') +
                   '<span>Xuất giao: ' +
                   escapeHtml(dateTime(shipment.shipped_at)) +
                   '</span><br>' +
@@ -4192,6 +4296,9 @@
                   'pattern="[A-Za-z0-9._-]+" placeholder="Để trống để dùng mã tự sinh"></label>'
                 : '') +
             fulfillmentButton(order) +
+            (isOperator() && order.status === 'PACKED'
+                ? '<button type="button" class="button primary" data-action="operate-order" data-operation="ghn-ship" data-id="' +
+                  order.id + '">🚚 Bắn đơn sang GHN (Tự động lấy mã vận đơn)</button>' : '') +
             (hasRole('CUSTOMER') && order.status === 'PENDING'
                 ? '<button type="button" class="button primary" data-action="pay-order" data-id="' +
                   order.id +
@@ -4287,16 +4394,27 @@
             cancel: 'Đã hủy đơn và trả lại tồn kho phù hợp.',
             pack: 'Đã đóng gói và chuẩn bị vận đơn.',
             ship: 'Đã xuất giao. Mã vận đơn: ' + (order.shipment?.tracking_code || ''),
+            'ghn-ship': 'Đã xuất giao qua GHN. Mã vận đơn: ' + (order.shipment?.tracking_code || ''),
             deliver: 'Đã xác nhận giao hàng thành công.',
             return: 'Đã nhận trả toàn bộ đơn, hoàn kho và hoàn tiền mô phỏng.',
         };
+        if (action === 'ghn-ship' && order.shipment?.tracking_code?.startsWith('GHN_HAN_')) {
+            messages[action] = 'Đã xuất giao với mã GHN mô phỏng: ' + order.shipment.tracking_code;
+        }
         notify(
             'success',
             order.status === 'EXPIRED' ? 'Đơn đã hết hạn; hàng được giải phóng và không thu tiền.' : messages[action],
             'HTTP 200 OK',
         );
         if (hasRole('CUSTOMER')) await loadOrders();
-        else if (isOperator()) await loadQueue();
+        else if (isOperator()) {
+            if (action === 'ghn-ship') {
+                $('#queue-status').value = 'SHIPPED';
+                state.pages.queue = 0;
+                syncQueueStatusTabs();
+            }
+            await loadQueue();
+        }
     }
 
     /** Khung tải giữ số cột thật và loại dòng minh họa khỏi trình đọc màn hình. */
@@ -6426,6 +6544,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             );
         } else if (input.hasAttribute('data-store-warehouse')) {
             state.branchId = input.value;
+            execute(refreshCheckoutFee);
             saveCart();
             renderWarehouses();
             refreshProductStock();

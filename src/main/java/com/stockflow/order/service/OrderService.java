@@ -69,6 +69,7 @@ public class OrderService {
     private final EntityManager em;
     private final Validator validator;
     private final ProductVariantRepository variants;
+    private final com.stockflow.shipping.service.ShippingQuoteService shippingQuotes;
 
     /** Nhận repository và EntityManager để refresh số tồn sau UPDATE nguyên tử. */
     public OrderService(
@@ -80,7 +81,8 @@ public class OrderService {
             UserRepository users,
             EntityManager em,
             Validator validator,
-            ProductVariantRepository variants) {
+            ProductVariantRepository variants,
+            com.stockflow.shipping.service.ShippingQuoteService shippingQuotes) {
         this.orders = orders;
         this.payments = payments;
         this.shipments = shipments;
@@ -90,6 +92,7 @@ public class OrderService {
         this.em = em;
         this.validator = validator;
         this.variants = variants;
+        this.shippingQuotes = shippingQuotes;
     }
 
     /** Tạo đơn giữ hàng 15 phút; cập nhật theo inventoryId tăng dần để tránh chu trình khóa chéo. */
@@ -129,7 +132,17 @@ public class OrderService {
                 customerId,
                 warehouse.getId(),
                 Instant.now(),
-                new DeliveryDetails(delivery.recipientName(), delivery.recipientPhone(), delivery.address(), delivery.note()));
+                new DeliveryDetails(delivery.recipientName(), delivery.recipientPhone(), delivery.address(), delivery.note(),
+                        request.toDistrictId(), request.toWardCode()));
+        if (request.toDistrictId() != null || request.toWardCode() != null) {
+            if (request.toDistrictId() == null || request.toWardCode() == null)
+                throw new BadRequestException("Shipping district and ward must be supplied together");
+            BigDecimal fee = shippingQuotes.quote(warehouse.getId(), request.toDistrictId(), request.toWardCode(),
+                    com.stockflow.shipping.service.ShippingQuoteService.CHECKOUT_WEIGHT);
+            if (request.shippingFee() != null && fee.compareTo(request.shippingFee()) != 0)
+                throw new ConflictException("Phí vận chuyển đã thay đổi. Vui lòng tính lại phí trước khi đặt hàng.");
+            order.setShippingFee(fee);
+        }
         for (CreateOrderRequest.Item item : request.items()) {
             if (!seen.add(item.productId())) {
                 throw new BadRequestException("Sản phẩm không được lặp trong một đơn.");
@@ -261,6 +274,19 @@ public class OrderService {
         shipment = saveShipment(shipment);
         order.changeStatus(OrderStatus.PACKED);
         return OrderResponse.from(order, shipment);
+    }
+
+    /** Hold the order lock and validate permissions/invariants before an external carrier request. */
+    @Transactional
+    public Order prepareCarrierShipment(Long orderId, Long actorId) {
+        User user = actor(actorId);
+        Order order = locked(orderId);
+        authorizeFulfillment(user, order);
+        if (order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.DELIVERED) return order;
+        requireStatus(order, OrderStatus.PACKED, "GHN shipment");
+        paidPayment(order);
+        shipmentAt(order, ShipmentStatus.PREPARING);
+        return order;
     }
 
     /** Xuất giao từ PACKED; hàng đã DISPATCH khi thanh toán nên không cập nhật inventory lần thứ hai. */

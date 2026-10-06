@@ -30,6 +30,16 @@ public class Order {
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(name = "shipping_fee", nullable = false, precision = 12, scale = 2)
+    private BigDecimal shippingFee = BigDecimal.ZERO;
+
+    public BigDecimal getShippingFee() { return shippingFee; }
+    public void setShippingFee(BigDecimal fee) {
+        if (fee == null || fee.signum() < 0) throw new IllegalArgumentException("Invalid shipping fee");
+        totalAmount = totalAmount.subtract(shippingFee).add(fee);
+        shippingFee = fee;
+    }
+
     @Embedded
     private DeliveryDetails delivery;
 

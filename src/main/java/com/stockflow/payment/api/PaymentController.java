@@ -30,6 +30,23 @@ public class PaymentController {
 
     public record CreatePaymentRequest(@JsonProperty("order_id") @NotNull @Positive Long orderId) {}
 
+    @GetMapping("/ipn")
+    public VNPayService.IpnResponse handleIpn(@RequestParam MultiValueMap<String, String> parameters) {
+        Map<String, String> single = new HashMap<>();
+        if (parameters.values().stream().anyMatch(values -> values.size() != 1)) {
+            return new VNPayService.IpnResponse("97", "Invalid parameters");
+        }
+        parameters.forEach((key, values) -> single.put(key, values.get(0)));
+        try {
+            return service.handleIpn(single);
+        } catch (VNPayService.IpnValidationException exception) {
+            return new VNPayService.IpnResponse(exception.code(), exception.getMessage());
+        } catch (Exception exception) {
+            // The transactional service has already rolled back; VNPay can retry safely.
+            return new VNPayService.IpnResponse("99", "Unable to process notification");
+        }
+    }
+
     @PostMapping("/create")
     @PreAuthorize("hasRole('CUSTOMER')")
     public Map<String, String> create(@Valid @RequestBody CreatePaymentRequest body, HttpServletRequest request) {

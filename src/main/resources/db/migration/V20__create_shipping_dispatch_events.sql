@@ -1,0 +1,8 @@
+CREATE TABLE shipping_dispatch_events (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
+    tracking_code VARCHAR(100) NOT NULL,
+    performed_by BIGINT NOT NULL REFERENCES users(id),
+    event_type VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

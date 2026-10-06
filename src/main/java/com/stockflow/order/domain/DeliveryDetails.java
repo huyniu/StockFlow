@@ -20,6 +20,19 @@ public class DeliveryDetails {
     @Column(name = "delivery_note", length = 1000, updatable = false)
     private String note;
 
+    @Column(name = "to_district_id", updatable = false)
+    private Integer toDistrictId;
+    @Column(name = "to_ward_code", length = 20, updatable = false)
+    private String toWardCode;
+
+    public DeliveryDetails(String name, String phone, String address, String note, Integer district, String ward) {
+        this(name, phone, address, note);
+        this.toDistrictId = district;
+        this.toWardCode = ward;
+    }
+    public Integer getToDistrictId() { return toDistrictId; }
+    public String getToWardCode() { return toWardCode; }
+
     /** JPA phục hồi bản chụp; các cột null của đơn trước V15 vẫn được hỗ trợ. */
     protected DeliveryDetails() {}
 

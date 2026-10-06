@@ -111,22 +111,46 @@ public class VNPayService {
 
     @Transactional
     public PaymentResult handleReturn(Map<String, String> queryParams) {
+        return processNotification(queryParams, false).result();
+    }
+
+    public record IpnResponse(@com.fasterxml.jackson.annotation.JsonProperty("RspCode") String code,
+                              @com.fasterxml.jackson.annotation.JsonProperty("Message") String message) {}
+    public static class IpnValidationException extends RuntimeException {
+        private final String code;
+        public IpnValidationException(String code, String message) { super(message); this.code = code; }
+        public String code() { return code; }
+    }
+    private record NotificationOutcome(PaymentResult result, boolean alreadyProcessed) {}
+
+    @Transactional
+    public IpnResponse handleIpn(Map<String, String> queryParams) {
+        var outcome = processNotification(queryParams, true);
+        return outcome.alreadyProcessed() ? new IpnResponse("02", "Order already confirmed")
+                : new IpnResponse("00", "Confirm Success");
+    }
+
+    private RuntimeException notificationError(boolean ipn, String code, String message) {
+        return ipn ? new IpnValidationException(code, message) : new BadRequestException(message);
+    }
+
+    private NotificationOutcome processNotification(Map<String, String> queryParams, boolean ipn) {
         if (!VNPayUtil.validSignature(hashSecret, queryParams)) {
-            throw new BadRequestException("Chữ ký VNPay không hợp lệ.");
+            throw notificationError(ipn, "97", "Chữ ký VNPay không hợp lệ.");
         }
         if (!tmnCode.equals(queryParams.get("vnp_TmnCode"))) {
-            throw new BadRequestException("Mã merchant VNPay không hợp lệ.");
+            throw notificationError(ipn, "97", "Mã merchant VNPay không hợp lệ.");
         }
         String reference = required(queryParams, "vnp_TxnRef", "[0-9]+_[0-9]+");
         Long orderId = transactions.findOrderIdByTxnRef(reference)
-                .orElseThrow(() -> new BadRequestException("Không tìm thấy giao dịch VNPay."));
+                .orElseThrow(() -> notificationError(ipn, "01", "Không tìm thấy giao dịch VNPay."));
         // Khóa order trước khi đọc trạng thái transaction: chung thứ tự với mô phỏng/cancel/expiry.
         Order order = lockedOrder(orderId);
         PaymentTransaction transaction = transactions.findByTxnRef(reference).orElseThrow();
         String amount = required(queryParams, "vnp_Amount", "[0-9]{1,12}");
         if (!transaction.getAmount().movePointRight(2).toBigIntegerExact().toString().equals(amount)
                 || transaction.getAmount().compareTo(order.getTotalAmount()) != 0) {
-            throw new BadRequestException("Số tiền VNPay không khớp với đơn hàng.");
+            throw notificationError(ipn, "04", "Số tiền VNPay không khớp với đơn hàng.");
         }
         String responseCode = required(queryParams, "vnp_ResponseCode", "[0-9]{2}");
         String transactionStatus = required(queryParams, "vnp_TransactionStatus", "[0-9]{2}");
@@ -141,14 +165,14 @@ public class VNPayService {
 
         // Callback lặp không thay đổi giao dịch đã hoàn tất hay ghi thêm ledger.
         if (transaction.getStatus() != PaymentTransaction.Status.PENDING) {
-            return new PaymentResult(orderId, transaction.getStatus() == PaymentTransaction.Status.SUCCESS);
+            return new NotificationOutcome(new PaymentResult(orderId, transaction.getStatus() == PaymentTransaction.Status.SUCCESS), true);
         }
         boolean success = false;
         if (paid && order.getStatus() == OrderStatus.PENDING) {
             success = orderService.confirmVerifiedVNPayPayment(orderId).status() == OrderStatus.CONFIRMED;
         }
         transaction.complete(success, responseCode, transactionCode, bankCode, payDate);
-        return new PaymentResult(orderId, success);
+        return new NotificationOutcome(new PaymentResult(orderId, success), false);
     }
 
     private Order lockedOrder(Long id) {

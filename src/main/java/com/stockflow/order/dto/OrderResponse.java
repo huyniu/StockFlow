@@ -21,7 +21,10 @@ public record OrderResponse(
         @JsonProperty("updated_at") Instant updatedAt,
         List<OrderItemResponse> items,
         ShipmentResponse shipment,
-        DeliveryDetailsResponse delivery) {
+        DeliveryDetailsResponse delivery,
+        @JsonProperty("shipping_fee") BigDecimal shippingFee,
+        @JsonProperty("to_district_id") Integer toDistrictId,
+        @JsonProperty("to_ward_code") String toWardCode) {
 
     /** Chuyển đơn mới chưa có vận đơn sang DTO, giữ cách gọi cũ cho nghiệp vụ tạo đơn. */
     public static OrderResponse from(Order order) {
@@ -42,6 +45,8 @@ public record OrderResponse(
                 order.getUpdatedAt(),
                 order.getItems().stream().map(OrderItemResponse::from).toList(),
                 ShipmentResponse.from(shipment),
-                DeliveryDetailsResponse.from(order.getDelivery()));
+                DeliveryDetailsResponse.from(order.getDelivery()), order.getShippingFee(),
+                order.getDelivery() == null ? null : order.getDelivery().getToDistrictId(),
+                order.getDelivery() == null ? null : order.getDelivery().getToWardCode());
     }
 }

@@ -74,7 +74,7 @@ public class OrderPlacementService {
         var canonical = new CreateOrderRequest(
                 request.warehouseId(),
                 request.items().stream().sorted(Comparator.comparing(CreateOrderRequest.Item::productId)).toList(),
-                request.delivery());
+                request.delivery(), request.toDistrictId(), request.toWardCode(), request.shippingFee());
         try {
             byte[] bytes = json.writeValueAsString(canonical).getBytes(StandardCharsets.UTF_8);
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));

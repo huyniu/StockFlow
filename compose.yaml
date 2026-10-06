@@ -29,10 +29,20 @@ services:
       DB_USERNAME: ${DB_USERNAME:-stockflow}
       DB_PASSWORD: ${DB_PASSWORD:-stockflow_local_password}
       JWT_SECRET: ${JWT_SECRET:-stockflow-demo-secret-for-local-use-only-2026}
+
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-${MAIL_USERNAME:-}}
+
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-DEMOVNPAY}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-DEMOHASHSECRETKEY2026}
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8080/api/v1/payments/vnpay/return}
       VNPAY_STOREFRONT_URL: ${VNPAY_STOREFRONT_URL:-http://localhost:8080/}
+
+      GHN_TOKEN: ${GHN_TOKEN:-MOCK_TOKEN}
+      GHN_SHOP_ID: ${GHN_SHOP_ID:-123456}
+      GHN_FROM_DISTRICT_ID: ${GHN_FROM_DISTRICT_ID:-1450}
+      GHN_SENDER_PHONE: ${GHN_SENDER_PHONE:-}
     ports:
       - "${APP_PORT:-8080}:8080"
     depends_on:

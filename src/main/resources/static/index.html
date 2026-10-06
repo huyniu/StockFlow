@@ -1051,7 +1051,7 @@
                             <article
                                 id="queue-detail"
                                 class="panel order-detail"
-                                aria-label="Chi tiết đơn cần xử lý"
+                                aria-label="Chi tiết đơn cần xử lý và tạo vận đơn GHN"
                             ></article>
                         </div>
                     </section>
@@ -1500,7 +1500,7 @@
                 <!-- Người nhận được lưu cố định trên đơn; không dùng hồ sơ làm dữ liệu giao hàng thay thế. -->
                 <fieldset class="checkout-delivery">
                     <legend>Thông tin nhận hàng</legend>
-                    <p class="checkout-intro">Giao đến địa chỉ của bạn · Miễn phí giao hàng</p>
+                    <p class="checkout-intro">Chọn địa chỉ để tính phí giao hàng GHN</p>
                     <div class="checkout-contact-grid">
                         <label>
                             Họ và tên người nhận
@@ -1529,12 +1529,24 @@
                         </label>
                     </div>
                     <label>
-                        Địa chỉ giao hàng
+                        Tỉnh / Thành phố
+                        <select id="checkoutProvince" required><option value="">Chọn tỉnh / thành phố</option></select>
+                    </label>
+                    <label>Quận / Huyện
+                        <select id="checkoutDistrict" required disabled><option value="">Chọn quận / huyện</option></select>
+                    </label>
+                    <label>Phường / Xã
+                        <select id="checkoutWard" required disabled><option value="">Chọn phường / xã</option></select>
+                    </label>
+                    <label>Số nhà, tên đường
+                        <input id="checkoutStreetAddress" data-delivery-field required maxlength="300" autocomplete="shipping street-address" />
+                    </label>
+                    <label hidden>
+                        Địa chỉ đầy đủ
                         <textarea
                             id="delivery-address"
                             data-delivery-field
                             name="address"
-                            required
                             maxlength="500"
                             rows="3"
                             autocomplete="shipping street-address"
@@ -1559,7 +1571,8 @@
                 </fieldset>
                 <div class="cart-footer">
                     <div class="total-row"><span>Tạm tính</span><strong id="cart-total">0 ₫</strong></div>
-                    <div class="checkout-shipping-row"><span>Phí giao hàng</span><strong>Miễn phí</strong></div>
+                    <div class="checkout-shipping-row"><span>Phí vận chuyển GHN</span><strong id="checkoutShippingFee" aria-live="polite">Chọn địa chỉ</strong></div>
+                    <div class="total-row"><span>Tổng thanh toán</span><strong id="checkoutTotal" aria-live="polite">0 ₫</strong></div>
                     <p class="subtle">
                         Giá và tồn kho được xác nhận khi đặt đơn. Thanh toán mô phỏng trong 15 phút để hoàn tất giữ
                         hàng.

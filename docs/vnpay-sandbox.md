@@ -15,7 +15,7 @@ Giữ nguyên API/nút mô phỏng thanh toán. CUSTOMER có thêm nút `Thanh t
 - Callback thành công yêu cầu cả `vnp_ResponseCode=00` và `vnp_TransactionStatus=00`, số tiền khớp và đơn vẫn PENDING. Khóa đơn chung với mô phỏng/hủy/hết hạn; xác nhận và ghi DISPATCH/payment/transaction trong cùng transaction. Callback lặp không xuất kho lần nữa. Đơn hết hạn được nhả hàng, không xác nhận.
 - Frontend tải trạng thái đơn từ backend khi trở về; query string không tự sửa trạng thái đơn. Khi cần đăng nhập lại, thông tin callback được giữ trong phiên trang để mở đúng đơn sau đăng nhập.
 
-Luồng này triển khai callback Return URL cho Sandbox theo yêu cầu. IPN server-to-server, đối soát và hoàn tiền VNPay chưa nằm trong phạm vi này; hoàn tiền hiện tại của StockFlow là trạng thái nội bộ/mô phỏng, không gọi API hoàn tiền VNPay.
+Luồng hỗ trợ Return URL và IPN server-to-server; xem [hướng dẫn IPN](vnpay-ipn.md). Đối soát và API hoàn tiền VNPay chưa được triển khai; hoàn tiền hiện tại là trạng thái nội bộ/mô phỏng.
 
 Tài liệu chuẩn: [VNPay PAY 2.1.0](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html).
 
