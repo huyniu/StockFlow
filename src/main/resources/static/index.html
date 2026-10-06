@@ -857,6 +857,11 @@
                     </div>
                 </footer>
             </main>
+            <a id="zalo-contact" class="zalo-contact-floating" hidden target="_blank" rel="noopener noreferrer"
+               aria-label="Chat với cửa hàng qua Zalo (mở tab mới)">
+                <span class="zalo-contact-badge" aria-hidden="true">Zalo</span>
+                <span>Chat qua Zalo <span aria-hidden="true">↗</span></span>
+            </a>
         </div>
 
         <!-- Dashboard chỉ mở sau khi xác thực vai trò vận hành; mọi thao tác vẫn được backend kiểm tra. -->
@@ -1500,7 +1505,7 @@
                 <!-- Người nhận được lưu cố định trên đơn; không dùng hồ sơ làm dữ liệu giao hàng thay thế. -->
                 <fieldset class="checkout-delivery">
                     <legend>Thông tin nhận hàng</legend>
-                    <p class="checkout-intro">Chọn địa chỉ để tính phí giao hàng GHN</p>
+                    <p class="checkout-intro" id="checkoutShippingNotice">Đang kiểm tra kết nối GHN…</p>
                     <div class="checkout-contact-grid">
                         <label>
                             Họ và tên người nhận
@@ -2110,6 +2115,25 @@
         </dialog>
 
         <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+        <dialog id="review-dialog" aria-labelledby="review-title">
+            <h2 id="review-title">Đánh giá sau khi nhận hàng</h2>
+            <p class="meta-line">Nhận xét và tên hiển thị của bạn sẽ xuất hiện công khai trên trang sản phẩm.</p>
+            <form id="review-form">
+                <label>Chất lượng sản phẩm<select id="review-rating" required>
+                    <option value="5">★★★★★ · Rất hài lòng</option><option value="4">★★★★☆ · Hài lòng</option>
+                    <option value="3">★★★☆☆ · Bình thường</option><option value="2">★★☆☆☆ · Chưa hài lòng</option><option value="1">★☆☆☆☆ · Rất không hài lòng</option>
+                </select></label>
+                <label>Dịch vụ mua hàng và giao hàng<select id="review-service-rating" required>
+                    <option value="5">★★★★★ · Rất hài lòng</option><option value="4">★★★★☆ · Hài lòng</option>
+                    <option value="3">★★★☆☆ · Bình thường</option><option value="2">★★☆☆☆ · Chưa hài lòng</option><option value="1">★☆☆☆☆ · Rất không hài lòng</option>
+                </select></label>
+                <label>Nhận xét<textarea id="review-comment" required maxlength="2000" rows="5" placeholder="Chia sẻ trải nghiệm của bạn, không đưa số điện thoại hoặc thông tin cá nhân vào nhận xét."></textarea></label>
+                <div class="dialog-actions">
+                    <button class="button secondary" type="button" data-action="close-dialog">Đóng</button>
+                    <button id="review-submit" class="button primary" type="submit">Gửi đánh giá</button>
+                </div>
+            </form>
+        </dialog>
         <noscript><div class="noscript-message">Vui lòng bật JavaScript để mua sắm tại StockFlow Tech.</div></noscript>
     </body>
 </html>

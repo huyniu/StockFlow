@@ -40,6 +40,9 @@ services:
       VNPAY_STOREFRONT_URL: ${VNPAY_STOREFRONT_URL:-http://localhost:8080/}
 
       GHN_TOKEN: ${GHN_TOKEN:-MOCK_TOKEN}
+      ZALO_CONTACT_URL: ${ZALO_CONTACT_URL:-https://zalo.me/0968935896}
+      GHN_BASE_URL: ${GHN_BASE_URL:-https://dev-online-gateway.ghn.vn/shiip/public-api/}
+      GHN_PRODUCTION: ${GHN_PRODUCTION:-false}
       GHN_SHOP_ID: ${GHN_SHOP_ID:-123456}
       GHN_FROM_DISTRICT_ID: ${GHN_FROM_DISTRICT_ID:-1450}
       GHN_SENDER_PHONE: ${GHN_SENDER_PHONE:-}

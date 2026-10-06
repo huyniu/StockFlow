@@ -7387,6 +7387,60 @@ body.category-menu-open {
 #otp-dialog {
     width: min(440px, calc(100vw - 32px));
 }
+.product-reviews { margin-top: 28px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; }
+.product-review { padding: 18px 0; border-top: 1px solid var(--line); }
+.review-stars { color: #b45309; }
+.review-stars span { color: var(--text); font-size: 13px; }
+.review-comment { white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-pagination { display: flex; align-items: center; gap: 12px; }
+.order-item:has([data-action="review-product"]) { flex-wrap: wrap; }
+.order-item [data-action="review-product"] { margin-left: auto; }
+@media (max-width: 767px) {
+    .order-item [data-action="review-product"] { flex-basis: 100%; margin-left: 0; }
+    .product-reviews { padding: 16px; }
+}
+#review-dialog { width: min(520px, calc(100vw - 32px)); }
+#review-form { display: grid; gap: 16px; }
+
+/* Contact remains within the storefront, so dashboard and modal flows hide it. */
+.zalo-contact-floating {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 58px;
+    padding: 10px 18px 10px 10px;
+    border: 1px solid #dbeafe;
+    border-radius: 18px;
+    background: #fff;
+    color: #0755c9;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 8px 28px rgb(15 23 42 / 16%);
+}
+.zalo-contact-badge {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #0068ff;
+    color: #fff;
+    font-size: 13px;
+}
+.zalo-contact-floating:hover { background: #eff6ff; }
+.zalo-contact-floating:focus-visible { outline: 3px solid #0068ff; outline-offset: 4px; }
+body:has(dialog[open]) .zalo-contact-floating { display: none; }
+body:not(.portal-open):has(#zalo-contact:not([hidden])) .toasts { bottom: 106px; }
+@media (max-width: 767px) {
+    .zalo-contact-floating { right: 14px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); min-height: 52px; padding: 6px 12px 6px 6px; }
+    body.mobile-purchase-visible .zalo-contact-floating { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+    body.mobile-purchase-visible:has(#zalo-contact:not([hidden])) .toasts { bottom: calc(166px + env(safe-area-inset-bottom, 0px)); }
+}
 #otp-dialog > .icon-button {
     float: right;
 }

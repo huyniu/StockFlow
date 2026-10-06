@@ -80,12 +80,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
                         // Khách vãng lai chỉ nhận lựa chọn chi nhánh tối thiểu; không mở API kho vận hành.
                         .requestMatchers(HttpMethod.GET, "/api/v1/storefront/branches").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/storefront/contact").permitAll()
                         // Chỉ public catalog bán chạy; báo cáo doanh thu và lịch sử kho vẫn giữ quyền nội bộ.
                         .requestMatchers(HttpMethod.GET, "/api/v1/storefront/bestsellers").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/payments/vnpay/return").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/payments/vnpay/ipn").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/locations/provinces", "/api/v1/locations/districts", "/api/v1/locations/wards").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/locations/provinces", "/api/v1/locations/districts", "/api/v1/locations/wards", "/api/v1/locations/mode").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/locations/calculate-fee").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions

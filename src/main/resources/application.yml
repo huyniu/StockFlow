@@ -1,5 +1,10 @@
+stockflow:
+  contact:
+    zalo-url: ${ZALO_CONTACT_URL:https://zalo.me/0968935896}
+
 ghn:
-  base-url: https://dev-online-gateway.ghn.vn/shiip/public-api/
+  base-url: ${GHN_BASE_URL:https://dev-online-gateway.ghn.vn/shiip/public-api/}
+  production: ${GHN_PRODUCTION:false}
   token: ${GHN_TOKEN:MOCK_TOKEN}
   shop-id: ${GHN_SHOP_ID:123456}
   from-district-id: ${GHN_FROM_DISTRICT_ID:1450}

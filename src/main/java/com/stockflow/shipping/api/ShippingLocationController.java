@@ -16,6 +16,9 @@ public class ShippingLocationController {
     private final GhnClient client;
     private final ShippingQuoteService quotes;
     public ShippingLocationController(GhnClient client, ShippingQuoteService quotes) { this.client=client; this.quotes=quotes; }
+    @GetMapping("/mode") public java.util.Map<String, Boolean> mode() {
+        return java.util.Map.of("test_mode", client.isTestMode());
+    }
     @GetMapping("/provinces") public List<GhnLocations.Province> provinces() { return client.getProvinces(); }
     @GetMapping("/districts") public List<GhnLocations.District> districts(@RequestParam("province_id") int id) {
         if (id <= 0) throw new com.stockflow.common.exception.BadRequestException("Invalid province");
@@ -29,8 +32,9 @@ public class ShippingLocationController {
             @JsonProperty("to_district_id") @NotNull @Positive Integer district,
             @JsonProperty("to_ward_code") @NotBlank @Pattern(regexp="[A-Za-z0-9_-]{1,20}") String ward,
             @NotNull @Min(1) @Max(19999) Integer weight) {}
-    public record FeeResponse(@JsonProperty("shipping_fee") BigDecimal fee, @JsonProperty("service_type_id") int service) {}
+    public record FeeResponse(@JsonProperty("shipping_fee") BigDecimal fee, @JsonProperty("service_type_id") int service,
+                              @JsonProperty("test_mode") boolean testMode) {}
     @PostMapping("/calculate-fee") public FeeResponse fee(@Valid @RequestBody FeeRequest request) {
-        return new FeeResponse(quotes.quote(request.warehouseId(), request.district(), request.ward(), request.weight()), 2);
+        return new FeeResponse(quotes.quote(request.warehouseId(), request.district(), request.ward(), request.weight()), 2, client.isTestMode());
     }
 }

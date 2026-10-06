@@ -982,6 +982,7 @@
             'brand-create',
             'brand-logo-edit',
             'profile-form',
+            'review-form',
         ].forEach((id) => {
             $('#' + id).reset();
         });
@@ -3316,7 +3317,12 @@
                 </div>
             </div>
             <div class="product-information-grid">${productDescription(root)}${productSpecifications(product)}</div>
+            <section class="product-reviews" aria-labelledby="product-reviews-title">
+                <h2 id="product-reviews-title">Đánh giá từ khách đã mua</h2>
+                <div id="product-reviews-content" aria-live="polite">Đang tải đánh giá…</div>
+            </section>
         `;
+        void loadProductReviews(root.id);
         renderWarehouses();
         refreshProductStock();
         observeMobilePurchase();
@@ -3773,11 +3779,16 @@
 
     function renderShippingTotal() {
         const subtotal = [...state.cart.values()].reduce((sum, item) => sum + Number(saleSku(state.products.get(item.product.id) || item.product).unit_price) * item.quantity, 0);
-        $('#checkoutShippingFee').textContent = checkoutShippingQuote ? amount(checkoutShippingQuote.fee) : 'Chọn địa chỉ / chờ tính phí';
+        $('#checkoutShippingFee').textContent = checkoutShippingQuote ? amount(checkoutShippingQuote.fee)
+            + (checkoutShippingQuote.testMode ? ' (phí thử nghiệm)' : '') : 'Chọn địa chỉ / chờ tính phí';
         $('#checkoutTotal').textContent = amount(subtotal + (checkoutShippingQuote?.fee || 0));
     }
 
     async function loadCheckoutProvinces() {
+        const mode = await api('/locations/mode');
+        $('#checkoutShippingNotice').textContent = mode.test_mode
+            ? 'Đang thử nghiệm GHN: địa chỉ có thể là dữ liệu mẫu, phí chưa dùng cho giao hàng thật.'
+            : 'Chọn địa chỉ để lấy cước vận chuyển từ GHN.';
         const select = $('#checkoutProvince');
         if (select.options.length > 1) return;
         const values = await api('/locations/provinces');
@@ -3827,7 +3838,7 @@
             || ward !== $('#checkoutWard').value) return;
         const fee = Number(result.shipping_fee);
         if (!Number.isFinite(fee) || fee < 0) throw new Error('Phí vận chuyển không hợp lệ.');
-        checkoutShippingQuote = { warehouse, district, ward, fee };
+        checkoutShippingQuote = { warehouse, district, ward, fee, testMode: result.test_mode === true };
         renderShippingTotal();
     }
 
@@ -4239,7 +4250,11 @@
                     amount(item.unit_price) +
                     '</span></div><strong class="price">' +
                     amount(item.line_total) +
-                    '</strong></div>'
+                    '</strong>' +
+                    (hasRole('CUSTOMER') && order.status === 'DELIVERED'
+                        ? '<button type="button" class="button secondary small" data-action="review-product" data-id="' +
+                          order.id + '" data-product-id="' + item.product_id + '">Đánh giá sản phẩm / dịch vụ</button>' : '') +
+                    '</div>'
                 );
             })
             .join('');
@@ -6343,7 +6358,11 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         }
         const id = Number(button.dataset.id);
         const action = button.dataset.action;
-        if (action === 'retry-search-suggestions') {
+        if (action === 'review-product') {
+            execute(() => busy(button, () => openProductReview(id, Number(button.dataset.productId))));
+        } else if (action === 'review-page') {
+            execute(() => busy(button, () => loadProductReviews(Number(button.dataset.productId), Number(button.dataset.page))));
+        } else if (action === 'retry-search-suggestions') {
             // Nút thử lại sẽ bị ẩn khi dựng skeleton; chuyển focus về input trước để không mất phiên gợi ý.
             $('#catalog-query').focus({ preventScroll: true });
             queueSearchSuggestions({ immediate: true });
@@ -6578,6 +6597,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         if (!form.reportValidity()) return;
         const button = $('button[type="submit"]', form);
         const handlers = {
+            'review-form': submitProductReview,
             'catalog-filter': () => reloadCatalogFilters(),
             'catalog-price-filter': applyCatalogPriceDraft,
             'queue-filter': () => {
@@ -6730,7 +6750,87 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
     window.addEventListener('hashchange', onLocationChange);
 
     /** Tải lại trang kiểm tra actor qua users/me; request khởi tạo cũ không ghi đè đăng nhập mới. */
+    async function loadShopContact() {
+        try {
+            const contact = await api('/storefront/contact', { anonymous: true });
+            if (!contact.zalo_url) return;
+            const url = new URL(contact.zalo_url);
+            if (url.protocol !== 'https:' || url.hostname !== 'zalo.me' || url.username || url.password) return;
+            const link = $('#zalo-contact');
+            link.href = url.href;
+            link.hidden = false;
+        } catch {
+            // Contact availability must not prevent browsing or checkout.
+        }
+    }
+
+    async function loadProductReviews(productId, page = 0) {
+        const target = $('#product-reviews-content');
+        if (!target) return;
+        try {
+            const result = await api('/products/' + productId + '/reviews', { anonymous: true, query: { page }, channel: 'product-reviews' });
+            if (!target.isConnected || !state.detailRoot || state.detailRoot.id !== productId) return;
+            target.innerHTML = result.total_elements
+                ? '<p><strong>' + Number(result.average_rating).toFixed(1) + '/5</strong> · ' + integer(result.total_elements)
+                  + ' đánh giá · Dịch vụ: ' + Number(result.average_service_rating).toFixed(1) + '/5</p>'
+                  + result.content.map(review => '<article class="product-review"><header><strong>' + escapeHtml(review.customer_name)
+                    + '</strong><span class="meta-line">Đã mua hàng · ' + escapeHtml(dateTime(review.created_at)) + '</span></header>'
+                    + '<p class="review-stars">' + '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating)
+                    + ' <span>Sản phẩm · Dịch vụ: ' + review.service_rating + '/5</span></p>'
+                    + '<p class="review-comment">' + escapeHtml(review.comment) + '</p></article>').join('')
+                : '<p class="meta-line">Chưa có đánh giá. Bạn có thể đánh giá trong chi tiết đơn hàng sau khi nhận hàng thành công.</p>';
+            if (result.total_elements > result.size) {
+                target.innerHTML += '<div class="review-pagination"><button class="button secondary small" type="button" data-action="review-page" data-product-id="'
+                    + productId + '" data-page="' + (page - 1) + '" ' + (page === 0 ? 'disabled' : '') + '>Trước</button><span>Trang '
+                    + (page + 1) + '</span><button class="button secondary small" type="button" data-action="review-page" data-product-id="'
+                    + productId + '" data-page="' + (page + 1) + '" ' + ((page + 1) * result.size >= result.total_elements ? 'disabled' : '') + '>Sau</button></div>';
+            }
+        } catch (error) {
+            if (!target.isConnected || error.name === 'AbortError') return;
+            target.innerHTML = '<p class="meta-line">Chưa tải được đánh giá.</p><button class="button secondary small" type="button" data-action="review-page" data-product-id="'
+                + productId + '" data-page="' + page + '">Thử lại</button>';
+        }
+    }
+
+    async function openProductReview(orderId, productId) {
+        const epoch = state.epoch;
+        const reviews = await api('/orders/' + orderId + '/reviews');
+        if (epoch !== state.epoch || !hasRole('CUSTOMER')) return;
+        const existing = reviews.find(review => review.product_id === productId);
+        const form = $('#review-form');
+        form.reset();
+        form.dataset.orderId = String(orderId);
+        form.dataset.productId = String(productId);
+        form.dataset.epoch = String(epoch);
+        $('#review-title').textContent = existing ? 'Đánh giá của bạn' : 'Đánh giá sau khi nhận hàng';
+        $('#review-rating').value = String(existing?.rating || 5);
+        $('#review-service-rating').value = String(existing?.service_rating || 5);
+        $('#review-comment').value = existing?.comment || '';
+        $('#review-rating').disabled = Boolean(existing);
+        $('#review-service-rating').disabled = Boolean(existing);
+        $('#review-comment').readOnly = Boolean(existing);
+        $('#review-submit').hidden = Boolean(existing);
+        openDialog('review-dialog');
+    }
+
+    async function submitProductReview() {
+        const form = $('#review-form');
+        if (Number(form.dataset.epoch) !== state.epoch || !hasRole('CUSTOMER')) return;
+        const comment = $('#review-comment').value.trim();
+        if (!comment) throw new Error('Vui lòng nhập nhận xét.');
+        const epoch = state.epoch;
+        await api('/orders/' + form.dataset.orderId + '/reviews', { method: 'POST', body: {
+            product_id: Number(form.dataset.productId), rating: Number($('#review-rating').value),
+            service_rating: Number($('#review-service-rating').value), comment,
+        } });
+        if (epoch !== state.epoch) return;
+        $('#review-dialog').close();
+        notify('success', 'Cảm ơn bạn đã chia sẻ đánh giá!');
+        if (state.detailRoot && state.shopTab === 'product') await loadProductReviews(state.detailRoot.id);
+    }
+
     async function initialize() {
+        void loadShopContact();
         const epoch = state.epoch;
         renderContext();
         renderCart();

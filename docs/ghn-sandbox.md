@@ -14,6 +14,14 @@ The dashboard retains manual ship and adds a GHN button for PACKED orders, then 
 
 ## Checkout and shipping fees (V21)
 
+### Demo versus live shipping
+
+`GHN_BASE_URL` defaults to the Sandbox gateway and `GHN_PRODUCTION=false`. Checkout displays a test-mode warning and marks fees as experimental. Sandbox API failures can still use sample data for demonstrations.
+
+Live shipping uses `GHN_BASE_URL=https://online-gateway.ghn.vn/shiip/public-api/` with production credentials. The live host automatically disables simulated fallback, even when `GHN_PRODUCTION=false`. Setting `GHN_PRODUCTION=true` also disables fallback. On API failure, locations/fees/shipping return HTTP 503; fulfillment stays PACKED and no carrier dispatch event is recorded. If a create request timed out, reconcile `STOCKFLOW-{orderId}` with GHN before retrying because GHN may have accepted the request.
+
+Restart after changing environment variables. Live shipping is not enabled automatically by this change.
+
 Checkout loads provinces, districts and wards from the public `/api/v1/locations/provinces`, `/districts?province_id=...`, `/wards?district_id=...` endpoints. `POST /api/v1/locations/calculate-fee` accepts `warehouse_id`, `to_district_id`, `to_ward_code`, `weight`; it returns `shipping_fee` and `service_type_id=2`.
 
 Set `GHN_FROM_DISTRICT_ID` to the actual shop district (default 1450). For multiple warehouses, configure `ghn.warehouse-districts` as a map of StockFlow warehouse IDs to their actual GHN district IDs. Without an override, each warehouse uses the configured default district. Confirm these IDs with GHN before using real fees.

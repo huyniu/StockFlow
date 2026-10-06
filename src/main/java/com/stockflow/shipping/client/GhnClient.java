@@ -19,7 +19,15 @@ public class GhnClient {
     private final SecureRandom random = new SecureRandom();
 
     private boolean mockMode() {
+        if (settings.production() && (settings.token() == null || settings.token().isBlank()
+                || "MOCK_TOKEN".equals(settings.token().trim()))) throw new GhnUnavailableException();
         return settings.token() == null || settings.token().isBlank() || "MOCK_TOKEN".equals(settings.token().trim());
+    }
+
+    public boolean isTestMode() { return !settings.production(); }
+
+    private void requireSimulationAllowed() {
+        if (settings.production()) throw new GhnUnavailableException();
     }
 
     private com.fasterxml.jackson.databind.JsonNode requestData(String path, java.util.Map<String, Object> body) {
@@ -41,7 +49,8 @@ public class GhnClient {
             data.forEach(p -> { if (p.path("ProvinceID").asInt() > 0 && !p.path("ProvinceName").asText().isBlank())
                 values.add(new GhnLocations.Province(p.path("ProvinceID").asInt(), p.path("ProvinceName").asText())); });
             return values;
-        } catch (org.springframework.web.client.RestClientException e) { log.warn("[GHN] Location API unavailable; using sample provinces"); }
+        } catch (org.springframework.web.client.RestClientException e) { log.warn("[GHN] Province API unavailable"); }
+        requireSimulationAllowed();
         return java.util.List.of(new GhnLocations.Province(201, "Hà Nội"), new GhnLocations.Province(202, "TP. Hồ Chí Minh"), new GhnLocations.Province(203, "Đà Nẵng"));
     }
 
@@ -53,7 +62,8 @@ public class GhnClient {
             data.forEach(p -> { if ((!p.has("ProvinceID") || p.path("ProvinceID").asInt() == provinceId) && p.path("DistrictID").asInt() > 0)
                 values.add(new GhnLocations.District(p.path("DistrictID").asInt(), p.path("DistrictName").asText(), provinceId)); });
             return values;
-        } catch (org.springframework.web.client.RestClientException e) { log.warn("[GHN] Location API unavailable; using sample districts"); }
+        } catch (org.springframework.web.client.RestClientException e) { log.warn("[GHN] District API unavailable"); }
+        requireSimulationAllowed();
         return switch (provinceId) {
             case 201 -> java.util.List.of(new GhnLocations.District(1450, "Nam Từ Liêm", 201), new GhnLocations.District(1442, "Cầu Giấy", 201));
             case 202 -> java.util.List.of(new GhnLocations.District(1443, "Quận 1", 202));
@@ -70,7 +80,8 @@ public class GhnClient {
             data.forEach(p -> { if (!p.path("WardCode").asText().isBlank())
                 values.add(new GhnLocations.Ward(p.path("WardCode").asText(), p.path("WardName").asText(), districtId)); });
             return values;
-        } catch (org.springframework.web.client.RestClientException e) { log.warn("[GHN] Location API unavailable; using sample wards"); }
+        } catch (org.springframework.web.client.RestClientException e) { log.warn("[GHN] Ward API unavailable"); }
+        requireSimulationAllowed();
         return switch (districtId) {
             case 1450 -> java.util.List.of(new GhnLocations.Ward("20907", "Mễ Trì", 1450), new GhnLocations.Ward("20908", "Mỹ Đình", 1450));
             case 1442 -> java.util.List.of(new GhnLocations.Ward("20101", "Dịch Vọng", 1442));
@@ -90,7 +101,8 @@ public class GhnClient {
             if (fee.signum() < 0 || fee.compareTo(new java.math.BigDecimal("9999999999.99")) > 0)
                 throw new org.springframework.web.client.RestClientException("Invalid GHN fee");
             return fee.setScale(2, java.math.RoundingMode.UNNECESSARY);
-        } catch (org.springframework.web.client.RestClientException | ArithmeticException e) { log.warn("[GHN] Fee API unavailable; using sample fee 30000 VND"); }
+        } catch (org.springframework.web.client.RestClientException | ArithmeticException e) { log.warn("[GHN] Fee API unavailable"); }
+        requireSimulationAllowed();
         return new java.math.BigDecimal("30000.00");
     }
 
@@ -104,6 +116,7 @@ public class GhnClient {
     }
 
     public GhnCreateOrderResponse createShippingOrder(GhnCreateOrderRequest request) {
+        mockMode(); // Reject missing/test credentials in production before doing anything.
         if (settings.token() != null && !settings.token().isBlank()
                 && !"MOCK_TOKEN".equals(settings.token().trim())) {
             try {
@@ -115,13 +128,14 @@ public class GhnClient {
                 String code = result == null || result.data() == null ? null : result.data().orderCode();
                 if (result != null && result.code() == 200 && code != null
                         && code.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,99}")) return result;
-                log.warn("[GHN] Invalid response for order {}; using simulated tracking", request.orderId());
+                log.warn("[GHN] Invalid response for order {}", request.orderId());
             } catch (org.springframework.web.client.RestClientException exception) {
                 // Do not log request headers, customer addresses or response bodies containing PII.
-                log.warn("[GHN] API unavailable for order {} ({}); using simulated tracking",
+                log.warn("[GHN] API unavailable for order {} ({})",
                         request.orderId(), exception.getClass().getSimpleName());
             }
         }
+        requireSimulationAllowed();
         String code = "GHN_HAN_" + request.orderId() + "_" + String.format("%04d", random.nextInt(10000));
         log.info("[GHN] Simulated tracking {}", code);
         return new GhnCreateOrderResponse(200, new GhnCreateOrderResponse.Data(code));
