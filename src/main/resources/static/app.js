@@ -1,6 +1,8 @@
 import { loadFragments } from '/assets/modules/fragments.js';
 import { initializeAccountServices } from '/assets/modules/account-services.js';
 import { initializeAfterSales } from '/assets/modules/after-sales.js';
+import { initializeRecentlyViewed } from '/assets/modules/recently-viewed.js';
+import { initializeProductCarousels } from '/assets/modules/product-carousel.js';
 
 try {
     await loadFragments();
@@ -18,6 +20,8 @@ try {
     features.slice(0, -1).forEach(feature => feature.initializeFeature());
     initializeAccountServices();
     initializeAfterSales();
+    initializeRecentlyViewed();
+    initializeProductCarousels();
     features.at(-1).initializeFeature();
 } catch (error) {
     const status = document.querySelector('#boot-status') || document.body.appendChild(document.createElement('p'));

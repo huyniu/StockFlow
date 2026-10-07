@@ -22,7 +22,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: demo
       # Demo tự nạp catalog và tồn ban đầu; false để giữ chế độ nhập thủ công.
-      DEMO_SEED_CATALOG: ${DEMO_SEED_CATALOG:-true}
+      DEMO_SEED_CATALOG: ${DEMO_SEED_CATALOG:-false}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-stockflow}

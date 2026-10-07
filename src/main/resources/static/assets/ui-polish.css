@@ -86,3 +86,37 @@ body.auth-page-open #auth-form { gap: 14px; }
 .color-copy-tools { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .color-copy-tools select { width: 100%; min-width: 0; }
 .color-copy-tools .button { justify-self: start; white-space: normal; }
+.recently-viewed { margin-block: 36px; padding: 24px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
+.recently-viewed[hidden] { display: none; }
+.recently-viewed-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.recently-viewed-heading h2 { margin: 6px 0 0; }
+.recently-viewed-products { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 64px) / 5); gap: 16px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x proximity; }
+#bestseller-grid { display: grid; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: calc((100% - 60px) / 4); overflow-x: auto; gap: 20px; padding-bottom: 12px; scroll-snap-type: x proximity; }
+#bestseller-grid .product-card { scroll-snap-align: start; }
+@media (max-width: 1000px) { #bestseller-grid { grid-auto-columns: calc((100% - 40px) / 3); } }
+@media (max-width: 600px) { #bestseller-grid { grid-auto-columns: 260px; } }
+.recent-product { display: flex; flex-direction: column; gap: 10px; min-width: 0; color: var(--text); text-decoration: none; scroll-snap-align: start; }
+.recent-product .product-card-img-wrap { border-radius: 12px; overflow: hidden; aspect-ratio: 1; }
+.recent-product-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; line-height: 1.5; min-height: 42px; }
+.recent-product strong { color: var(--primary, #2563eb); font-size: 14px; }
+.recent-product:hover .recent-product-name { color: var(--primary, #2563eb); }
+.shop-footer.shop-footer-expanded { display: block; padding: 32px 24px 0; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; margin-block: 24px; }
+.shop-footer-expanded .footer-brand { color: var(--text); }
+.shop-footer-grid { display: grid; grid-template-columns: 1.35fr .85fr 1fr 1.2fr; gap: 32px; padding-bottom: 28px; }
+.shop-footer-grid > * { min-width: 0; }
+.shop-footer-grid h3 { margin: 0 0 16px; font-size: 15px; }
+.shop-footer-grid p, .footer-about > span { font-size: 13px; line-height: 1.8; color: var(--muted); }
+.shop-footer-grid nav { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.shop-footer-grid nav h3 { margin-bottom: 4px; }
+.shop-footer-grid a, .shop-footer-grid nav button { color: inherit; text-decoration: none; }
+.shop-footer-grid nav button { border: 0; padding: 0; background: transparent; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.shop-footer-grid nav a { font-size: 13px; }
+.shop-footer-grid nav a:hover, .shop-footer-grid nav button:hover { color: var(--primary, #2563eb); }
+.footer-about .footer-hotline { display: block; color: var(--primary, #2563eb); font-weight: 700; font-size: 21px; margin: 16px 0 8px; }
+.footer-service-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.footer-service-badges span { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; background: var(--surface); font-weight: 800; font-size: 14px; }
+.footer-vnpay { color: #2563eb; }
+.footer-ghn { color: #c65a00; }
+.footer-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 20px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+@media (max-width: 1000px) { .shop-footer-grid { grid-template-columns: 1fr 1fr; } .recently-viewed-products { grid-auto-columns: calc((100% - 48px) / 4); } }
+@media (max-width: 600px) { .recently-viewed { padding: 16px; } .recently-viewed-heading { align-items: flex-start; } .recently-viewed-heading h2 { font-size: 20px; } .recently-viewed-heading button { font-size: 12px; } .recently-viewed-products { grid-auto-columns: 145px; } .shop-footer-grid { gap: 24px 16px; } .footer-about, .footer-payment { grid-column: 1 / -1; } }

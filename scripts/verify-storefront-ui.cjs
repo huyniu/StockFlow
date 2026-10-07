@@ -49,7 +49,7 @@ const server=http.createServer(async(req,res)=>{
  const url=new URL(req.url,'http://localhost');
  if(url.pathname==='/api/v1/diagnostics/rejected'){res.writeHead(409,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'CONFLICT',message:'SKU đã tồn tại.'}));return;}
  if(url.pathname.startsWith('/api/')){let text='';for await(const chunk of req)text+=chunk;const body=text?JSON.parse(text):{};res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(fixture(url,req.method,body)));return;}
- const relative=['/','/login','/register'].includes(url.pathname)?'/index.html':url.pathname;
+ const relative=(['/','/login','/register'].includes(url.pathname)||/^\/san-pham\/\d+$/.test(url.pathname))?'/index.html':url.pathname;
  const file=path.resolve(assets,'.'+relative);
  if(!file.startsWith(assets+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}
  const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'};
@@ -144,6 +144,32 @@ async function noOverflow(label){const dimensions=await evaluate(`({viewport:inn
  assert.equal(await evaluate(`document.querySelector('#change-password-form').elements.new_password.value`),'');
  assert.equal(await evaluate(`sessionStorage.getItem('stockflow.web.session')`),null);
  await evaluate(`sessionStorage.setItem('stockflow.web.session',JSON.stringify({token:'layout-token'}))`);
+ await evaluate(`localStorage.removeItem('stockflow.recently-viewed')`);
+ await send('Page.navigate',{url:base+'/san-pham/1'});
+ await until(`(document.querySelector('#recently-viewed-products')?.querySelector('[data-product-id="1"]') ?? null)!==null && !document.querySelector('#recently-viewed').hidden`);
+ assert.deepEqual(await evaluate(`JSON.parse(localStorage.getItem('stockflow.recently-viewed'))`),[1]);
+ await send('Page.reload',{});
+ await until(`document.querySelector('#recently-viewed-products')?.children.length===1`);
+ await evaluate(`document.querySelector('.shop-footer [data-shop-tab="catalog"]').click()`); await until(`!document.querySelector('#shop-catalog').hidden`);
+ for(const width of [375,768,1366]) { await viewport(width);await noOverflow('Recent products/footer '+width);await evaluate(`document.querySelector('.shop-footer').scrollIntoView()`);await evaluate(`new Promise(resolve=>setTimeout(resolve,400))`);await screenshot('recent-footer-'+width); }
+ await viewport(1366);
+ await evaluate(`(()=>{const track=document.querySelector('#recently-viewed-products');const card=track.firstElementChild;for(let i=0;i<7;i++)track.append(card.cloneNode(true));track.scrollLeft=0;track.scrollIntoView({block:'center'});track.dispatchEvent(new Event('pointerleave'));})()`);
+ await until(`document.querySelector('#recently-viewed-products').scrollLeft>10`);
+ await evaluate(`document.querySelector('#recently-viewed-products').dispatchEvent(new Event('pointerenter'));new Promise(resolve=>setTimeout(resolve,600))`);
+ const pausedScroll=await evaluate(`document.querySelector('#recently-viewed-products').scrollLeft`);
+ await evaluate(`new Promise(resolve=>setTimeout(resolve,4200))`);
+ assert.equal(await evaluate(`document.querySelector('#recently-viewed-products').scrollLeft`),pausedScroll);
+ for(const selector of ['#recently-viewed-products','#bestseller-grid']) {
+  const wheel=await evaluate(`(()=>{const track=document.querySelector('${selector}');if('${selector}'==='#bestseller-grid'){track.closest('section').hidden=false;track.replaceChildren(document.querySelector('#catalog-grid .product-card').cloneNode(true));}if(track.children.length<8){const card=track.firstElementChild;for(let i=0;i<8;i++)track.append(card.cloneNode(true));}track.dispatchEvent(new Event('pointerenter'));track.scrollLeft=0;const event=new WheelEvent('wheel',{deltaY:120,bubbles:true,cancelable:true});track.dispatchEvent(event);return {left:track.scrollLeft,blocked:event.defaultPrevented};})()`);
+  assert.ok(wheel.left>0,selector+JSON.stringify(wheel));assert.equal(wheel.blocked,true);
+  const edge=await evaluate(`(()=>{const track=document.querySelector('${selector}');track.scrollLeft=track.scrollWidth;const event=new WheelEvent('wheel',{deltaY:120,bubbles:true,cancelable:true});track.dispatchEvent(event);return event.defaultPrevented;})()`);
+  assert.equal(edge,false);
+  const back=await evaluate(`(()=>{const track=document.querySelector('${selector}');const before=track.scrollLeft;track.dispatchEvent(new WheelEvent('wheel',{deltaY:-120,bubbles:true,cancelable:true}));return track.scrollLeft<before;})()`);
+  assert.equal(back,true);
+ }
+ await evaluate(`document.querySelector('#clear-recently-viewed').click()`);
+ assert.equal(await evaluate(`document.querySelector('#recently-viewed').hidden`),true);
+ assert.deepEqual(await evaluate(`JSON.parse(localStorage.getItem('stockflow.recently-viewed'))`),[]);
  user.role='ADMIN';await send('Page.navigate',{url:base+'/index.html#portal/users'});await until(`document.querySelector('#users-rows')?.textContent.includes('layout@example.test')`);
  for(const width of [320,375,768,1366]) {await viewport(width);await noOverflow('Admin '+width);await screenshot('admin-'+width);}
  await evaluate(`document.querySelector('.aftercare-sidebar [data-action="open-returns"]').click()`);

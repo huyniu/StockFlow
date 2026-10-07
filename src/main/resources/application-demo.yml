@@ -17,7 +17,7 @@ vnpay:
 app:
   demo:
     # Demo tự nạp sản phẩm/tồn 20–50 qua ledger; đặt false khi muốn nhập dữ liệu thủ công.
-    seed-catalog: ${DEMO_SEED_CATALOG:true}
+    seed-catalog: ${DEMO_SEED_CATALOG:false}
   security:
     google:
       # Client ID công khai cho demo local; có thể thay bằng biến môi trường.

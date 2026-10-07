@@ -1,4 +1,5 @@
 import { app as __stockflowApp } from './context.js';
+import { rememberProduct } from './recently-viewed.js';
 
 function renderProducts(products) {
         const cards = __stockflowApp.productCards(products);
@@ -442,6 +443,7 @@ async function loadShopProductDetail() {
             }
             if (!__stockflowApp.isCurrentProductPage(id)) return;
             __stockflowApp.renderShopProductDetail(product, selectedId);
+            rememberProduct(product);
             __stockflowApp.renderCart();
             __stockflowApp.$('#shop-product-name').focus({ preventScroll: true });
             await __stockflowApp.loadProductAvailability();

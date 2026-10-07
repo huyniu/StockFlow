@@ -50,7 +50,7 @@ public class DemoDataSeeder {
     public DemoDataSeeder(UserRepository users, RoleRepository roles, CategoryRepository categories,
             ProductRepository products, WarehouseRepository warehouses, InventoryRepository inventories,
             InventoryService inventoryService, PasswordEncoder passwords, NamedParameterJdbcTemplate jdbc,
-            @Value("${app.demo.seed-catalog:true}") boolean seedCatalog) {
+            @Value("${app.demo.seed-catalog:false}") boolean seedCatalog) {
         this.users = users;
         this.roles = roles;
         this.categories = categories;
