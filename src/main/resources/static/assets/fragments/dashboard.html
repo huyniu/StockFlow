@@ -1,0 +1,634 @@
+<div id="dashboard-view" hidden>
+            <aside class="sidebar">
+                <a class="brand" href="/#portal/orders"
+                    ><span class="brand-mark"
+                        ><svg class="icon"><use href="#i-box" /></svg></span
+                    ><span>StockFlow<small>CỔNG QUẢN TRỊ</small></span></a
+                >
+                <div class="nav-caption">VẬN HÀNH CỬA HÀNG</div>
+                <nav aria-label="Chức năng quản trị">
+                    <button type="button" class="nav-item" data-portal-tab="queue">
+                        <svg class="icon"><use href="#i-order" /></svg><span>Vận hành đơn hàng</span>
+                    </button>
+                    <button type="button" class="nav-item" data-portal-tab="inventory">
+                        <svg class="icon"><use href="#i-warehouse" /></svg><span>Tồn kho & nhập hàng</span>
+                    </button>
+                    <button type="button" class="nav-item" data-portal-tab="ledger" data-roles="ADMIN,MANAGER" hidden>
+                        <svg class="icon"><use href="#i-lock" /></svg><span>Sổ cái kiểm toán</span>
+                    </button>
+                    <button type="button" class="nav-item" data-portal-tab="reports" data-roles="ADMIN,MANAGER" hidden>
+                        <svg class="icon"><use href="#i-chart" /></svg><span>Báo cáo kinh doanh</span>
+                    </button>
+                    <!-- Nhóm danh mục mở theo thao tác người dùng; chỉ ADMIN được nhìn thấy. -->
+                    <button type="button" class="nav-item" data-portal-tab="users" data-roles="ADMIN" hidden>
+                        <svg class="icon"><use href="#i-user" /></svg><span>Quản lý tài khoản</span>
+                    </button>
+                    <div class="nav-group" data-roles="ADMIN" id="nav-catalog-group" hidden>
+                        <button
+                            type="button"
+                            class="nav-item nav-group-toggle"
+                            id="catalog-group-toggle"
+                            data-action="toggle-catalog-menu"
+                            aria-expanded="false"
+                            aria-controls="catalog-subitems"
+                        >
+                            <span class="nav-group-toggle-label">
+                                <svg class="icon"><use href="#i-grid" /></svg><span>Danh mục & Sản phẩm</span>
+                            </span>
+                            <svg class="icon nav-chevron" aria-hidden="true"><use href="#i-arrow" /></svg>
+                        </button>
+                        <div class="nav-subitems" id="catalog-subitems" hidden>
+                            <button type="button" class="nav-subitem" data-portal-tab="categories">
+                                <svg class="icon"><use href="#i-tag" /></svg><span>Danh mục</span>
+                            </button>
+                            <button type="button" class="nav-subitem" data-portal-tab="products">
+                                <svg class="icon"><use href="#i-box" /></svg><span>Sản phẩm</span>
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+                <div class="aftercare-sidebar"><button class="button secondary" type="button" data-action="open-returns" data-roles="MANAGER,ADMIN" hidden>Đổi / trả hàng</button><button class="button secondary" type="button" data-action="open-change-password">Đổi mật khẩu</button></div>
+                <div class="sidebar-note">
+                    <svg class="icon"><use href="#i-lock" /></svg><strong>Lịch sử kho luôn được lưu giữ</strong>
+                    <p>Mỗi lần nhập, giữ, xuất và hoàn hàng đều có biến động để truy vết.</p>
+                </div>
+                <a class="sidebar-swagger" href="/swagger-ui/index.html" target="_blank" rel="noopener noreferrer"
+                    >Tài liệu API · Swagger ↗</a
+                >
+                <button type="button" class="sidebar-shop" data-action="open-shop">← Xem cửa hàng</button>
+            </aside>
+            <div class="workspace">
+                <header class="portal-header">
+                    <div>
+                        <span class="eyebrow">QUẢN TRỊ & VẬN HÀNH</span
+                        ><strong id="portal-title">Vận hành đơn hàng</strong>
+                    </div>
+                    <div class="portal-user">
+                        <span id="portal-name"></span><span id="portal-scope" class="subtle"></span>
+                        <button type="button" class="text-button" data-action="open-shop">← Xem cửa hàng</button>
+                    </div>
+                </header>
+                <main class="portal-main">
+                    <section id="portal-queue" class="portal-panel" hidden>
+                        <div class="section-heading">
+                            <div>
+                                <span class="eyebrow">XỬ LÝ ĐƠN THEO KHO</span>
+                                <h1>Vận hành đơn hàng</h1>
+                                <p>Đóng gói, giao hàng và xác nhận nhận trả theo từng bước.</p>
+                            </div>
+                            <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                        </div>
+                        <!-- Các nút lọc gửi một enum trạng thái như dropdown; không gộp dữ liệu sau phân trang. -->
+                        <div
+                            id="queue-status-tabs"
+                            class="queue-status-tabs"
+                            role="group"
+                            aria-label="Lọc nhanh trạng thái đơn hàng"
+                        >
+                            <button type="button" data-action="queue-status" data-queue-status="" aria-pressed="true">
+                                Tất cả
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="CONFIRMED"
+                                aria-pressed="false"
+                            >
+                                Đã thanh toán<small>Chờ đóng gói</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="PACKED"
+                                aria-pressed="false"
+                            >
+                                Đã đóng gói<small>PACKED</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="SHIPPED"
+                                aria-pressed="false"
+                            >
+                                Đang giao<small>SHIPPED</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="DELIVERED"
+                                aria-pressed="false"
+                            >
+                                Đã giao<small>DELIVERED</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="CANCELLED"
+                                aria-pressed="false"
+                            >
+                                Đã hủy<small>CANCELLED</small>
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-status"
+                                data-queue-status="RETURNED"
+                                aria-pressed="false"
+                            >
+                                Hoàn hàng<small>RETURNED</small>
+                            </button>
+                        </div>
+                        <div class="panel">
+                            <form id="queue-filter" class="filter-bar">
+                                <label>Kho xử lý<select id="queue-warehouse" data-warehouse="all"></select></label>
+                                <label
+                                    >Trạng thái<select id="queue-status">
+                                        <option value="">Tất cả trạng thái</option>
+                                        <option value="CONFIRMED">Đã thanh toán · CONFIRMED</option>
+                                        <option value="PACKED">Đã đóng gói · PACKED</option>
+                                        <option value="SHIPPED">Đang giao · SHIPPED</option>
+                                        <option value="DELIVERED">Đã giao · DELIVERED</option>
+                                        <option value="PENDING">Chờ thanh toán · PENDING</option>
+                                        <option value="CANCELLED">Đã hủy · CANCELLED</option>
+                                        <option value="EXPIRED">Hết hạn · EXPIRED</option>
+                                        <option value="RETURNED">Đã trả hàng · RETURNED</option>
+                                    </select></label
+                                >
+                                <button class="button primary" type="submit">Lọc đơn hàng</button>
+                            </form>
+                            <form id="order-lookup" class="lookup-bar">
+                                <label
+                                    >Tra nhanh theo ID<input
+                                        id="order-id"
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        required
+                                        placeholder="VD: 12"
+                                /></label>
+                                <button class="button secondary" type="submit">Xem chi tiết</button>
+                                <span class="subtle">Chỉ truy cập đơn trong phạm vi được phép.</span>
+                            </form>
+                        </div>
+                        <div class="queue-layout">
+                            <section class="panel">
+                                <div class="panel-heading">
+                                    <h3>Danh sách cần xử lý</h3>
+                                    <span id="queue-count" class="badge neutral">—</span>
+                                </div>
+                                <div class="table-scroll">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Đơn hàng / Khách</th>
+                                                <th>Kho / Trạng thái</th>
+                                                <th class="align-right">Tổng tiền</th>
+                                                <th>Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="queue-rows"></tbody>
+                                    </table>
+                                </div>
+                                <div id="queue-pagination" class="pagination"></div>
+                            </section>
+                            <article
+                                id="queue-detail"
+                                class="panel order-detail"
+                                aria-label="Chi tiết đơn cần xử lý và tạo vận đơn GHN"
+                            ></article>
+                        </div>
+                    </section>
+
+                    <section id="portal-inventory" class="portal-panel" hidden>
+                        <div class="section-heading">
+                            <div>
+                                <span class="eyebrow">VẬN HÀNH KHO</span>
+                                <h1>Tồn kho & nhập hàng</h1>
+                                <p>Phân biệt hàng khả dụng, hàng đang giữ và tổng tồn thực tế.</p>
+                            </div>
+                            <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                        </div>
+                        <div class="panel">
+                            <form id="inventory-filter" class="filter-bar">
+                                <label>Kho hàng<select id="inventory-warehouse" data-warehouse="all"></select></label>
+                                <label>Sản phẩm<select id="inventory-product" data-product="all"></select></label>
+                                <button class="button secondary" type="submit">Tra cứu tồn kho</button>
+                            </form>
+                        </div>
+                        <div class="stock-metrics">
+                            <div class="stock-metric">
+                                <span class="stock-dot available"></span>
+                                <div><span>Khả dụng</span><strong id="stock-available">—</strong></div>
+                            </div>
+                            <div class="stock-metric">
+                                <span class="stock-dot reserved"></span>
+                                <div><span>Đang giữ</span><strong id="stock-reserved">—</strong></div>
+                            </div>
+                            <div class="stock-metric">
+                                <span class="stock-dot physical"></span>
+                                <div><span>Tổng thực tế</span><strong id="stock-physical">—</strong></div>
+                            </div>
+                        </div>
+                        <p class="metric-caption">
+                            Tổng số lượng trên trang đang xem. Tổng thực tế = Khả dụng + Đang giữ.
+                        </p>
+                        <div class="panel">
+                            <div class="panel-heading">
+                                <h3>Chi tiết tồn kho</h3>
+                                <span class="badge neutral" id="inventory-count">—</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm / ID tồn kho</th>
+                                            <th>Kho</th>
+                                            <th class="align-right">Khả dụng</th>
+                                            <th class="align-right">Đang giữ</th>
+                                            <th class="align-right">Tổng thực tế</th>
+                                            <th>Cập nhật</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventory-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="inventory-pagination"></div>
+                        </div>
+                        <section class="panel stock-in-panel" data-roles="ADMIN,WAREHOUSE_STAFF" hidden>
+                            <div class="panel-heading">
+                                <div>
+                                    <h3>Nhập hàng vào kho</h3>
+                                    <p class="subtle">Lưu số tồn và biến động nhập hàng cùng một giao dịch.</p>
+                                </div>
+                            </div>
+                            <form id="stock-in" class="stock-form">
+                                <label
+                                    >Kho nhận<select
+                                        name="warehouse_id"
+                                        id="receipt-warehouse"
+                                        data-warehouse="required"
+                                        required
+                                    ></select
+                                ></label>
+                                <label
+                                    >Sản phẩm<select
+                                        name="product_id"
+                                        id="receipt-product"
+                                        data-product="required"
+                                        required
+                                    ></select
+                                ></label>
+                                <label
+                                    >Số lượng<input
+                                        name="quantity"
+                                        type="number"
+                                        min="1"
+                                        max="2147483647"
+                                        step="1"
+                                        value="10"
+                                        required
+                                /></label>
+                                <label
+                                    >Ghi chú<input
+                                        name="note"
+                                        maxlength="255"
+                                        placeholder="VD: Nhập hàng từ nhà cung cấp"
+                                /></label>
+                                <button class="button primary" type="submit">Nhập kho</button>
+                            </form>
+                        </section>
+                    </section>
+
+                    <section id="portal-ledger" class="portal-panel" hidden>
+                        <div class="section-heading">
+                            <div>
+                                <span class="eyebrow">KIỂM TOÁN KHO</span>
+                                <h1>Sổ cái biến động bất biến</h1>
+                                <p>Chỉ đọc. Mỗi thay đổi tồn kho được ghi bằng một biến động mới.</p>
+                            </div>
+                            <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-heading">
+                                <h3>Lịch sử biến động</h3>
+                                <span class="badge neutral" id="ledger-count">—</span>
+                            </div>
+                            <form id="ledger-filter" class="filter-bar">
+                                <label
+                                    >ID tồn kho<input
+                                        id="ledger-inventory"
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        placeholder="Tất cả dòng tồn kho" /></label
+                                ><button class="button secondary" type="submit">Xem lịch sử</button>
+                            </form>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Biến động</th>
+                                            <th class="align-right">Số lượng</th>
+                                            <th>Tồn trước ➔ Tồn sau</th>
+                                            <th>Tham chiếu / Người thực hiện</th>
+                                            <th>Thời điểm / Ghi chú</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ledger-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="ledger-pagination"></div>
+                        </div>
+                    </section>
+
+                    <section id="portal-reports" class="portal-panel" hidden>
+                        <div class="section-heading">
+                            <div>
+                                <span class="eyebrow">PHÂN TÍCH KINH DOANH</span>
+                                <h1>Báo cáo quản trị</h1>
+                                <p>Doanh thu, sản phẩm bán chạy và cảnh báo bổ sung hàng.</p>
+                            </div>
+                            <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                        </div>
+                        <div id="order-summary" class="report-metrics"></div>
+                        <div id="summary-statuses" class="summary-statuses"></div>
+                        <div class="panel">
+                            <form id="report-filter" class="filter-bar report-filter">
+                                <label>Từ ngày (UTC)<input id="report-from" type="date" /></label>
+                                <label>Đến ngày (UTC)<input id="report-to" type="date" /></label>
+                                <label
+                                    >Nhóm doanh thu<select id="report-group">
+                                        <option value="DAY">Theo ngày</option>
+                                        <option value="MONTH">Theo tháng</option>
+                                    </select></label
+                                >
+                                <label>Kho<select id="report-warehouse" data-warehouse="all"></select></label>
+                                <label
+                                    >Ngưỡng tồn thấp<input
+                                        id="report-threshold"
+                                        type="number"
+                                        min="0"
+                                        max="2147483647"
+                                        step="1"
+                                        value="10"
+                                        required
+                                /></label>
+                                <button class="button primary" type="submit">Áp dụng bộ lọc</button>
+                            </form>
+                        </div>
+                        <div class="panel report-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <h3>Doanh thu theo kỳ & kho</h3>
+                                    <p class="subtle">
+                                        Đơn đã thanh toán và đang thực hiện; nhóm theo ngày tạo đơn UTC.
+                                    </p>
+                                </div>
+                                <span class="badge neutral" id="revenue-count">—</span>
+                            </div>
+                            <!-- Biểu đồ bổ trợ bảng và chỉ biểu diễn các dòng của trang API hiện tại. -->
+                            <div id="revenue-chart" class="report-chart" aria-live="polite"></div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Ngày / Tháng</th>
+                                            <th>Kho hàng</th>
+                                            <th class="align-right">Số đơn</th>
+                                            <th class="align-right">Doanh thu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="revenue-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="revenue-pagination"></div>
+                        </div>
+                        <div class="panel report-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <h3>Top sản phẩm bán chạy</h3>
+                                    <p class="subtle">Theo doanh thu của mọi kho trong khoảng ngày đã chọn.</p>
+                                </div>
+                                <span class="badge neutral" id="top-count">—</span>
+                            </div>
+                            <!-- Tỷ trọng tính trên doanh thu trang hiện tại, không thay thế thống kê toàn kỳ. -->
+                            <div id="top-chart" class="report-chart" aria-live="polite"></div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm / SKU</th>
+                                            <th>Danh mục</th>
+                                            <th class="align-right">Đã bán</th>
+                                            <th class="align-right">Doanh thu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="top-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="top-pagination"></div>
+                        </div>
+                        <div class="panel report-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <h3>Cảnh báo hàng sắp hết</h3>
+                                    <p class="subtle">Theo hàng khả dụng; phần đang giữ không được bán thêm.</p>
+                                </div>
+                                <span class="badge neutral" id="low-count">—</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm / SKU</th>
+                                            <th>Kho</th>
+                                            <th class="align-right">Khả dụng</th>
+                                            <th class="align-right">Đang giữ</th>
+                                            <th class="align-right">Tổng thực tế</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="low-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="low-pagination"></div>
+                        </div>
+                    </section>
+
+                    <!-- Hai trang catalog độc lập; thao tác thêm/sửa chỉ xuất hiện trong hộp thoại riêng. -->
+                    <section id="portal-products" class="portal-panel catalog-panel" hidden>
+                        <div class="section-heading catalog-heading">
+                            <div>
+                                <span class="eyebrow">DANH MỤC & SẢN PHẨM</span>
+                                <h1>Sản phẩm</h1>
+                                <p>Quản lý sản phẩm, hình ảnh và giá bán của cửa hàng.</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="button secondary catalog-refresh" type="button" data-action="refresh">
+                                    <svg class="icon"><use href="#i-refresh" /></svg><span>Làm mới</span>
+                                </button>
+                                <button class="button primary" type="button" data-action="open-product-create">
+                                    <svg class="icon"><use href="#i-plus" /></svg><span>Thêm sản phẩm</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="panel catalog-list-panel">
+                            <div class="catalog-list-heading">
+                                <div>
+                                    <h2>Danh sách sản phẩm</h2>
+                                    <span id="manage-count" class="catalog-count">—</span>
+                                </div>
+                                <span class="catalog-list-note">Thông tin mới nhất từ cửa hàng</span>
+                            </div>
+                            <form id="manage-filter" class="filter-bar catalog-filter">
+                                <label class="catalog-search-label" for="manage-query">
+                                    Tìm kiếm
+                                    <span class="catalog-search">
+                                        <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+                                        <input
+                                            id="manage-query"
+                                            type="search"
+                                            maxlength="200"
+                                            placeholder="Nhập tên sản phẩm hoặc SKU…"
+                                        />
+                                    </span>
+                                </label>
+                                <label for="manage-category">
+                                    Danh mục<select id="manage-category">
+                                        <option value="">Tất cả danh mục</option>
+                                    </select>
+                                </label>
+                                <label for="manage-status">
+                                    Trạng thái<select id="manage-status">
+                                        <option value="">Tất cả trạng thái</option>
+                                        <option value="ACTIVE">Đang bán</option>
+                                        <option value="INACTIVE">Đã ẩn</option>
+                                    </select>
+                                </label>
+                                <div class="catalog-filter-actions">
+                                    <button class="button primary catalog-filter-submit" type="submit">Áp dụng</button>
+                                    <button
+                                        class="catalog-reset"
+                                        type="button"
+                                        data-action="reset-manage-filter"
+                                        title="Bỏ bộ lọc"
+                                    >
+                                        <svg class="icon"><use href="#i-refresh" /></svg><span>Đặt lại</span>
+                                    </button>
+                                </div>
+                            </form>
+                            <div class="table-scroll catalog-table-wrap">
+                                <table class="catalog-table">
+                                    <caption>
+                                        Danh sách sản phẩm và các thao tác quản trị
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm</th>
+                                            <th>Danh mục</th>
+                                            <th class="align-right">Giá bán</th>
+                                            <th>Trạng thái</th>
+                                            <th class="catalog-actions-heading">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="manage-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination" id="manage-pagination"></div>
+                        </div>
+                    </section>
+
+                    <section id="portal-categories" class="portal-panel catalog-panel" hidden>
+                        <div class="section-heading catalog-heading">
+                            <div>
+                                <span class="eyebrow">DANH MỤC & SẢN PHẨM</span>
+                                <h1>Danh mục</h1>
+                                <p>Sắp xếp sản phẩm theo nhóm để khách dễ tìm và lựa chọn.</p>
+                            </div>
+                            <div class="header-actions">
+                                <button class="button secondary catalog-refresh" type="button" data-action="refresh">
+                                    <svg class="icon"><use href="#i-refresh" /></svg><span>Làm mới</span>
+                                </button>
+                                <button class="button primary" type="button" data-action="open-category-create">
+                                    <svg class="icon"><use href="#i-plus" /></svg><span>Thêm danh mục</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="panel catalog-list-panel">
+                            <div class="catalog-list-heading">
+                                <div>
+                                    <h2>Danh sách danh mục</h2>
+                                    <span id="category-count" class="catalog-count">—</span>
+                                </div>
+                                <span class="catalog-list-note">Bao gồm sản phẩm đang bán và đã ẩn</span>
+                            </div>
+                            <!-- Tìm trên cây đã tải để giữ đường dẫn cha/con, không gọi API theo từng phím. -->
+                            <label class="category-admin-search" for="category-admin-query">
+                                Tìm danh mục
+                                <input
+                                    id="category-admin-query"
+                                    type="search"
+                                    maxlength="150"
+                                    placeholder="Nhập tên, đường dẫn hoặc mã danh mục…"
+                                />
+                            </label>
+                            <div class="table-scroll catalog-table-wrap">
+                                <table class="catalog-table category-table">
+                                    <caption>
+                                        Danh mục sản phẩm của cửa hàng
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th>Mã danh mục</th>
+                                            <th>Tên danh mục</th>
+                                            <th>Đường dẫn nhận diện</th>
+                                            <th class="align-right">Tổng sản phẩm</th>
+                                            <th class="category-actions-heading">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="category-rows"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- ADMIN quản lý hãng riêng để không tạo Apple/Samsung thành danh mục cấp cao. -->
+                        <div class="panel catalog-list-panel brand-admin-panel">
+                            <div class="catalog-list-heading">
+                                <div>
+                                    <h2>Thương hiệu</h2>
+                                    <span id="brand-count" class="catalog-count">—</span>
+                                </div>
+                                <button class="button primary" type="button" data-action="open-brand-create">
+                                    <svg class="icon"><use href="#i-plus" /></svg>Thêm thương hiệu
+                                </button>
+                            </div>
+                            <p class="brand-admin-note">
+                                Chọn danh mục khi tạo sản phẩm, rồi chọn hãng ở trường Thương hiệu. Thêm logo giúp khách
+                                nhận diện hãng dễ hơn.
+                            </p>
+                            <label class="brand-admin-search" for="brand-admin-query">
+                                Tìm thương hiệu
+                                <input
+                                    id="brand-admin-query"
+                                    type="search"
+                                    placeholder="Nhập tên hãng, ví dụ: Samsung, Sony…"
+                                    maxlength="150"
+                                />
+                            </label>
+                            <div id="brand-admin-list" class="brand-admin-list"></div>
+                        </div>
+                    </section>
+                    <section id="portal-users" class="portal-panel" hidden aria-labelledby="admin-users-title">
+                        <div class="section-heading"><div><span class="eyebrow">QUẢN TRỊ NGƯỜI DÙNG</span><h1 id="admin-users-title">Quản lý tài khoản</h1><p>Xem thông tin, tìm kiếm và khóa/mở khóa tài khoản.</p></div><button type="button" class="button secondary" data-action="refresh">Làm mới</button></div>
+                        <form id="admin-users-filter" class="panel account-admin-filter">
+                            <label>Tìm tên, email hoặc số điện thoại<input id="admin-users-query" type="search" maxlength="200" placeholder="Nhập thông tin cần tìm"></label>
+                            <label>Vai trò<select id="admin-users-role"><option value="">Tất cả vai trò</option><option value="CUSTOMER">Khách hàng</option><option value="WAREHOUSE_STAFF">Nhân viên kho</option><option value="MANAGER">Quản lý</option><option value="ADMIN">Quản trị viên</option></select></label>
+                            <label>Trạng thái<select id="admin-users-status"><option value="">Tất cả trạng thái</option><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Đã khóa</option></select></label>
+                            <button type="submit" class="button primary">Lọc tài khoản</button>
+                        </form>
+                        <div class="panel"><div class="catalog-list-heading"><h2>Danh sách tài khoản</h2><span id="admin-users-count">—</span></div><div class="table-wrap"><table><thead><tr><th>Tài khoản</th><th>Liên hệ</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="users-rows"></tbody></table></div><div id="users-pagination" class="pagination"></div></div>
+                    </section>
+                    <footer class="page-footer">
+                        <span>StockFlow · Cổng vận hành cửa hàng nhiều kho</span
+                        ><span id="last-sync">Dữ liệu trực tiếp từ hệ thống</span>
+                    </footer>
+                </main>
+            </div>
+        </div>

@@ -1,0 +1,14 @@
+{
+  "styles.css": [
+    "css/base.css",
+    "css/storefront.css",
+    "css/portal.css",
+    "css/dialogs-checkout.css",
+    "css/responsive.css",
+    "css/catalog-admin.css",
+    "css/product-interactions.css",
+    "css/catalog-filters.css",
+    "css/account-contact.css",
+    "css/auth-artwork.css"
+  ]
+}

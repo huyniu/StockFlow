@@ -14,6 +14,8 @@ import org.springframework.data.repository.query.Param;
  * Repository truy vấn bảng users, ưu tiên load kèm role cho các luồng authentication.
  */
 public interface UserRepository extends JpaRepository<User, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<User> {
+    @EntityGraph(attributePaths = "role")
+    Optional<User> findByGoogleSubject(String googleSubject);
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u JOIN FETCH u.role WHERE u.id=:id")
     Optional<User> findLockedById(@Param("id") Long id);

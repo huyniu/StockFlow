@@ -18,6 +18,8 @@ spring:
     locations: filesystem:src/test/resources/db/migration
 
 app:
+  mail:
+    order-notifications-enabled: false
   # Test gọi tác vụ hết hạn chủ động để kiểm soát thời gian và không đua với scheduler nền.
   orders:
     expiry:

@@ -19,5 +19,8 @@ app:
     # Demo tự nạp sản phẩm/tồn 20–50 qua ledger; đặt false khi muốn nhập dữ liệu thủ công.
     seed-catalog: ${DEMO_SEED_CATALOG:true}
   security:
+    google:
+      # Client ID công khai cho demo local; có thể thay bằng biến môi trường.
+      client-id: ${GOOGLE_CLIENT_ID:1047952604572-ohm0aaqei4kbcae8t7d9gjgtdhg7he43.apps.googleusercontent.com}
     jwt:
       secret: ${JWT_SECRET:stockflow-demo-secret-for-local-use-only-2026}

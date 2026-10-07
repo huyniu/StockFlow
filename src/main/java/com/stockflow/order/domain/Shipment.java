@@ -38,6 +38,12 @@ public class Shipment {
     @Column(name = "delivered_at")
     private Instant deliveredAt;
 
+    @Column(name = "carrier_mode", nullable = false, length = 30)
+    private String carrierMode = "MANUAL";
+
+    public String getCarrierMode() { return carrierMode; }
+    public void setCarrierMode(String carrierMode) { this.carrierMode = carrierMode; }
+
     /** Hàm khởi tạo cho JPA. */
     protected Shipment() {
     }

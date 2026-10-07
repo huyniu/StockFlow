@@ -30,8 +30,20 @@ public class User {
     @Column(nullable = false, unique = true, length = 255)
     private String email;
 
+    @Column(name = "google_subject", unique = true, length = 255)
+    private String googleSubject;
+
+    public String getGoogleSubject() { return googleSubject; }
+    public void setGoogleSubject(String googleSubject) { this.googleSubject = googleSubject; }
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
+
+    @Column(name = "auth_version", nullable = false)
+    private long authVersion;
+    public long getAuthVersion() { return authVersion; }
+    public void invalidateAccessTokens() { authVersion++; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 
     @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;

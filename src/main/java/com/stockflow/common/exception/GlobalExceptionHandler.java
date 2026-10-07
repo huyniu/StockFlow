@@ -20,6 +20,13 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidUpload(
+            org.springframework.web.multipart.MultipartException exception, HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(buildResponse(HttpStatus.BAD_REQUEST,
+                "Không đọc được ảnh hoặc ảnh vượt giới hạn 2 MB. Hãy gửi từng ảnh PNG/JPEG.", request.getRequestURI(), null));
+    }
+
     @ExceptionHandler(EmailNotVerifiedException.class)
     public ResponseEntity<java.util.Map<String, String>> handleEmailNotVerified(EmailNotVerifiedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)

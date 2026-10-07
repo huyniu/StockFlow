@@ -70,6 +70,7 @@ public class OrderService {
     private final Validator validator;
     private final ProductVariantRepository variants;
     private final com.stockflow.shipping.service.ShippingQuoteService shippingQuotes;
+    private final OrderNotificationService notifications;
 
     /** Nhận repository và EntityManager để refresh số tồn sau UPDATE nguyên tử. */
     public OrderService(
@@ -82,7 +83,7 @@ public class OrderService {
             EntityManager em,
             Validator validator,
             ProductVariantRepository variants,
-            com.stockflow.shipping.service.ShippingQuoteService shippingQuotes) {
+            com.stockflow.shipping.service.ShippingQuoteService shippingQuotes, OrderNotificationService notifications) {
         this.orders = orders;
         this.payments = payments;
         this.shipments = shipments;
@@ -93,6 +94,7 @@ public class OrderService {
         this.validator = validator;
         this.variants = variants;
         this.shippingQuotes = shippingQuotes;
+        this.notifications = notifications;
     }
 
     /** Tạo đơn giữ hàng 15 phút; cập nhật theo inventoryId tăng dần để tránh chu trình khóa chéo. */
@@ -243,6 +245,7 @@ public class OrderService {
         }
         payments.save(new Payment(order.getId(), order.getTotalAmount(), method));
         order.changeStatus(OrderStatus.CONFIRMED);
+        notifications.queue(order, "CONFIRMED");
         return response(order);
     }
 
@@ -344,6 +347,7 @@ public class OrderService {
         // PostgreSQL/H2 lưu timestamp ở độ chính xác micro giây; gọi lặp giữ đúng snapshot thời gian.
         shipment.ship(trackingCode, Instant.now().truncatedTo(ChronoUnit.MICROS));
         order.changeStatus(OrderStatus.SHIPPED);
+        notifications.queue(order, "SHIPPED");
         return OrderResponse.from(order, saveShipment(shipment));
     }
 
@@ -362,6 +366,7 @@ public class OrderService {
         shipment.deliver(Instant.now().truncatedTo(ChronoUnit.MICROS));
         payment.collectCod();
         order.changeStatus(OrderStatus.DELIVERED);
+        notifications.queue(order, "DELIVERED");
         return OrderResponse.from(order, shipment);
     }
 

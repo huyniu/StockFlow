@@ -1,0 +1,392 @@
+/* Responsive: giỏ và điều hướng co theo màn hình; bảng dài chỉ cuộn bên trong panel. */
+@media (max-width: 1280px) {
+    :root {
+        --sidebar-width: 210px;
+    }
+    .demo-caption {
+        display: none;
+    }
+    .shop-header {
+        gap: 18px;
+    }
+    .shop-brand > span:last-child {
+        font-size: 21px;
+    }
+    .shop-header-actions {
+        gap: 12px;
+    }
+    .cart-trigger span {
+        display: none;
+    }
+    .sidebar {
+        width: 210px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    .workspace {
+        margin-left: 210px;
+    }
+    .portal-main {
+        padding: 25px 22px 0;
+    }
+    .queue-layout {
+        grid-template-columns: 1fr;
+    }
+    .stock-form {
+        grid-template-columns: 1fr 1.3fr 0.7fr;
+    }
+    .stock-form label:nth-child(4) {
+        grid-column: span 2;
+    }
+}
+@media (max-width: 1050px) {
+    .session-controls #identity-email {
+        display: none;
+    }
+    .shop-header {
+        flex-wrap: wrap;
+    }
+    .shop-brand {
+        order: 0;
+    }
+    .shop-header-actions {
+        order: 1;
+        margin-left: auto;
+    }
+    .search-box {
+        order: 2;
+        flex-basis: 60%;
+    }
+    .branch-picker {
+        order: 3;
+        flex: 1;
+    }
+    .branch-picker select {
+        max-width: 100%;
+    }
+    .product-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .shop-hero {
+        padding: 30px;
+    }
+    .order-layout {
+        grid-template-columns: 1fr;
+    }
+    .report-metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (max-width: 760px) {
+    :root {
+        --demo-height: 79px;
+        --sidebar-width: 0px;
+    }
+    .demo-bar {
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 7px 12px;
+        align-content: center;
+    }
+    .demo-accounts {
+        flex-basis: 100%;
+        overflow-x: auto;
+        padding-bottom: 3px;
+        scrollbar-width: none;
+    }
+    .demo-accounts button {
+        font-size: 9px;
+        padding: 6px 8px;
+    }
+    .demo-full {
+        display: none;
+    }
+    .demo-short {
+        display: inline;
+    }
+    .session-controls {
+        width: 100%;
+        gap: 7px;
+        height: 25px;
+    }
+    .session-controls #identity-email {
+        display: inline;
+        max-width: 185px;
+    }
+    .shop-header {
+        padding: 17px 16px;
+        gap: 13px;
+    }
+    /* Trên điện thoại dành trọn một hàng cho chi nhánh để không cắt mất tên nơi phục vụ. */
+    .search-box {
+        flex-basis: 100%;
+    }
+    .branch-picker {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-basis: 100%;
+        font-size: 9px;
+    }
+    .branch-picker select {
+        flex: 1;
+        max-width: none;
+        min-width: 0;
+        padding: 7px 5px;
+        font-size: 11px;
+    }
+    .shop-brand > span:last-child {
+        font-size: 20px;
+    }
+    .shop-brand .brand-mark {
+        width: 33px;
+        height: 36px;
+        border-radius: 10px;
+    }
+    .shop-header-actions {
+        gap: 12px;
+    }
+    .header-button span {
+        display: none;
+    }
+    .cart-trigger {
+        padding: 9px;
+    }
+    .shop-nav {
+        padding: 0 16px;
+    }
+    .shop-nav-links {
+        gap: 15px;
+    }
+    .shop-nav button {
+        font-size: 10px;
+    }
+    .portal-link {
+        font-size: 8px !important;
+    }
+    .shop-main {
+        padding: 17px 16px 0;
+    }
+    .shop-hero {
+        grid-template-columns: 1fr;
+        padding: 28px;
+        min-height: auto;
+    }
+    .hero-copy h1 {
+        font-size: 34px;
+    }
+    .hero-copy p {
+        font-size: 11px;
+    }
+    .hero-details {
+        margin-top: 18px;
+        font-size: 8px;
+    }
+    .shop-benefits {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 11px;
+        padding: 19px 0;
+        font-size: 9px;
+    }
+    .shop-benefits span:first-child {
+        flex-basis: 100%;
+    }
+    .shelf-heading h2 {
+        font-size: 22px;
+    }
+    .shelf-heading .subtle {
+        font-size: 9px;
+    }
+    .catalog-toolbar {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .category-chips {
+        flex-basis: 100%;
+        gap: 6px;
+    }
+    .category-chips button {
+        padding: 7px 11px;
+        font-size: 9px;
+    }
+    .compact-select {
+        max-width: 160px;
+    }
+    .product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+    /* Khung ảnh thấp hơn trên điện thoại, vẫn có khoảng trống để ảnh không chạm mép thẻ. */
+    .product-card .product-card-img-wrap {
+        height: 160px;
+        padding: 18px;
+    }
+    .product-card-body {
+        padding: 13px;
+    }
+    .product-card-footer {
+        gap: 11px;
+    }
+    .product-price {
+        font-size: 19px;
+    }
+    .product-rating {
+        gap: 4px;
+        font-size: 9px;
+    }
+    .product-stock {
+        font-size: 10px;
+    }
+    .product-tag {
+        top: 10px;
+        left: 10px;
+        font-size: 9px;
+        padding: 4px 9px;
+    }
+    .add-button {
+        font-size: 11px;
+        padding: 10px 9px;
+    }
+    .shop-footer {
+        flex-direction: column;
+        align-items: start;
+        padding: 25px 0;
+        gap: 16px;
+    }
+    .sidebar {
+        position: static;
+        width: 100%;
+        padding: 0;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+    }
+    .sidebar .brand,
+    .nav-caption,
+    .sidebar-note,
+    .sidebar-swagger,
+    .sidebar-shop {
+        display: none;
+    }
+    .sidebar nav {
+        flex-direction: row;
+        gap: 0;
+        overflow-x: auto;
+        padding: 7px 10px;
+    }
+    .nav-item {
+        flex-shrink: 0;
+        padding: 10px;
+        gap: 6px;
+        color: #8590a2;
+        font-size: 9px;
+    }
+    .nav-item.active,
+    .nav-item:hover {
+        background: #e9eef5;
+        color: var(--brand);
+    }
+    .nav-item .icon {
+        width: 15px;
+        height: 15px;
+    }
+    .workspace {
+        margin: 0;
+    }
+    .portal-header {
+        padding: 16px;
+        gap: 12px;
+    }
+    .portal-header strong {
+        font-size: 13px;
+    }
+    .portal-user {
+        font-size: 10px;
+        max-width: 150px;
+    }
+    .portal-main {
+        padding: 20px 16px 0;
+    }
+    .section-heading {
+        gap: 13px;
+    }
+    .section-heading h1 {
+        font-size: 24px;
+    }
+    .section-heading p {
+        font-size: 10px;
+    }
+    .section-heading > .button {
+        font-size: 9px;
+        padding: 8px 10px;
+    }
+    .filter-bar {
+        padding: 16px;
+        gap: 12px;
+    }
+    .filter-bar label {
+        min-width: 125px;
+        flex: 1;
+    }
+    .panel-heading {
+        padding: 17px;
+    }
+    .lookup-bar {
+        flex-wrap: wrap;
+        padding: 0 16px 17px;
+    }
+    .lookup-bar .subtle {
+        flex-basis: 100%;
+    }
+    th,
+    td {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    .stock-metrics {
+        gap: 9px;
+    }
+    .stock-metric {
+        padding: 15px 10px;
+        gap: 8px;
+    }
+    .stock-metric span {
+        font-size: 9px;
+    }
+    .stock-metric strong {
+        font-size: 23px;
+    }
+    .stock-form {
+        grid-template-columns: 1fr 1fr;
+        padding: 17px;
+    }
+    .stock-form label:nth-child(4) {
+        grid-column: auto;
+    }
+    .stock-form .button {
+        grid-column: span 2;
+    }
+    .form-columns {
+        grid-template-columns: 1fr;
+    }
+    .pagination {
+        padding: 15px;
+        font-size: 9px;
+        gap: 7px;
+    }
+    .pagination-actions {
+        gap: 6px;
+    }
+    .page-footer {
+        flex-direction: column;
+        gap: 5px;
+    }
+    .notice {
+        margin: 10px 16px;
+    }
+    .portal-open #api-notice {
+        margin-left: 16px;
+    }
+    /* Kết thúc responsive chung trước các thành phần catalog để desktop cũng được áp dụng. */
+}
+

@@ -1,0 +1,753 @@
+<div id="storefront-view">
+            <!-- Khi mở danh mục, nền tối và mờ giữ nội dung menu sáng; nhấn nền để đóng. -->
+            <button
+                id="category-menu-backdrop"
+                class="category-menu-backdrop"
+                type="button"
+                data-action="close-category-menu"
+                aria-label="Đóng danh mục và quay lại cửa hàng"
+                tabindex="-1"
+                hidden
+            ></button>
+            <header class="shop-header">
+                <a href="/#shop" class="shop-brand" data-shop-link>
+                    <span class="brand-mark"
+                        ><svg class="icon"><use href="#i-box" /></svg
+                    ></span>
+                    <span
+                        >StockFlow<span class="brand-shop">Tech</span
+                        ><small>ĐIỆN THOẠI · LAPTOP · PHỤ KIỆN</small></span
+                    >
+                </a>
+                <!-- Menu lấy danh mục thật từ API; khoảng giá được áp dụng tại database, không tạo thương hiệu giả. -->
+                <div class="category-menu-anchor">
+                    <button
+                        id="category-menu-toggle"
+                        class="category-menu-toggle"
+                        type="button"
+                        data-action="toggle-category-menu"
+                        aria-expanded="false"
+                        aria-controls="category-menu-panel"
+                    >
+                        <svg class="icon"><use href="#i-grid" /></svg>
+                        <span>Danh mục</span>
+                        <span class="menu-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <section
+                        id="category-menu-panel"
+                        class="category-menu-panel"
+                        aria-label="Danh mục và khoảng giá"
+                        hidden
+                    >
+                        <div class="category-menu-rail">
+                            <div class="category-menu-heading">
+                                <span>Danh mục sản phẩm</span>
+                                <button
+                                    class="icon-button"
+                                    type="button"
+                                    data-action="close-category-menu"
+                                    aria-label="Đóng danh mục"
+                                >
+                                    <svg class="icon"><use href="#i-close" /></svg>
+                                </button>
+                            </div>
+                            <nav id="category-menu-list" class="category-menu-list" aria-label="Chọn danh mục sản phẩm">
+                                <p class="category-menu-message">Đang tải danh mục…</p>
+                            </nav>
+                        </div>
+                        <div id="category-menu-detail" class="category-menu-detail"></div>
+                    </section>
+                </div>
+                <!-- Gợi ý dùng catalog thật; tắt lịch sử nhập native để không nhầm với sản phẩm của cửa hàng. -->
+                <form id="catalog-filter" class="search-box" role="search" autocomplete="off">
+                    <label class="sr-only" for="catalog-query">Tìm sản phẩm theo tên hoặc mã SKU</label>
+                    <input
+                        id="catalog-query"
+                        type="search"
+                        placeholder="Tìm điện thoại, laptop, phụ kiện hoặc mã SKU…"
+                        maxlength="200"
+                        autocomplete="off"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded="false"
+                        aria-controls="search-suggestions-list"
+                        aria-describedby="search-keyboard-hint"
+                    />
+                    <button type="submit" class="icon-button" aria-label="Tìm sản phẩm">
+                        <svg class="icon"><use href="#i-search" /></svg>
+                    </button>
+                    <span id="search-keyboard-hint" class="sr-only">
+                        Gõ tên, mã SKU, phiên bản hoặc màu. Dùng phím lên xuống để chọn gợi ý, Enter để mở hoặc tìm,
+                        Escape để đóng.
+                    </span>
+                    <div id="search-suggestions" class="search-suggestions" hidden>
+                        <div class="search-suggestions-heading">
+                            <strong>Gợi ý sản phẩm</strong>
+                            <span>Tên, mã SKU, phiên bản hoặc màu</span>
+                        </div>
+                        <div
+                            id="search-suggestions-list"
+                            role="listbox"
+                            aria-label="Sản phẩm phù hợp"
+                            tabindex="-1"
+                        ></div>
+                        <div id="search-suggestions-feedback" class="search-suggestions-feedback" hidden></div>
+                        <button type="submit" class="search-suggestions-all">
+                            <span id="search-suggestions-all-label">Tìm tất cả kết quả</span>
+                            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                        </button>
+                    </div>
+                    <span id="search-suggestions-status" class="sr-only" role="status" aria-live="polite"></span>
+                </form>
+                <label class="branch-picker"
+                    >Chi nhánh phục vụ
+                    <select id="shop-warehouse" data-store-warehouse aria-label="Chọn chi nhánh phục vụ">
+                        <option value="">Đang tải chi nhánh…</option>
+                    </select>
+                </label>
+                <div class="shop-header-actions">
+                    <button type="button" class="header-button wishlist-header" data-action="open-wishlist" aria-label="Xem sản phẩm yêu thích">
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg><span>Yêu thích <b id="wishlist-count">0</b></span>
+                    </button>
+                    <!-- Hồ sơ khách hàng tách khỏi quyền quản trị; thông tin nhận hàng vẫn sửa riêng theo đơn. -->
+                    <details id="header-account" class="header-account" hidden>
+                        <summary class="header-button header-account-toggle" aria-label="Mở menu tài khoản">
+                            <svg class="icon" aria-hidden="true"><use href="#i-user" /></svg>
+                            <span id="header-account-name"></span><span class="account-chevron" aria-hidden="true">⌄</span>
+                        </summary>
+                        <div class="header-account-panel">
+                            <div class="account-menu-identity"><strong id="account-menu-name"></strong><span id="account-menu-email"></span><span id="account-menu-role"></span></div>
+                            <button type="button" data-action="my-account" data-roles="CUSTOMER" hidden><svg class="icon" aria-hidden="true"><use href="#i-user" /></svg>Thông tin cá nhân</button>
+                            <button type="button" data-action="my-orders" data-roles="CUSTOMER" hidden><svg class="icon" aria-hidden="true"><use href="#i-order" /></svg>Đơn hàng của tôi</button>
+                            <button type="button" data-action="open-portal" data-roles="ADMIN,MANAGER,WAREHOUSE_STAFF" hidden><svg class="icon" aria-hidden="true"><use href="#i-grid" /></svg><span id="account-portal-label">Truy cập cổng quản trị</span></button>
+                            <button type="button" data-action="logout"><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>Đăng xuất</button>
+                            <button type="button" data-action="open-change-password">Đổi mật khẩu</button>
+                            <button type="button" data-action="open-returns" data-roles="CUSTOMER,MANAGER,ADMIN" hidden>Yêu cầu đổi / trả hàng</button>
+                        </div>
+                    </details>
+                    <button type="button" class="header-button" id="open-login" data-action="open-auth">
+                        <svg class="icon"><use href="#i-user" /></svg><span>Đăng nhập / Đăng ký</span>
+                    </button>
+                    <button type="button" class="cart-trigger" data-action="open-cart" aria-label="Mở giỏ hàng">
+                        <svg class="icon"><use href="#i-cart" /></svg><span>Giỏ hàng</span><b id="cart-badge">0</b>
+                    </button>
+                </div>
+            </header>
+
+            <main class="shop-main">
+                <section id="shop-catalog" class="shop-panel" aria-labelledby="catalog-title">
+                    <!-- Nút Danh mục trên desktop ghim chính ô cạnh banner; không mở thêm một menu trùng. -->
+                    <div class="shop-discovery">
+                        <aside id="home-categories" class="home-categories" aria-labelledby="home-categories-title">
+                            <div class="home-categories-heading">
+                                <svg class="icon" aria-hidden="true"><use href="#i-grid" /></svg>
+                                <h2 id="home-categories-title" tabindex="-1">Danh mục sản phẩm</h2>
+                                <button
+                                    class="home-categories-close"
+                                    type="button"
+                                    data-action="close-category-menu"
+                                    aria-label="Đóng bảng danh mục"
+                                >
+                                    <svg class="icon" aria-hidden="true"><use href="#i-close" /></svg>
+                                </button>
+                            </div>
+                            <nav
+                                id="home-category-list"
+                                class="home-category-list"
+                                aria-label="Khám phá danh mục cửa hàng"
+                            >
+                                <p class="category-menu-message">Đang tải danh mục…</p>
+                            </nav>
+                            <p class="home-categories-hint">Cuộn để xem thêm danh mục</p>
+                            <section
+                                id="home-category-detail"
+                                class="home-category-detail"
+                                aria-label="Nhóm sản phẩm, thương hiệu và khoảng giá"
+                                hidden
+                            ></section>
+                        </aside>
+                        <!-- Khu trưng bày lấy ảnh, giá và liên kết từ catalog thật; các lớp sáng chỉ là trang trí CSS. -->
+                        <section class="shop-hero tech-hero" aria-labelledby="hero-title">
+                            <div class="hero-atmosphere" aria-hidden="true">
+                                <span class="hero-orbit hero-orbit-one"></span>
+                                <span class="hero-orbit hero-orbit-two"></span>
+                                <span class="hero-light-point"></span>
+                            </div>
+                            <div class="hero-copy">
+                                <span class="hero-label"
+                                    ><span aria-hidden="true"></span>THẾ GIỚI CÔNG NGHỆ CỦA BẠN</span
+                                >
+                                <h1 id="hero-title">Công nghệ bạn thích.<br /><em>Phong cách của bạn.</em></h1>
+                                <p>
+                                    Từ điện thoại đến laptop và phụ kiện. Khám phá, chọn phiên bản và tìm màu sắc dành
+                                    cho bạn.
+                                </p>
+                                <a class="button primary hero-shop-button" href="#product-shelf">
+                                    Khám phá sản phẩm <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                                </a>
+                                <div class="hero-details">
+                                    <span>CỬA HÀNG CÔNG NGHỆ STOCKFLOW TECH</span>
+                                    <span
+                                        ><svg class="icon" aria-hidden="true"><use href="#i-warehouse" /></svg>Chọn chi
+                                        nhánh. Mua sắm theo cách của bạn.</span
+                                    >
+                                </div>
+                            </div>
+                            <!-- Khung giữ nguyên kích thước khi tải; sản phẩm là liên kết thật, sử dụng được bằng bàn phím. -->
+                            <div
+                                id="hero-showcase"
+                                class="hero-showcase"
+                                aria-label="Khám phá sản phẩm StockFlow"
+                                aria-busy="true"
+                            >
+                                <div class="hero-device hero-device-main hero-device-skeleton" aria-hidden="true"></div>
+                                <div
+                                    class="hero-device hero-device-secondary hero-device-skeleton"
+                                    aria-hidden="true"
+                                ></div>
+                                <div
+                                    class="hero-device hero-device-tertiary hero-device-skeleton"
+                                    aria-hidden="true"
+                                ></div>
+                                <span class="sr-only" role="status">Đang tải sản phẩm trưng bày…</span>
+                            </div>
+                        </section>
+                    </div>
+                    <!-- Thông tin mua sắm phản ánh các chức năng đã có; không thêm cam kết hoặc khuyến mãi giả. -->
+                    <div class="shop-benefits tech-benefits">
+                        <span
+                            ><svg class="icon" aria-hidden="true"><use href="#i-warehouse" /></svg
+                            ><span
+                                ><strong>Chi nhánh bạn chọn</strong><small>Hà Nội · Đà Nẵng · TP.HCM</small></span
+                            ></span
+                        >
+                        <span
+                            ><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg
+                            ><span
+                                ><strong>An tâm chọn mua</strong><small>Giữ hàng 15 phút khi đặt đơn</small></span
+                            ></span
+                        >
+                        <span
+                            ><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg
+                            ><span
+                                ><strong>Theo dõi từng bước</strong><small>Trạng thái đơn và mã vận đơn</small></span
+                            ></span
+                        >
+                    </div>
+                    <!-- Lối tắt chỉ trỏ tới danh mục có thật; không sinh thêm danh mục hoặc SKU ở frontend. -->
+                    <section class="discovery-section category-discovery" aria-labelledby="category-discovery-title">
+                        <div class="discovery-heading">
+                            <div>
+                                <span class="eyebrow">CHỌN ĐÚNG THIẾT BỊ</span>
+                                <h2 id="category-discovery-title">Bạn đang tìm gì?</h2>
+                            </div>
+                            <a href="/#shop/catalog" data-catalog-link
+                                >Tất cả sản phẩm <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg
+                            ></a>
+                        </div>
+                        <div id="discovery-categories" class="discovery-categories" aria-live="polite"></div>
+                    </section>
+                    <!-- Bán chạy dựa trên API tổng hợp đơn đã trả tiền; chưa có doanh số thì hiển thị đúng trạng thái trống. -->
+                    <section class="discovery-section bestseller-section" aria-labelledby="bestseller-title">
+                        <div class="discovery-heading">
+                            <div>
+                                <span class="eyebrow">TỪ LỰA CHỌN CỦA KHÁCH HÀNG</span>
+                                <h2 id="bestseller-title">Sản phẩm bán chạy</h2>
+                                <p>Xếp theo số lượng từ các đơn đã thanh toán còn hiệu lực.</p>
+                            </div>
+                            <button type="button" class="button secondary small" data-action="refresh-bestsellers">
+                                Làm mới
+                            </button>
+                        </div>
+                        <div
+                            id="bestseller-grid"
+                            class="product-grid bestseller-grid"
+                            aria-live="polite"
+                            aria-busy="true"
+                        ></div>
+                    </section>
+                    <!-- Tiêu đề, số kết quả thật và sắp xếp cùng hàng để khách duyệt kệ gọn hơn. -->
+                    <div id="product-shelf" class="shelf-heading catalog-shelf-heading">
+                        <div class="catalog-heading-copy">
+                            <span class="eyebrow">KHÁM PHÁ CÔNG NGHỆ</span>
+                            <div class="catalog-title-line">
+                                <h2 id="catalog-title">Sản phẩm & đặt hàng</h2>
+                                <span id="catalog-count" class="subtle" role="status">—</span>
+                            </div>
+                        </div>
+                        <label class="catalog-sort-label shelf-sort" for="catalog-sort"
+                            ><span>Sắp xếp</span>
+                            <select id="catalog-sort">
+                                <option value="id,asc">Mặc định</option>
+                                <option value="unitPrice,asc">Giá tăng dần</option>
+                                <option value="unitPrice,desc">Giá giảm dần</option>
+                                <option value="createdAt,desc">Mới nhất</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="catalog-toolbar">
+                        <!-- Các nhóm chính đã chuyển sang menu bên trái; bộ chọn vẫn lọc được mọi cấp con. -->
+                        <div id="category-chips" class="category-chips" aria-label="Lọc danh mục" hidden></div>
+                        <label class="sr-only" for="catalog-category">Danh mục</label>
+                        <select id="catalog-category" form="catalog-filter" class="compact-select">
+                            <option value="">Tất cả danh mục</option>
+                        </select>
+                        <button class="text-button" type="button" data-action="refresh">Làm mới</button>
+                    </div>
+                    <!-- Hai đầu mút giá và thứ tự sắp xếp gửi cùng danh mục/từ khóa, áp dụng trước phân trang. -->
+                    <div class="catalog-discovery-filters price-discovery compact-discovery">
+                        <form id="catalog-spec-filter" class="catalog-spec-filter">
+                            <strong>Lọc theo thông số</strong>
+                            <label>Thông số<input id="catalog-spec-name" list="catalog-spec-names" maxlength="100" placeholder="Ví dụ: RAM, CPU, Bộ nhớ" required /></label>
+                            <label>Giá trị<input id="catalog-spec-value" list="catalog-spec-values" maxlength="1000" placeholder="Chọn hoặc nhập giá trị" required /></label>
+                            <datalist id="catalog-spec-names"></datalist><datalist id="catalog-spec-values"></datalist>
+                            <button class="button secondary small" type="submit">Lọc thông số</button>
+                            <button class="text-button" type="button" data-action="clear-catalog-filter" data-filter="specification">Bỏ lọc thông số</button>
+                            <small>Chọn đúng tên và giá trị trong bảng thông số. Ví dụ 8 GB và 8GB được xem như nhau.</small>
+                        </form>
+                        <!-- Chip hãng lấy cùng danh sách với select, không hardcode thương hiệu hoặc gọi API khác. -->
+                        <div class="catalog-brand-discovery">
+                            <div class="catalog-brand-heading">
+                                <span class="catalog-filter-label">Thương hiệu</span>
+                                <label class="catalog-brand-label" for="catalog-brand">
+                                    <span class="sr-only">Chọn thương hiệu</span>
+                                    <select id="catalog-brand">
+                                        <option value="">Tất cả thương hiệu</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div
+                                id="catalog-brand-chips"
+                                class="catalog-brand-chips"
+                                role="group"
+                                aria-label="Chọn nhanh thương hiệu"
+                            ></div>
+                        </div>
+                        <form id="catalog-price-filter" class="catalog-price-form">
+                            <!-- Thanh hai đầu dùng cùng điều kiện giá với ô nhập; mốc cuối giữ nghĩa không giới hạn. -->
+                            <div class="catalog-price-heading">
+                                <span class="catalog-filter-label">Khoảng giá</span>
+                                <div class="price-range-summary" aria-hidden="true">
+                                    <strong id="catalog-price-low-label">0 ₫</strong>
+                                    <span aria-hidden="true">–</span>
+                                    <strong id="catalog-price-high-label">Không giới hạn</strong>
+                                </div>
+                                <button
+                                    class="text-button"
+                                    type="button"
+                                    data-action="clear-catalog-filter"
+                                    data-filter="price"
+                                >
+                                    Đặt lại
+                                </button>
+                            </div>
+                            <div
+                                id="catalog-price-slider"
+                                class="price-range-slider"
+                                role="group"
+                                aria-label="Chọn khoảng giá sản phẩm"
+                            >
+                                <span class="price-range-track" aria-hidden="true"
+                                    ><span class="price-range-fill"></span
+                                ></span>
+                                <input
+                                    id="catalog-price-low"
+                                    type="range"
+                                    min="0"
+                                    max="50000000"
+                                    step="50000"
+                                    value="0"
+                                    aria-label="Giá thấp nhất"
+                                    aria-describedby="catalog-price-hint"
+                                />
+                                <input
+                                    id="catalog-price-high"
+                                    type="range"
+                                    min="0"
+                                    max="50000000"
+                                    step="50000"
+                                    value="50000000"
+                                    aria-label="Giá cao nhất; mốc cuối không giới hạn"
+                                    aria-describedby="catalog-price-hint"
+                                />
+                            </div>
+                            <!-- Mốc chọn nhanh nằm ngay dưới thanh kéo; các giá trị vẫn do logic hiện có xử lý. -->
+                            <div class="quick-price-filters" role="group" aria-label="Lọc nhanh theo giá">
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="all"
+                                    aria-pressed="true"
+                                    aria-label="Mọi mức giá"
+                                >
+                                    Mọi giá
+                                </button>
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="under-500"
+                                    aria-pressed="false"
+                                >
+                                    Dưới 500k
+                                </button>
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="500-2000"
+                                    aria-pressed="false"
+                                    aria-label="Từ 500 nghìn đến 2 triệu đồng"
+                                >
+                                    500k – 2tr
+                                </button>
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="2000-5000"
+                                    aria-pressed="false"
+                                    aria-label="Từ 2 đến 5 triệu đồng"
+                                >
+                                    2 – 5tr
+                                </button>
+                                <button
+                                    type="button"
+                                    data-action="quick-price"
+                                    data-price-chip="over-5000"
+                                    aria-pressed="false"
+                                    aria-label="Trên 5 triệu đồng"
+                                >
+                                    Trên 5tr
+                                </button>
+                            </div>
+                            <p id="catalog-price-hint" class="catalog-price-hint sr-only">
+                                Kéo và thả để lọc. Mở Nhập giá chính xác để chọn giá tùy ý.
+                            </p>
+                            <!-- Details gốc hỗ trợ bàn phím, giữ bộ lọc gọn nhưng vẫn nhập được giá lẻ chính xác. -->
+                            <details id="catalog-price-details" class="catalog-price-details">
+                                <summary>Nhập giá chính xác</summary>
+                                <div class="catalog-price-inputs">
+                                    <label for="catalog-min-price"
+                                        >Từ (đ)
+                                        <input
+                                            id="catalog-min-price"
+                                            type="number"
+                                            min="0"
+                                            max="9999999999.99"
+                                            step="0.01"
+                                            inputmode="decimal"
+                                            placeholder="0"
+                                            aria-describedby="catalog-price-error"
+                                        />
+                                    </label>
+                                    <span class="price-range-separator" aria-hidden="true">—</span>
+                                    <label for="catalog-max-price"
+                                        >Đến (đ)
+                                        <input
+                                            id="catalog-max-price"
+                                            type="number"
+                                            min="0"
+                                            max="9999999999.99"
+                                            step="0.01"
+                                            inputmode="decimal"
+                                            placeholder="Không giới hạn"
+                                            aria-describedby="catalog-price-error"
+                                        />
+                                    </label>
+                                    <button class="button secondary" type="submit">Áp dụng</button>
+                                </div>
+                            </details>
+                            <p id="catalog-price-error" class="catalog-price-error" role="status" hidden></p>
+                        </form>
+                    </div>
+                    <div
+                        id="catalog-active-filters"
+                        class="catalog-active-filters"
+                        aria-label="Bộ lọc đang áp dụng"
+                        hidden
+                    ></div>
+                    <div id="catalog-grid" class="product-grid" aria-live="polite"></div>
+                    <div class="pagination" id="catalog-pagination"></div>
+                </section>
+
+                <!-- Trang model chọn phiên bản rồi màu; URL SKU giữ lựa chọn và tình trạng chi nhánh dùng API chỉ đọc. -->
+                <section id="shop-product" class="shop-panel shop-product-page" aria-label="Chi tiết sản phẩm" hidden>
+                    <nav class="product-page-breadcrumb" aria-label="Vị trí trang sản phẩm">
+                        <a href="/#shop" data-shop-link>Trang chủ</a>
+                        <span aria-hidden="true">›</span>
+                        <span id="product-breadcrumb-category" class="product-breadcrumb-path">Sản phẩm</span>
+                        <span aria-hidden="true">›</span>
+                        <span id="product-breadcrumb-name" aria-current="page">Chi tiết sản phẩm</span>
+                    </nav>
+                    <a class="product-page-back" href="/#shop" data-shop-link>← Tiếp tục mua sắm</a>
+                    <div id="shop-product-detail-body" aria-live="polite"></div>
+                    <!-- Chỉ hiện sau khi nút mua chính cuộn khỏi mép trên trên điện thoại; dùng chung form mua SKU. -->
+                    <aside
+                        id="mobile-purchase-bar"
+                        class="mobile-purchase-bar"
+                        aria-label="Mua sản phẩm đang chọn"
+                        hidden
+                    >
+                        <img id="mobile-purchase-image" class="mobile-purchase-image" alt="" data-sticky-image />
+                        <div class="mobile-purchase-info">
+                            <span id="mobile-purchase-name"></span>
+                            <strong id="mobile-purchase-price"></strong>
+                        </div>
+                        <button class="button primary" type="button" data-action="sticky-add-cart">
+                            <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>Thêm vào giỏ
+                        </button>
+                    </aside>
+                </section>
+
+                <section id="shop-orders" class="shop-panel" aria-labelledby="orders-title" hidden>
+                    <div class="section-heading">
+                        <div>
+                            <span class="eyebrow">HÀNH TRÌNH MUA SẮM</span>
+                            <h1 id="orders-title">Đơn hàng của tôi</h1>
+                            <p>Theo dõi thanh toán, đóng gói và giao hàng tại một nơi.</p>
+                        </div>
+                        <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                    </div>
+                    <div class="inline-info">
+                        Chọn thanh toán khi nhận hàng (COD) hoặc VNPay Sandbox. Bạn có thể tự hủy đơn khi còn chờ xác nhận;
+                        sau khi đơn được xác nhận, liên hệ quản lý trước khi giao hàng.
+                    </div>
+                    <div class="order-layout">
+                        <section class="panel">
+                            <div class="panel-heading">
+                                <h3>Lịch sử mua hàng</h3>
+                                <span id="orders-count" class="badge neutral">—</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Đơn hàng / Chi nhánh</th>
+                                            <th>Trạng thái / Vận đơn</th>
+                                            <th class="align-right">Tổng tiền</th>
+                                            <th>Chi tiết</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="orders-rows"></tbody>
+                                </table>
+                            </div>
+                            <div id="orders-pagination" class="pagination"></div>
+                        </section>
+                        <article
+                            id="order-detail"
+                            class="panel order-detail"
+                            aria-label="Chi tiết đơn hàng của tôi"
+                        ></article>
+                    </div>
+                </section>
+                <!-- Chỉ hiển thị liên hệ cá nhân; email và vai trò không nằm trong form chỉnh sửa. -->
+                <section id="shop-account" class="shop-panel" aria-labelledby="account-title" hidden>
+                    <div class="section-heading">
+                        <div>
+                            <span class="eyebrow">THÔNG TIN CÁ NHÂN</span>
+                            <h1 id="account-title">Tài khoản của tôi</h1>
+                            <p>Cập nhật liên hệ để đặt hàng thuận tiện hơn.</p>
+                        </div>
+                        <button class="button secondary" type="button" data-action="refresh">Làm mới</button>
+                    </div>
+                    <div class="profile-layout">
+                        <aside class="panel profile-summary" aria-label="Thông tin tài khoản">
+                            <span class="profile-avatar" aria-hidden="true">
+                                <svg class="icon"><use href="#i-user" /></svg>
+                            </span>
+                            <h2 id="profile-display-name">—</h2>
+                            <span class="badge success">Khách mua hàng</span>
+                            <dl class="profile-facts">
+                                <div>
+                                    <dt>Email đăng nhập</dt>
+                                    <dd id="profile-email">—</dd>
+                                </div>
+                                <div>
+                                    <dt>Ngày tham gia</dt>
+                                    <dd id="profile-created">—</dd>
+                                </div>
+                            </dl>
+                            <p>Email và quyền tài khoản do hệ thống quản lý.</p>
+                        </aside>
+                        <section class="panel profile-editor" aria-labelledby="profile-editor-title">
+                            <div class="panel-heading">
+                                <h2 id="profile-editor-title">Thông tin liên hệ</h2>
+                            </div>
+                            <form id="profile-form" class="stacked-form">
+                                <label>
+                                    Họ và tên
+                                    <input
+                                        id="profile-name"
+                                        name="full_name"
+                                        autocomplete="name"
+                                        required
+                                        maxlength="150"
+                                    />
+                                </label>
+                                <label>
+                                    Số điện thoại <span class="checkout-optional">(tùy chọn)</span>
+                                    <input
+                                        id="profile-phone"
+                                        name="phone"
+                                        type="tel"
+                                        autocomplete="tel"
+                                        maxlength="30"
+                                        placeholder="0901234567"
+                                    />
+                                </label>
+                                <p class="profile-help">
+                                    Số điện thoại gồm 8–15 chữ số, có thể bắt đầu bằng +. Để trống rồi lưu nếu muốn xóa
+                                    số đã bổ sung.
+                                </p>
+                                <div class="inline-info">
+                                    Tên, số điện thoại và địa chỉ mặc định sẽ được điền khi mở giỏ hàng. Bạn vẫn có thể đổi người nhận cho
+                                    từng đơn; thông tin trên các đơn đã đặt được giữ nguyên.
+                                </div>
+                                <div class="profile-actions">
+                                    <fieldset class="profile-address-fields">
+                                        <legend>Địa chỉ nhận hàng mặc định</legend>
+                                        <label>Tỉnh / Thành phố<select id="profileProvince"><option value="">Chọn tỉnh / thành phố</option></select></label>
+                                        <label>Quận / Huyện<select id="profileDistrict" disabled><option value="">Chọn quận / huyện</option></select></label>
+                                        <label>Phường / Xã<select id="profileWard" disabled><option value="">Chọn phường / xã</option></select></label>
+                                        <label>Số nhà, tên đường<input id="profileStreetAddress" maxlength="300" autocomplete="address-line1" placeholder="Ví dụ: 12 đường Mễ Trì"></label>
+                                        <p class="profile-help">Để trống toàn bộ địa chỉ rồi lưu nếu muốn xóa địa chỉ mặc định.</p>
+                                    </fieldset>
+                                    <button id="profile-save" class="button primary" type="submit" disabled>
+                                        Lưu thông tin
+                                    </button>
+                                    <span id="profile-status" role="status" aria-live="polite"></span>
+                                </div>
+                            </form>
+                        </section>
+                      </div>
+                      <section class="panel address-book-panel" aria-labelledby="address-book-title">
+                          <div class="panel-heading"><h2 id="address-book-title">Sổ địa chỉ của tôi</h2><button class="button primary" type="button" data-action="new-address">Thêm địa chỉ</button></div>
+                          <p class="subtle">Lưu tối đa 20 địa chỉ và chọn nhanh khi đặt hàng.</p>
+                          <div id="address-book-list" class="address-book-list" aria-live="polite"></div>
+                          <button class="button secondary" type="button" data-action="open-change-password">Đổi mật khẩu</button>
+                      </section>
+                  </section>
+                  <!-- Hướng dẫn là một trang riêng, mô tả đúng MVP và không đưa ra chính sách bảo hành chưa chốt. -->
+                <section id="shop-help" class="shop-panel purchase-help" hidden aria-labelledby="purchase-help-title">
+                    <button class="text-button" type="button" data-shop-tab="catalog">← Tiếp tục mua sắm</button>
+                    <span class="eyebrow">MUA SẮM TẠI STOCKFLOW TECH</span>
+                    <h1 id="purchase-help-title" tabindex="-1">Hướng dẫn mua hàng</h1>
+                    <p class="help-intro">
+                        Chọn thiết bị, chọn chi nhánh phục vụ và theo dõi đơn trong cùng một tài khoản.
+                    </p>
+                    <ol class="purchase-steps">
+                        <li>
+                            <span>01</span>
+                            <div>
+                                <h2>Chọn chi nhánh và sản phẩm</h2>
+                                <p>
+                                    Duyệt danh mục, tìm tên hoặc mã SKU, lọc hãng và khoảng giá. Mỗi đơn được chuẩn bị
+                                    tại một chi nhánh. Với sản phẩm có nhiều lựa chọn, hãy chọn đúng phiên bản và màu
+                                    trên trang chi tiết.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span>02</span>
+                            <div>
+                                <h2>Kiểm tra giỏ hàng</h2>
+                                <p>
+                                    Thêm hoặc bỏ mặt hàng, điều chỉnh số lượng rồi đăng nhập tài khoản khách hàng. Nhập
+                                    họ tên, số điện thoại, chọn tỉnh, huyện, phường và nhập số nhà, tên đường để tính phí
+                                    giao hàng; thêm ghi chú nếu cần. Giỏ được giữ trong
+                                    phiên của tab trình duyệt; thông tin người nhận chưa đặt đơn không được lưu vào
+                                    trình duyệt.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span>03</span>
+                            <div>
+                                <h2>Đặt đơn và xác nhận thanh toán</h2>
+                                <p>
+                                    Đơn chờ thanh toán giữ hàng trong 15 phút. Nếu không đủ hàng, hệ thống báo lỗi để
+                                    bạn điều chỉnh. Mở “Đơn hàng của tôi” và chọn “Thanh toán qua VNPay” để
+                                    thử thanh toán qua cổng VNPay, hoặc chọn “Thanh toán khi nhận hàng (COD)” để trả tiền lúc nhận hàng.
+                                    Sandbox là môi trường thử nghiệm; không sử dụng thông tin thẻ thật để thử thanh toán.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span>04</span>
+                            <div>
+                                <h2>Theo dõi giao hàng</h2>
+                                <p>
+                                    Chi tiết đơn hiển thị các bước đã thanh toán, đóng gói, đang giao, đã giao và mã vận
+                                    đơn. GHN Sandbox phục vụ thử nghiệm, không cử shipper lấy hàng. Mã bắt đầu bằng
+                                    GHN_HAN_ là mã mô phỏng. Khi dùng dịch vụ thật, chỉ tạo được vận đơn sau khi GHN xác nhận.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span>05</span>
+                            <div>
+                                <h2>Hủy đơn hoặc kiểm tra lần đặt chưa rõ kết quả</h2>
+                                <p>
+                                    Khách hàng có thể hủy đơn đang chờ thanh toán trước khi hết hạn. Đơn đã thanh toán
+                                    cần nhân viên có quyền xử lý; đã giao đi thì không thể hủy. Nếu mất kết nối khi đặt
+                                    hàng, thử lại với cùng giỏ và thông tin hoặc kiểm tra “Đơn hàng của tôi” trước khi
+                                    tạo lần đặt mới.
+                                </p>
+                            </div>
+                        </li>
+                    </ol>
+                    <div class="help-demo-notice">
+                        <strong>Phạm vi bản trình diễn</strong>
+                        <p>
+                            VNPay và GHN hiện có luồng Sandbox để kiểm thử; phí được ghi “thử nghiệm” chưa phải cước
+                            giao hàng thật. Hoàn tiền hiện vẫn mô phỏng. Bạn có thể liên hệ cửa hàng qua nút Chat Zalo.
+                            Chính sách bảo hành và đổi trả thực tế cần được cửa hàng xác nhận trước khi mua.
+                        </p>
+                    </div>
+                    <section class="shop-faq" aria-labelledby="shop-faq-title">
+                        <h2 id="shop-faq-title">Câu hỏi thường gặp</h2>
+                        <details><summary>Tôi cần làm gì sau khi đăng ký?</summary><p>Nhập mã OTP 6 số gửi tới email để xác thực tài khoản. Mã hết hạn sau 15 phút; bạn có thể gửi lại sau 60 giây. Kiểm tra thư rác nếu chưa nhận được email.</p></details>
+                        <details><summary>Tôi có thể tìm sản phẩm theo cấu hình không?</summary><p>Có. Chọn tên thông số và giá trị ở mục Lọc theo thông số, kết hợp với danh mục, hãng và khoảng giá. Gợi ý được lấy từ dữ liệu sản phẩm; tên cấu hình không thay thế cho bảng thông số.</p></details>
+                        <details><summary>Giá thanh toán có gồm phí vận chuyển không?</summary><p>Tổng thanh toán gồm tiền hàng và phí vận chuyển đã tính theo địa chỉ nhận. Nếu đang dùng Sandbox hoặc dữ liệu mẫu, phí sẽ được ghi rõ là thử nghiệm.</p></details>
+                        <details><summary>Thanh toán VNPay có dùng tiền thật không?</summary><p>StockFlow hiện tích hợp VNPay Sandbox để thử nghiệm. Hãy dùng thông tin thanh toán thử nghiệm do VNPay cung cấp. Nếu chọn COD, bạn thanh toán khi nhận hàng.</p></details>
+                        <details><summary>Đặt hàng xong có shipper đến lấy hàng ngay không?</summary><p>Không ở môi trường GHN Sandbox. Đơn thử nghiệm và mã mô phỏng không phát sinh lấy hàng thật. Giao hàng thật cần tài khoản GHN production và vận đơn được GHN chấp nhận.</p></details>
+                        <details><summary>Tôi kiểm tra hoặc hủy đơn ở đâu?</summary><p>Mở Đơn hàng của tôi để xem trạng thái và chi tiết. Khách có thể hủy đơn đang chờ thanh toán; với đơn đã thanh toán, liên hệ cửa hàng để xử lý. Đừng tạo đơn mới ngay nếu lần đặt trước bị mất kết nối.</p></details>
+                        <details><summary>Khi nào tôi được đánh giá sản phẩm?</summary><p>Sau khi đơn chuyển sang Đã giao, mở chi tiết đơn và bấm Đánh giá sản phẩm / dịch vụ. Mỗi sản phẩm trong một đơn được đánh giá một lần. Nhận xét và tên hiển thị sẽ được công khai.</p></details>
+                        <details><summary>Tôi cần hỗ trợ hoặc hỏi về bảo hành thì liên hệ ai?</summary><p>Bấm nút Chat qua Zalo để trao đổi với cửa hàng. Việc đổi trả, bảo hành và hoàn tiền cần được xác nhận theo từng trường hợp; hệ thống hiện chưa thực hiện hoàn tiền thật tự động.</p></details>
+                    </section>
+                </section>
+                <footer class="shop-footer">
+                    <span class="footer-brand"
+                        >StockFlow Tech<small
+                            >Điện thoại, laptop và phụ kiện. Phục vụ từ chi nhánh bạn chọn.</small
+                        ></span
+                    >
+                    <div class="footer-links">
+                        <button class="text-button" type="button" data-shop-tab="help">Hướng dẫn mua hàng</button
+                        ><span>VNPay & GHN Sandbox · Bản trình diễn</span>
+                    </div>
+                </footer>
+            </main>
+            <div id="contact-widget" class="contact-widget">
+                <button id="back-to-top" class="back-to-top" type="button" hidden aria-label="Lên đầu trang">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 11 5-5 5 5M7 18l5-5 5 5" /></svg>
+                </button>
+                <div id="contact-panel" class="contact-panel" aria-label="Các phương thức liên hệ" aria-hidden="true" inert>
+                    <strong>Liên hệ StockFlow</strong>
+                    <span class="contact-description">Chọn cách liên hệ thuận tiện cho bạn</span>
+                    <a id="zalo-contact" hidden target="_blank" rel="noopener noreferrer">
+                        <span class="contact-channel-icon contact-zalo" aria-hidden="true">Zalo</span>
+                        <span>Chat qua Zalo<small>Nhắn tin với cửa hàng</small></span><span aria-hidden="true">↗</span>
+                    </a>
+                    <a href="https://web.facebook.com/share/1BvyJnbWuE/" target="_blank" rel="noopener noreferrer">
+                        <span class="contact-channel-icon contact-facebook" aria-hidden="true">f</span>
+                        <span>Facebook<small>Xem trang và nhắn tin</small></span><span aria-hidden="true">↗</span>
+                    </a>
+                    <a href="tel:0968935896">
+                        <span class="contact-channel-icon contact-phone" aria-hidden="true">☎</span>
+                        <span>Gọi điện<small>0968 935 896</small></span><span aria-hidden="true">↗</span>
+                    </a>
+                </div>
+                <button id="contact-toggle" class="contact-toggle" type="button" aria-label="Liên hệ cửa hàng" aria-expanded="false" aria-controls="contact-panel">
+                    <svg class="contact-headset" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-3a8 8 0 0 1 16 0v3M4 12H3v6h4v-6H4Zm16 0h1v6h-4v-6h3Zm0 6v1a2 2 0 0 1-2 2h-5m-3-1h3v2h-3Z" /></svg>
+                </button>
+            </div>
+        </div>

@@ -1,0 +1,346 @@
+/* Nhận diện xanh dương StockFlow dùng chung storefront/dashboard; màu lỗi và tồn kho có ý nghĩa riêng. */
+:root {
+    --brand: #2563eb;
+    --brand-dark: #1d4ed8;
+    --brand-soft: #eff6ff;
+    --brand-hover: #1d4ed8;
+    --brand-contrast: #ffffff;
+    --sidebar-background: #102a56;
+    --text: #0f172a;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --surface: #fff;
+    --surface-muted: #f1f5f9;
+    --control-surface: #f8fafc;
+    --background: #f8fafc;
+    --danger: #b54d44;
+    --radius: 14px;
+    --demo-height: 54px;
+    --sidebar-width: 226px;
+    /* Màu khung tải, biểu đồ và cảnh báo có biến riêng để chuyển theme không làm mất độ tương phản. */
+    --skeleton-base: #e2e8f0;
+    --skeleton-glow: #ffffffb3;
+    --chart-track: #e2e8f0;
+    --chart-grid: #cbd5e1;
+    --warning-bg: #fff8eb;
+    --warning-line: #d89b38;
+    --warning-text: #86530c;
+    font-family:
+        'Inter',
+        'Segoe UI',
+        system-ui,
+        -apple-system,
+        sans-serif;
+    color: var(--text);
+    background: var(--background);
+    font-synthesis: none;
+}
+* {
+    box-sizing: border-box;
+}
+/* Giữ chỗ thanh cuộn khi mở menu để trang và header không dịch ngang. */
+html {
+    scrollbar-gutter: stable;
+}
+body {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+}
+[hidden] {
+    display: none !important;
+}
+button,
+input,
+select {
+    font: inherit;
+}
+button,
+select {
+    cursor: pointer;
+}
+button {
+    color: inherit;
+}
+a {
+    color: inherit;
+    text-decoration: none;
+}
+h1,
+h2,
+h3,
+p {
+    margin: 0;
+}
+h1,
+h2 {
+    font-weight: 650;
+    letter-spacing: -0.8px;
+    line-height: 1.2;
+}
+h1 {
+    font-size: 30px;
+}
+h2 {
+    font-size: 27px;
+}
+h3 {
+    font-size: 15px;
+    font-weight: 650;
+}
+:focus-visible {
+    outline: 3px solid #60a5fa;
+    outline-offset: 3px;
+}
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+button[aria-busy='true'] {
+    cursor: wait;
+}
+.icon {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+}
+.icon-definitions {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+.subtle,
+.meta-line {
+    color: var(--muted);
+    font-size: 11px;
+}
+.meta-line {
+    display: block;
+    margin-top: 5px;
+}
+.mono {
+    font-family: 'Consolas', 'SFMono-Regular', monospace;
+    font-size: 11px;
+}
+.eyebrow {
+    display: block;
+    font-size: 10px;
+    color: var(--brand);
+    font-weight: 750;
+    letter-spacing: 1.7px;
+    margin-bottom: 8px;
+}
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    padding: 11px 17px;
+    font-size: 12px;
+    font-weight: 600;
+    transition:
+        background 0.18s,
+        border-color 0.18s;
+}
+.primary {
+    background: var(--brand);
+    color: var(--brand-contrast);
+}
+.primary:hover {
+    background: var(--brand-hover);
+}
+.secondary {
+    background: #fff;
+    border-color: #dce0e6;
+    color: #525a68;
+}
+.secondary:hover {
+    background: #f3f4f6;
+    border-color: #a9b2c1;
+}
+.danger {
+    background: #fff5f2;
+    border-color: #eecac1;
+    color: var(--danger);
+}
+.danger:hover {
+    background: #ffebe4;
+}
+.small {
+    padding: 7px 10px;
+    font-size: 11px;
+}
+.full-width {
+    width: 100%;
+}
+.text-button {
+    border: 0;
+    background: transparent;
+    color: var(--brand);
+    font-size: 11px;
+    padding: 7px;
+}
+.icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 5px;
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    flex-shrink: 0;
+}
+.icon-button:hover {
+    background: #eef1f5;
+}
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 6px;
+    padding: 4px 7px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.neutral {
+    background: #eff1f4;
+    color: #7c8087;
+}
+.role-admin {
+    background: #fff0db;
+    color: #a57b28;
+}
+.role-manager {
+    background: #eceffb;
+    color: #6573a3;
+}
+.role-warehouse_staff {
+    background: #e2f1ed;
+    color: #2e8d74;
+}
+.role-customer {
+    background: #efeaf5;
+    color: #8a74a2;
+}
+.status-pending {
+    background: #fff4d9;
+    color: #987129;
+}
+.status-confirmed,
+.status-delivered {
+    background: #edf6eb;
+    color: #4a8854;
+}
+.status-packed {
+    background: #edeafa;
+    color: #7a6a9e;
+}
+.status-shipped {
+    background: #e5f0f8;
+    color: #527faa;
+}
+.status-cancelled,
+.status-expired {
+    background: #fbeae6;
+    color: #b67468;
+}
+.status-returned {
+    background: #f3eafb;
+    color: #86639c;
+}
+.status-code {
+    font-size: 8px;
+    opacity: 0.7;
+    margin-left: 3px;
+}
+
+/* Thanh demo luôn ở trên cùng; nút đổi role không bị trộn với menu quản trị của khách. */
+.demo-bar {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    height: var(--demo-height);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 8px 24px;
+    background: #eff6ff;
+    border-bottom: 1px solid #dbeafe;
+}
+.demo-caption {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #768090;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+.live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #7a889e;
+}
+.demo-accounts {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+}
+.demo-short {
+    display: none;
+}
+.demo-accounts button {
+    white-space: nowrap;
+    background: #fff9;
+    border: 1px solid #d8dce3;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 10px;
+}
+.demo-accounts button:hover,
+.demo-accounts button.active {
+    background: #fff;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+}
+.session-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-left: auto;
+    min-width: 0;
+    font-size: 10px;
+}
+#identity-email {
+    max-width: 155px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.session-controls .badge {
+    font-size: 9px;
+}
+

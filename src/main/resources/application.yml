@@ -11,6 +11,10 @@ ghn:
   sender-phone: ${GHN_SENDER_PHONE:}
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
   application:
     name: stockflow
   datasource:
@@ -32,6 +36,8 @@ spring:
 
 app:
   security:
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
     jwt:
       # Môi trường thông thường phải cung cấp secret; profile demo có giá trị mẫu riêng.
       secret: ${JWT_SECRET}

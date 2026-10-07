@@ -1,0 +1,520 @@
+/* Năm khoảng giá nằm ngay dưới thanh kéo; nhãn rút gọn vẫn có tên đầy đủ cho công cụ hỗ trợ. */
+.compact-discovery .quick-price-filters {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0 0 8px;
+}
+.compact-discovery .quick-price-filters button {
+    min-width: 0;
+    min-height: 32px;
+    padding: 6px 3px;
+    border-radius: 7px;
+    font-size: 10px;
+}
+.catalog-price-details summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 5px 0;
+    color: var(--brand);
+    font-size: 11px;
+    cursor: pointer;
+    list-style: none;
+}
+.catalog-price-details summary::-webkit-details-marker {
+    display: none;
+}
+.catalog-price-details summary::after {
+    content: '+';
+    font-size: 16px;
+    line-height: 1;
+}
+.catalog-price-details[open] summary::after {
+    content: '−';
+}
+.catalog-price-details[open] summary {
+    margin-bottom: 9px;
+}
+/* Viền focus riêng giúp chọn hãng và mở ô giá bằng bàn phím dễ nhận biết ở cả sáng/tối. */
+.catalog-brand-chips button:focus-visible,
+.catalog-price-details summary:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+.catalog-price-inputs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px;
+}
+.price-discovery .catalog-price-inputs label {
+    min-width: 0;
+}
+.price-discovery .catalog-price-inputs input {
+    width: 100%;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+}
+.price-discovery .catalog-price-inputs .price-range-separator {
+    align-self: end;
+    padding: 0 0 12px;
+    color: var(--muted);
+}
+.price-discovery .catalog-price-inputs .button {
+    width: auto;
+    padding: 9px 12px;
+    min-height: 38px;
+    font-size: 11px;
+}
+.price-discovery .catalog-price-inputs input[aria-invalid='true'] {
+    border-color: var(--danger);
+}
+.price-discovery .catalog-price-inputs input::-webkit-inner-spin-button,
+.price-discovery .catalog-price-inputs input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.price-discovery .catalog-price-error {
+    margin-top: 9px;
+}
+@media (max-width: 900px) {
+    .catalog-discovery-filters.price-discovery {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+    .price-discovery .catalog-price-form {
+        max-width: 600px;
+        justify-self: center;
+    }
+}
+@media (max-width: 760px) {
+    .catalog-shelf-heading {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .catalog-heading-copy {
+        flex-basis: 100%;
+    }
+    .catalog-shelf-heading .shelf-sort {
+        min-height: 38px;
+        padding: 5px 10px;
+    }
+    .catalog-discovery-filters.price-discovery {
+        padding: 14px;
+    }
+    .catalog-price-heading {
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+    .catalog-price-heading .catalog-filter-label {
+        flex: 1;
+    }
+    .catalog-price-heading .price-range-summary {
+        order: 1;
+        flex: 1 1 100%;
+        justify-content: space-between;
+        margin-left: 0;
+    }
+    /* Mobile chia mốc giá thành hai hàng cân đối để nhãn không bị bẻ từng từ trong nút nhỏ. */
+    .compact-discovery .quick-price-filters {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .compact-discovery .quick-price-filters button {
+        grid-column: span 2;
+        min-height: 34px;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+    .compact-discovery .quick-price-filters button:nth-child(n + 4) {
+        grid-column: span 3;
+    }
+    .price-discovery .catalog-price-inputs input {
+        padding: 9px 8px;
+        font-size: 11px;
+    }
+    .price-range-summary {
+        font-size: 11px;
+    }
+}
+
+/* Chấm màu luôn nằm cạnh tên, kể cả khi ảnh SKU che chấm màu trong khung ảnh nhỏ. */
+.color-option-copy {
+    min-width: 0;
+}
+.color-option-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    overflow-wrap: anywhere;
+}
+.color-swatch-dot {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+    border: 1px solid #667085;
+    border-radius: 50%;
+    background: var(--swatch-color);
+    box-shadow: 0 0 0 2px var(--surface);
+}
+.cart-trigger.cart-added {
+    animation: cart-bounce 420ms ease;
+}
+@keyframes cart-bounce {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    35% {
+        transform: scale(1.14) rotate(-4deg);
+    }
+    65% {
+        transform: scale(0.96) rotate(2deg);
+    }
+}
+.empty-cart-cta {
+    margin-top: 20px;
+}
+
+/* Thanh trạng thái cuộn ngang trong vùng riêng, không kéo giãn màn hình điện thoại. */
+.queue-status-tabs {
+    display: flex;
+    gap: 6px;
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 0 0 18px;
+    padding: 5px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    scrollbar-width: thin;
+}
+.queue-status-tabs button {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    min-height: 55px;
+    padding: 9px 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition:
+        background 180ms ease,
+        color 180ms ease;
+}
+.queue-status-tabs small {
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+.queue-status-tabs button:hover,
+.queue-status-tabs button[aria-pressed='true'] {
+    background: var(--brand-soft);
+    color: var(--brand);
+    border-color: var(--line);
+}
+.queue-status-tabs button[aria-pressed='true'] small {
+    color: var(--brand);
+}
+
+/* Cảnh báo theo available <= 5; không đổi số tồn hoặc ngưỡng bộ lọc báo cáo của backend. */
+.inventory-warning td {
+    background: var(--warning-bg);
+}
+.inventory-warning td:first-child {
+    box-shadow: inset 3px 0 var(--warning-line);
+}
+.stock-alert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 3px 8px;
+    border: 1px solid var(--warning-line);
+    border-radius: 6px;
+    background: var(--warning-bg);
+    color: var(--warning-text);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.stock-alert-badge .icon {
+    width: 13px;
+    height: 13px;
+}
+
+/* Biểu đồ CSS bổ trợ bảng có phân trang; mọi nhãn và giá trị vẫn đọc được bằng bàn phím/trình đọc màn hình. */
+.report-chart {
+    margin-bottom: 22px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--background);
+}
+.revenue-figure {
+    margin: 0;
+}
+.chart-heading {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+.chart-heading strong {
+    color: var(--text);
+    font-size: 13px;
+}
+.chart-heading > span,
+.chart-empty {
+    color: var(--muted);
+    font-size: 11px;
+}
+.revenue-chart-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+.revenue-bars {
+    display: grid;
+    grid-template-columns: repeat(var(--chart-columns), minmax(90px, 1fr));
+    gap: 14px;
+    padding: 0 2px 5px;
+    margin: 0;
+    list-style: none;
+}
+.revenue-column {
+    min-width: 0;
+    text-align: center;
+}
+.chart-value {
+    display: block;
+    overflow: hidden;
+    color: var(--text);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.revenue-bar-stage {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    height: 155px;
+    margin-top: 10px;
+    border-bottom: 1px solid var(--line);
+    background: repeating-linear-gradient(to top, var(--chart-grid) 0 1px, transparent 1px 38px);
+}
+.revenue-bar {
+    width: 54%;
+    max-width: 55px;
+    height: var(--bar-height);
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(to top, var(--brand), #54709d);
+    transform-origin: bottom;
+    animation: chart-grow 450ms ease both;
+}
+@keyframes chart-grow {
+    from {
+        transform: scaleY(0);
+    }
+    to {
+        transform: scaleY(1);
+    }
+}
+.chart-period {
+    display: block;
+    margin-top: 10px;
+    color: var(--text);
+    font-size: 10px;
+}
+.chart-warehouse {
+    display: block;
+    overflow: hidden;
+    max-width: 140px;
+    margin: 3px auto 0;
+    color: var(--muted);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.top-chart-list {
+    display: grid;
+    gap: 18px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+.top-chart-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+.top-chart-rank {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--brand);
+    font-size: 11px;
+    font-weight: 700;
+}
+.top-chart-product {
+    flex: 1;
+    min-width: 0;
+}
+.top-chart-label,
+.top-chart-detail {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+.top-chart-label {
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+.top-chart-label strong {
+    overflow-wrap: anywhere;
+}
+.top-chart-label > span {
+    color: var(--brand);
+    font-weight: 650;
+    white-space: nowrap;
+}
+.top-chart-track {
+    height: 7px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--chart-track);
+}
+.top-chart-track > span {
+    display: block;
+    height: 100%;
+    width: var(--bar-width);
+    border-radius: inherit;
+    background: var(--brand);
+}
+.top-chart-detail {
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    flex-wrap: wrap;
+}
+.top-chart-detail strong {
+    color: var(--text);
+    font-weight: 500;
+}
+/* SKU hoặc doanh thu dài vẫn nằm gọn trên mobile; nhãn cột bị rút gọn có tooltip và bảng đầy đủ bên dưới. */
+.top-chart-detail > span,
+.top-chart-detail strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.chart-loading {
+    display: grid;
+    gap: 20px;
+}
+.skeleton-chart {
+    height: 180px;
+}
+
+/* Thanh mua chỉ dành cho điện thoại; khoảng đệm cuối trang tránh che nội dung và vùng an toàn iOS. */
+.mobile-purchase-bar {
+    display: none;
+}
+@media (max-width: 767px) {
+    .mobile-purchase-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 45;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+        border-top: 1px solid var(--line);
+        background: var(--surface);
+        box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.08);
+    }
+    .mobile-purchase-image {
+        width: 40px;
+        height: 44px;
+        flex: 0 0 40px;
+        object-fit: contain;
+        border-radius: 7px;
+        background: #fff;
+    }
+    .mobile-purchase-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .mobile-purchase-info > span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text);
+        font-size: 11px;
+    }
+    .mobile-purchase-info > strong {
+        display: block;
+        color: var(--product-accent, var(--brand));
+        font-size: 15px;
+        white-space: nowrap;
+    }
+    .mobile-purchase-bar .button {
+        gap: 5px;
+        min-height: 44px;
+        padding: 10px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    .mobile-purchase-bar .icon {
+        width: 16px;
+        height: 16px;
+    }
+    body.mobile-purchase-visible {
+        padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+    }
+    /* Phản hồi thêm giỏ nằm phía trên thanh mua, không che giá hoặc nút thao tác đang ghim. */
+    body.mobile-purchase-visible .toasts {
+        bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    }
+    .product-detail-skeleton {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    .skeleton-detail-image {
+        min-height: 270px;
+    }
+    .quick-price-filters {
+        gap: 7px;
+    }
+    .quick-price-filters button {
+        min-height: 40px;
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+    .quick-filter-label {
+        flex-basis: 100%;
+    }
+    .report-chart {
+        padding: 14px;
+    }
+    .queue-status-tabs {
+        margin-top: 4px;
+    }
+}
+

@@ -26,5 +26,9 @@ public class GhnProperties {
             this(baseUrl, token, shopId, senderPhone, fromDistrictId, warehouseDistricts, false);
         }
         public int districtFor(Long warehouseId) { return warehouseDistricts.getOrDefault(warehouseId, fromDistrictId); }
+        /** Pickup is real only when the request targets GHN's live gateway, not merely a strict-mode flag. */
+        public boolean liveGateway() {
+            return baseUrl != null && "online-gateway.ghn.vn".equalsIgnoreCase(java.net.URI.create(baseUrl).getHost());
+        }
     }
 }

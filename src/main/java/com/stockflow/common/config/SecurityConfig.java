@@ -66,11 +66,14 @@ public class SecurityConfig {
                 // API dùng JWT stateless nên không dựa vào cookie session; tắt CSRF để client không cần CSRF token.
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(headers -> headers.addHeaderWriter(new org.springframework.security.web.header.writers.StaticHeadersWriter(
+                        "Cross-Origin-Opener-Policy", "same-origin-allow-popups")))
                 .authorizeHttpRequests(authorize -> authorize
                         // Giao diện tĩnh được mở công khai; API vẫn kiểm tra JWT và quyền ở controller/service.
                         .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/favicon.ico", "/assets/**").permitAll()
                         // Trang chi tiết chỉ mở GET công khai; API ghi catalog vẫn yêu cầu ADMIN.
                         .requestMatchers(HttpMethod.GET, "/san-pham/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/login", "/register").permitAll()
                         // Cho phép đọc tài liệu công khai; các API nghiệp vụ vẫn giữ kiểm tra JWT và role.
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()

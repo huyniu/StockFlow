@@ -52,7 +52,14 @@ class WebDemoIntegrationTest {
         ResponseEntity<String> response = http.getForEntity(path, String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getContentType().toString()).startsWith("text/html");
-        assertThat(response.getBody()).contains("StockFlow Tech", "Sản phẩm & đặt hàng", "Báo cáo quản trị",
+        assertThat(response.getBody()).contains("StockFlow Tech", "type=\"module\"", "data-fragment", "src=\"/app.js\"");
+        StringBuilder assembled = new StringBuilder(response.getBody());
+        for (String fragment : java.util.List.of("chrome", "auth-page", "icons", "storefront", "dashboard", "dialogs", "aftercare")) {
+            ResponseEntity<String> partial = http.getForEntity("/assets/fragments/" + fragment + ".html", String.class);
+            assertThat(partial.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assembled.append(partial.getBody());
+        }
+        assertThat(assembled.toString()).contains("StockFlow Tech", "Sản phẩm & đặt hàng", "Báo cáo quản trị",
                 "ĐIỆN THOẠI · LAPTOP · PHỤ KIỆN", "Tìm điện thoại, laptop, phụ kiện",
                 "id=\"discovery-categories\"", "id=\"bestseller-grid\"",
                 "src=\"/app.js\"", "href=\"/styles.css\"",

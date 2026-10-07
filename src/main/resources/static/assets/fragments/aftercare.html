@@ -1,0 +1,53 @@
+<dialog id="address-editor-dialog" aria-labelledby="address-editor-title">
+    <div class="dialog-header"><h2 id="address-editor-title">Địa chỉ nhận hàng</h2><button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng">×</button></div>
+    <form id="address-book-form" class="stacked-form">
+        <label>Tên gợi nhớ<input name="label" required maxlength="80" placeholder="Nhà riêng, Công ty…"></label>
+        <label>Người nhận<input name="recipient_name" required maxlength="150" autocomplete="shipping name"></label>
+        <label>Số điện thoại<input name="recipient_phone" required type="tel" pattern="\+?[0-9]{8,15}" maxlength="16" autocomplete="shipping tel"></label>
+        <label>Tỉnh / Thành phố<select name="province_id" id="addressProvince" required></select></label>
+        <label>Quận / Huyện<select name="district_id" id="addressDistrict" required disabled></select></label>
+        <label>Phường / Xã<select name="ward_code" id="addressWard" required disabled></select></label>
+        <label>Số nhà, tên đường<input name="street_address" required maxlength="300" autocomplete="shipping address-line1"></label>
+        <label class="address-default-option"><input name="is_default" type="checkbox"> Dùng làm địa chỉ mặc định</label>
+        <p id="address-book-error" class="form-error" role="alert"></p>
+        <button class="button primary" type="submit">Lưu địa chỉ</button>
+    </form>
+</dialog>
+<dialog id="change-password-dialog" aria-labelledby="change-password-title">
+    <div class="dialog-header"><h2 id="change-password-title">Đổi mật khẩu</h2><button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng">×</button></div>
+    <p class="subtle">Sau khi đổi mật khẩu, bạn cần đăng nhập lại. Nếu chỉ đăng nhập bằng Google và chưa có mật khẩu, hãy dùng chức năng Quên mật khẩu để thiết lập.</p>
+    <form id="change-password-form" class="stacked-form">
+        <label>Mật khẩu hiện tại<input name="current_password" type="password" required maxlength="100" autocomplete="current-password"></label>
+        <label>Mật khẩu mới<input name="new_password" type="password" required minlength="6" maxlength="72" autocomplete="new-password"></label>
+        <label>Nhập lại mật khẩu mới<input name="confirmation" type="password" required minlength="6" maxlength="72" autocomplete="new-password"></label>
+        <p id="change-password-error" class="form-error" role="alert"></p>
+        <button class="button primary" type="submit">Đổi mật khẩu</button>
+    </form>
+</dialog>
+<dialog id="return-create-dialog" aria-labelledby="return-create-title">
+    <div class="dialog-header"><h2 id="return-create-title">Yêu cầu đổi / trả hàng</h2><button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng">×</button></div>
+    <p class="subtle">Cửa hàng sẽ xem xét yêu cầu. Việc gửi yêu cầu chưa làm thay đổi đơn hàng hoặc hoàn tiền.</p>
+    <form id="return-create-form" class="stacked-form">
+        <label>Bạn muốn<select name="kind"><option value="RETURN">Trả hàng</option><option value="EXCHANGE">Đổi sản phẩm</option></select></label>
+        <label>Lý do<textarea name="reason" required minlength="10" maxlength="2000" rows="4" placeholder="Mô tả vấn đề với sản phẩm và mong muốn của bạn"></textarea></label>
+        <label>Ảnh minh chứng<input name="images" type="file" accept="image/png,image/jpeg" multiple></label>
+        <p class="subtle">Tối đa 5 ảnh PNG/JPEG, mỗi ảnh tối đa 2 MB. Có thể bổ sung ảnh trong danh sách yêu cầu khi còn chờ duyệt.</p>
+        <p id="return-create-error" class="form-error" role="alert"></p>
+        <button class="button primary" type="submit">Gửi yêu cầu</button>
+    </form>
+</dialog>
+<dialog id="returns-dialog" class="modal-wide" aria-labelledby="returns-title">
+    <div class="dialog-header"><h2 id="returns-title">Yêu cầu đổi / trả hàng</h2><button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng">×</button></div>
+    <p class="subtle">Chỉ xác nhận nhận lại hàng sau khi cửa hàng đã kiểm tra thực tế. Đổi sản phẩm hoặc hoàn tiền qua ngân hàng cần được cửa hàng xử lý riêng.</p>
+    <button class="button secondary" type="button" data-action="refresh-returns">Làm mới</button>
+    <div id="returns-list" class="returns-list" aria-live="polite"></div>
+</dialog>
+<dialog id="return-review-dialog" aria-labelledby="return-review-title">
+    <div class="dialog-header"><h2 id="return-review-title">Xử lý yêu cầu</h2><button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng">×</button></div>
+    <form id="return-review-form" class="stacked-form">
+        <label>Quyết định<select name="decision"><option value="APPROVED">Chấp thuận khách gửi lại hàng</option><option value="REJECTED">Từ chối</option></select></label>
+        <label>Phản hồi / hướng dẫn gửi hàng<textarea name="note" required maxlength="2000" rows="4"></textarea></label>
+        <p id="return-review-error" class="form-error" role="alert"></p>
+        <button class="button primary" type="submit">Lưu phản hồi</button>
+    </form>
+</dialog>

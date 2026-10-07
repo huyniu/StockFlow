@@ -31,14 +31,14 @@
         // Thanh trình duyệt dùng xanh nhận diện khi sáng và navy khi tối, không giữ màu xanh lá cũ.
         if (meta) meta.content = theme === 'dark' ? '#0b1220' : '#2563eb';
 
-        const button = document.getElementById('theme-toggle');
-        if (!button) return;
         const dark = theme === 'dark';
-        button.setAttribute('aria-pressed', String(dark));
-        button.title = dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối';
-        const label = button.querySelector('.theme-toggle-label');
-        if (label) label.textContent = dark ? 'Tối' : 'Sáng';
-        button.hidden = false;
+        document.querySelectorAll('#theme-toggle, #auth-theme-toggle').forEach(button => {
+            button.setAttribute('aria-pressed', String(dark));
+            button.title = dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối';
+            const label = button.querySelector('.theme-toggle-label');
+            if (label) label.textContent = dark ? 'Tối' : 'Sáng';
+            button.hidden = false;
+        });
     }
 
     // Thực hiện ngay trong head; không đợi API hoặc DOMContentLoaded để chọn đúng nền ban đầu.
@@ -46,10 +46,11 @@
 
     /** Bấm nút chỉ đổi bảng màu và lưu sở thích, không tải lại trang hay gửi request nghiệp vụ. */
     function initializeToggle() {
-        const button = document.getElementById('theme-toggle');
-        if (!button) return;
         applyTheme(preferredTheme());
-        button.addEventListener('click', () => {
+        document.querySelectorAll('#theme-toggle, #auth-theme-toggle').forEach(button => {
+            if (button.dataset.themeBound) return;
+            button.dataset.themeBound = 'true';
+            button.addEventListener('click', () => {
             preference = root.dataset.theme === 'dark' ? 'light' : 'dark';
             applyTheme(preference);
             try {
@@ -57,8 +58,11 @@
             } catch {
                 // Giữ lựa chọn trong bộ nhớ khi trình duyệt không cho phép ghi localStorage.
             }
+            });
         });
     }
+
+    window.StockFlowTheme = { refresh: initializeToggle };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeToggle, { once: true });

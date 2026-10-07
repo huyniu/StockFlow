@@ -44,6 +44,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .subject(user.getEmail())
                 .claim("role", user.getRole().getName())
+                .claim("auth_version", user.getAuthVersion())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiresAt))
                 .signWith(secretKey)
@@ -55,6 +56,11 @@ public class JwtTokenProvider {
      */
     public String extractUsername(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    public boolean matchesAuthVersion(String token, User user) {
+        Number version = extractClaims(token).get("auth_version", Number.class);
+        return (version == null ? 0L : version.longValue()) == user.getAuthVersion();
     }
 
     /**

@@ -22,11 +22,14 @@ public class GhnShippingService {
     private final GhnClient client;
     private final GhnProperties.Settings settings;
     private final JdbcTemplate jdbc;
+    private final com.stockflow.order.repository.ShipmentRepository shipments;
 
     public GhnShippingService(OrderService fulfillment,
-            WarehouseRepository warehouses, GhnClient client, GhnProperties.Settings settings, JdbcTemplate jdbc) {
+            WarehouseRepository warehouses, GhnClient client, GhnProperties.Settings settings, JdbcTemplate jdbc,
+            com.stockflow.order.repository.ShipmentRepository shipments) {
         this.fulfillment = fulfillment; this.warehouses = warehouses;
         this.client = client; this.settings = settings; this.jdbc = jdbc;
+        this.shipments = shipments;
     }
 
     @Transactional
@@ -66,6 +69,8 @@ public class GhnShippingService {
         if (delivery.getNote() != null) payload.put("note", delivery.getNote());
         String tracking = client.createShippingOrder(new GhnCreateOrderRequest(orderId, payload)).data().orderCode();
         fulfillment.shipOrder(orderId, new ShipOrderRequest(tracking), user.getId());
+        shipments.findByOrderId(orderId).orElseThrow().setCarrierMode(
+                tracking.startsWith("GHN_HAN_") ? "SIMULATED" : settings.liveGateway() ? "GHN_PRODUCTION" : "GHN_SANDBOX");
         jdbc.update("INSERT INTO shipping_dispatch_events (order_id, tracking_code, performed_by, event_type) VALUES (?, ?, ?, 'ORDER_DISPATCH')",
                 orderId, tracking, user.getId());
         return tracking;

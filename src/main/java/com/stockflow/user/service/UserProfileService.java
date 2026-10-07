@@ -18,12 +18,14 @@ public class UserProfileService {
     private final UserRepository users;
     private final Validator validator;
     private final com.stockflow.shipping.client.GhnClient ghn;
+    private final AddressBookService addressBook;
 
     /** Nhận repository và bộ kiểm tra để cả HTTP lẫn lời gọi service đều tuân thủ cùng giới hạn. */
-    public UserProfileService(UserRepository users, Validator validator, com.stockflow.shipping.client.GhnClient ghn) {
+    public UserProfileService(UserRepository users, Validator validator, com.stockflow.shipping.client.GhnClient ghn, AddressBookService addressBook) {
         this.users = users;
         this.validator = validator;
         this.ghn = ghn;
+        this.addressBook = addressBook;
     }
 
     /**
@@ -76,6 +78,7 @@ public class UserProfileService {
                 address == null ? null : address.wardCode, address == null ? null : address.wardName,
                 address == null ? null : address.streetAddress);
             if (addressUpdated != 1) throw new UnauthorizedException("Tài khoản không còn hoạt động.");
+            addressBook.synchronizeLegacy(currentUserId, address);
         }
         // Nạp lại sau bulk UPDATE; tránh trả thông tin cũ từ principal hoặc persistence context.
         return users.findById(currentUserId)

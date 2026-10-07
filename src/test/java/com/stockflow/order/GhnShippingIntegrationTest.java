@@ -88,4 +88,11 @@ class GhnShippingIntegrationTest {
         mvc.perform(post("/api/v1/orders/" + order.id() + "/ghn-ship").header("Authorization", "Bearer " + jwt.generateToken(admin)))
                 .andExpect(status().isConflict());
     }
+
+    @Test void simulatedCarrierMetadataIsStoredAndReturnedAfterReload() throws Exception {
+        mvc.perform(post("/api/v1/orders/" + order.id() + "/ghn-ship").header("Authorization", "Bearer " + jwt.generateToken(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("shipment.carrier_mode").value("SIMULATED"));
+        assertThat(jdbc.queryForObject("SELECT carrier_mode FROM shipments WHERE order_id=?", String.class, order.id())).isEqualTo("SIMULATED");
+        assertThat(orders.getOrder(order.id(), customer.getId()).shipment().carrierMode()).isEqualTo("SIMULATED");
+    }
 }
