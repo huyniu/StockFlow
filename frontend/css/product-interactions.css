@@ -447,7 +447,9 @@
 
 /* Menu khám phá dùng danh mục thật; giá và thứ tự trên kệ có trạng thái áp dụng rõ ràng. */
 .shop-header {
-    position: relative;
+    position: sticky;
+    top: var(--demo-height);
+    z-index: 84;
 }
 /* Header và danh mục luôn sáng; chỉ nội dung bên dưới được phủ tối và làm mờ. */
 body.category-menu-open {
