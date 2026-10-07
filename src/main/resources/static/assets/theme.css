@@ -652,3 +652,51 @@
     outline: 2px solid #fff;
     outline-offset: 4px;
 }
+
+/* Deep Lagoon: backdrop trên body, container trong suốt để các lớp hòa vào nền trang.
+   Stacking context của body giữ lớp z-index âm trên backdrop và dưới nội dung,
+   không bọc lại nội dung để tránh ảnh hưởng header sticky, dialog và nút nổi. */
+body {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    background-color: #f8fafc;
+}
+:root[data-theme='dark'] body {
+    background: #100e0b;
+}
+.aura-bg {
+    position: fixed;
+    inset: 0;
+    min-height: 100vh;
+    overflow: hidden;
+    z-index: -1;
+    pointer-events: none;
+    /* Không đặt background hoặc isolation ở đây: blend phải nhận backdrop từ body. */
+}
+.aura-layer {
+    position: absolute;
+    inset: -12%;
+    filter: blur(90px);
+    transform: translateZ(0);
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    opacity: .14;
+}
+.aura-layer-1 {
+    background: linear-gradient(rgba(0,0,0,0) 0%, rgba(47,209,166,.12) 28%, rgb(255,255,255) 18%, rgb(61,124,255) 68%, rgb(122,92,255) 100%);
+}
+.aura-layer-2 {
+    background: linear-gradient(rgba(0,0,0,0) 0%, rgba(47,209,166,.22) 34%, rgb(255,255,255) 66%, rgb(61,124,255) 82%, rgb(122,92,255) 100%);
+}
+:root[data-theme='dark'] .aura-layer-1 {
+    mix-blend-mode: hard-light;
+    opacity: .30;
+}
+:root[data-theme='dark'] .aura-layer-2 {
+    mix-blend-mode: soft-light;
+    opacity: .60;
+}
+@media (min-width: 768px) {
+    .aura-layer { filter: blur(130px); }
+}

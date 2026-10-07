@@ -22,6 +22,11 @@
         <script src="/app.js" defer></script>
     </head>
     <body>
+        <!-- Nền trang trí nằm dưới nội dung, không nhận thao tác chuột hoặc bàn phím. -->
+        <div class="aura-bg" aria-hidden="true">
+            <div class="aura-layer aura-layer-1"></div>
+            <div class="aura-layer aura-layer-2"></div>
+        </div>
         <!-- Biểu tượng SVG nội bộ dùng chung cho hai giao diện, không cần thư viện biểu tượng bên ngoài. -->
         <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <symbol id="i-box" viewBox="0 0 24 24">
@@ -936,6 +941,9 @@
                         <svg class="icon"><use href="#i-chart" /></svg><span>Báo cáo kinh doanh</span>
                     </button>
                     <!-- Nhóm danh mục mở theo thao tác người dùng; chỉ ADMIN được nhìn thấy. -->
+                    <button type="button" class="nav-item" data-portal-tab="users" data-roles="ADMIN" hidden>
+                        <svg class="icon"><use href="#i-user" /></svg><span>Quản lý tài khoản</span>
+                    </button>
                     <div class="nav-group" data-roles="ADMIN" id="nav-catalog-group" hidden>
                         <button
                             type="button"
@@ -1527,6 +1535,16 @@
                             <div id="brand-admin-list" class="brand-admin-list"></div>
                         </div>
                     </section>
+                    <section id="portal-users" class="portal-panel" hidden aria-labelledby="admin-users-title">
+                        <div class="section-heading"><div><span class="eyebrow">QUẢN TRỊ NGƯỜI DÙNG</span><h1 id="admin-users-title">Quản lý tài khoản</h1><p>Xem thông tin, tìm kiếm và khóa/mở khóa tài khoản.</p></div><button type="button" class="button secondary" data-action="refresh">Làm mới</button></div>
+                        <form id="admin-users-filter" class="panel account-admin-filter">
+                            <label>Tìm tên, email hoặc số điện thoại<input id="admin-users-query" type="search" maxlength="200" placeholder="Nhập thông tin cần tìm"></label>
+                            <label>Vai trò<select id="admin-users-role"><option value="">Tất cả vai trò</option><option value="CUSTOMER">Khách hàng</option><option value="WAREHOUSE_STAFF">Nhân viên kho</option><option value="MANAGER">Quản lý</option><option value="ADMIN">Quản trị viên</option></select></label>
+                            <label>Trạng thái<select id="admin-users-status"><option value="">Tất cả trạng thái</option><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Đã khóa</option></select></label>
+                            <button type="submit" class="button primary">Lọc tài khoản</button>
+                        </form>
+                        <div class="panel"><div class="catalog-list-heading"><h2>Danh sách tài khoản</h2><span id="admin-users-count">—</span></div><div class="table-wrap"><table><thead><tr><th>Tài khoản</th><th>Liên hệ</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="users-rows"></tbody></table></div><div id="users-pagination" class="pagination"></div></div>
+                    </section>
                     <footer class="page-footer">
                         <span>StockFlow · Cổng vận hành cửa hàng nhiều kho</span
                         ><span id="last-sync">Dữ liệu trực tiếp từ hệ thống</span>
@@ -1536,6 +1554,18 @@
         </div>
 
         <!-- Giỏ ở bộ nhớ trình duyệt; API tạo đơn vẫn kiểm tra giá, tồn và quyền trong transaction. -->
+        <dialog id="admin-user-dialog" aria-labelledby="admin-user-title">
+            <button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng thông tin tài khoản"><svg class="icon"><use href="#i-close" /></svg></button>
+            <h2 id="admin-user-title">Thông tin tài khoản</h2><div id="admin-user-detail"></div>
+            <form id="admin-user-role-form" hidden>
+                <h3>Cấp quyền tài khoản</h3>
+                <label>Vai trò<select id="admin-user-role"><option value="CUSTOMER">Khách hàng</option><option value="WAREHOUSE_STAFF">Nhân viên kho</option><option value="MANAGER">Quản lý</option></select></label>
+                <fieldset id="admin-user-warehouse-field"><legend>Kho phụ trách (chọn ít nhất một kho)</legend><div id="admin-user-warehouse-options"></div></fieldset>
+                <p class="subtle">Quyền mới áp dụng ngay cho các yêu cầu tiếp theo. Chuyển khỏi vai trò nhân viên kho sẽ xóa phân công kho.</p>
+                <button type="submit" class="button primary">Lưu quyền</button>
+            </form>
+            <h3>Lịch sử thay đổi quyền</h3><div id="admin-user-role-history"></div>
+        </dialog>
         <dialog id="wishlist-dialog" class="modal-wide" aria-labelledby="wishlist-title">
             <button type="button" class="icon-button" data-action="close-wishlist" aria-label="Đóng danh sách yêu thích"><svg class="icon"><use href="#i-close" /></svg></button>
             <h2 id="wishlist-title">Sản phẩm yêu thích</h2>

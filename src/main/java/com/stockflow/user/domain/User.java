@@ -148,11 +148,18 @@ public class User {
         return role;
     }
 
+    public void setRole(Role role) { this.role = java.util.Objects.requireNonNull(role); }
+
     /**
      * Lấy trạng thái tài khoản.
      */
     public UserStatus getStatus() {
         return status;
+    }
+
+    /** Trạng thái do service quản trị kiểm tra quyền trước khi thay đổi. */
+    public void setStatus(UserStatus status) {
+        this.status = java.util.Objects.requireNonNull(status);
     }
 
     /**

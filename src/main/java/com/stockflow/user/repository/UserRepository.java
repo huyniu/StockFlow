@@ -13,7 +13,10 @@ import org.springframework.data.repository.query.Param;
 /**
  * Repository truy vấn bảng users, ưu tiên load kèm role cho các luồng authentication.
  */
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<User> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u JOIN FETCH u.role WHERE u.id=:id")
+    Optional<User> findLockedById(@Param("id") Long id);
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """
         UPDATE users SET default_province_id=:provinceId, default_province_name=:provinceName,

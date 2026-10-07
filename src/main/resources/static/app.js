@@ -7,6 +7,7 @@
     let wishlistIds = new Set();
     let wishlistLoadVersion = 0;
     let checkoutDifferentAddress = false;
+    const administeredUsers = new Map();
     // Giỏ chỉ tồn tại trong phiên của tab và gắn với danh tính đã được backend xác thực.
     const CART_KEY = 'stockflow.web.cart.v1';
     // Khóa retry chỉ lưu chủ phiên, mã ngẫu nhiên và hash; không lưu địa chỉ/điện thoại hoặc nội dung đơn.
@@ -90,6 +91,7 @@
         products: 'Quản lý sản phẩm',
         categories: 'Quản lý danh mục',
         admin: 'Quản lý sản phẩm',
+        users: 'Quản lý tài khoản',
     };
     /** Ảnh Unsplash minh họa cho bản demo; tên, SKU và giá thật vẫn lấy nguyên từ API sản phẩm. */
     const PRODUCT_IMAGES = {
@@ -185,7 +187,7 @@
         order: null,
         myOrdersPage: null,
         pendingMutation: null,
-        pages: { catalog: 0, orders: 0, queue: 0, inventory: 0, ledger: 0, revenue: 0, top: 0, low: 0, manage: 0 },
+        pages: { catalog: 0, orders: 0, queue: 0, inventory: 0, ledger: 0, revenue: 0, top: 0, low: 0, manage: 0, users: 0 },
     };
     const requests = new Set();
     const channels = new Map();
@@ -918,6 +920,11 @@
         if (!preserveCart) forgetCart();
         state.token = null;
         state.user = null;
+        administeredUsers.clear();
+        $('#users-rows').replaceChildren();
+        $('#admin-user-detail').replaceChildren();
+        $('#admin-user-role-form').hidden = true;
+        $('#admin-user-role-history').replaceChildren();
         state.profileReady = false;
         state.profileSaving = false;
         state.order = null;
@@ -1022,7 +1029,7 @@
             isOperator() &&
             (['queue', 'inventory'].includes(tab) ||
                 (['ledger', 'reports'].includes(tab) && hasRole('ADMIN', 'MANAGER')) ||
-                (['products', 'categories', 'admin'].includes(tab) && hasRole('ADMIN')))
+                (['products', 'categories', 'admin', 'users'].includes(tab) && hasRole('ADMIN')))
         );
     }
 
@@ -5238,6 +5245,88 @@
         renderPager('manage', result);
     }
 
+    async function loadAdminUsers() {
+        if (!hasRole('ADMIN')) return;
+        administeredUsers.clear();
+        $('#users-rows').innerHTML = '<tr><td colspan="5">Đang tải tài khoản…</td></tr>';
+        $('#admin-users-count').textContent = '—';
+        $('#users-pagination').replaceChildren();
+        try {
+            const result = await api('/admin/users', { channel: 'admin-users', query: {
+                page: state.pages.users, size: 20, q: $('#admin-users-query').value.trim(),
+                role: $('#admin-users-role').value, status: $('#admin-users-status').value,
+            } });
+            result.content.forEach(user => administeredUsers.set(user.id,user));
+            $('#admin-users-count').textContent = integer(result.total_elements) + ' tài khoản';
+            $('#users-rows').innerHTML = result.content.map(user => {
+                const protectedAccount = user.role === 'ADMIN' || user.email.endsWith('@stockflow.invalid') || user.id === state.user.id;
+                return '<tr><td><strong>' + escapeHtml(user.full_name) + '</strong><span class="meta-line">#' + user.id + '</span></td><td>' + escapeHtml(user.email)
+                    + '<span class="meta-line">' + escapeHtml(user.phone || 'Chưa có số điện thoại') + '</span></td><td>' + escapeHtml(ROLE_LABELS[user.role] || user.role)
+                    + '</td><td><span class="badge ' + (user.status === 'ACTIVE' ? 'success' : 'neutral') + '">' + (user.status === 'ACTIVE' ? 'Đang hoạt động' : 'Đã khóa')
+                    + '</span></td><td><div class="account-admin-actions"><button type="button" class="button secondary small" data-action="view-admin-user" data-id="' + user.id + '">' + (protectedAccount ? 'Chi tiết' : 'Chi tiết / Cấp quyền') + '</button>'
+                    + (protectedAccount ? '<span class="meta-line">Tài khoản được bảo vệ</span>' : '<button type="button" class="button ' + (user.status === 'ACTIVE' ? 'danger' : 'secondary')
+                        + ' small" data-action="toggle-admin-user" data-id="' + user.id + '">' + (user.status === 'ACTIVE' ? 'Khóa' : 'Mở khóa') + '</button>') + '</div></td></tr>';
+            }).join('') || '<tr><td colspan="5">Không có tài khoản phù hợp với bộ lọc.</td></tr>';
+            renderPager('users', result);
+        } catch (error) {
+            if (error.name !== 'AbortError' && hasRole('ADMIN')) $('#users-rows').innerHTML = '<tr><td colspan="5">Chưa tải được tài khoản. Bấm Làm mới để thử lại.</td></tr>';
+            throw error;
+        }
+    }
+
+    async function viewAdminUser(id) {
+        if (!hasRole('ADMIN')) return;
+        $('#admin-user-detail').textContent = 'Đang tải thông tin…';
+        const form = $('#admin-user-role-form');
+        form.hidden = true;
+        form.dataset.userId = String(id);
+        $('#admin-user-role-history').replaceChildren();
+        openDialog('admin-user-dialog');
+        const [user, permissions, history, warehouses] = await Promise.all([
+            api('/admin/users/' + id, { channel: 'admin-user-detail' }),
+            api('/admin/users/' + id + '/permissions', { channel: 'admin-user-permissions' }),
+            api('/admin/users/' + id + '/role-history', { channel: 'admin-user-history' }),
+            api('/warehouses', { channel: 'admin-user-warehouses' }),
+        ]);
+        if (!$('#admin-user-dialog').open || form.dataset.userId !== String(id) || !hasRole('ADMIN')) return;
+        const address = user.default_address;
+        const entries = [['Họ tên',user.full_name], ['Email',user.email], ['Điện thoại',user.phone || 'Chưa bổ sung'],
+            ['Vai trò',ROLE_LABELS[user.role] || user.role], ['Trạng thái',user.status === 'ACTIVE' ? 'Đang hoạt động' : 'Đã khóa'],
+            ['Ngày tạo',dateTime(user.created_at)], ['Địa chỉ mặc định',address ? [address.street_address,address.ward_name,address.district_name,address.province_name].join(', ') : 'Chưa bổ sung']];
+        $('#admin-user-detail').innerHTML = '<dl class="account-admin-details">' + entries.map(([label,value]) => '<div><dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd></div>').join('') + '</dl>';
+        $('#admin-user-role').value = permissions.role;
+        $('#admin-user-warehouse-options').innerHTML = warehouses.filter(w => w.status === 'ACTIVE').map(w => '<label><input type="checkbox" value="' + Number(w.id) + '"' + (permissions.warehouse_ids.includes(w.id) ? ' checked' : '') + '> ' + escapeHtml(w.name) + '</label>').join('') || 'Chưa có kho đang hoạt động.';
+        form.hidden = user.role === 'ADMIN' || user.id === state.user.id || user.email.endsWith('@stockflow.invalid');
+        updateAdminRoleFields();
+        $('#admin-user-role-history').innerHTML = history.length ? '<ul>' + history.map(h => '<li>' + escapeHtml(dateTime(h.created_at)) + ' · Admin #' + Number(h.actor_id) + ': ' + escapeHtml(ROLE_LABELS[h.old_role] || h.old_role) + ' → ' + escapeHtml(ROLE_LABELS[h.new_role] || h.new_role) + ' · Kho: ' + escapeHtml(h.old_warehouse_ids.join(', ') || 'Không') + ' → ' + escapeHtml(h.new_warehouse_ids.join(', ') || 'Không') + '</li>').join('') + '</ul>' : '<p class="subtle">Chưa có thay đổi quyền.</p>';
+    }
+
+    function updateAdminRoleFields() {
+        $('#admin-user-warehouse-field').hidden = $('#admin-user-role').value !== 'WAREHOUSE_STAFF';
+    }
+
+    async function saveAdminUserRole(form) {
+        if (!hasRole('ADMIN') || form.hidden) return;
+        const id = Number(form.dataset.userId);
+        const role = $('#admin-user-role').value;
+        const warehouseIds = role === 'WAREHOUSE_STAFF' ? Array.from(form.querySelectorAll('input[type="checkbox"]:checked'), input => Number(input.value)) : [];
+        if (role === 'WAREHOUSE_STAFF' && !warehouseIds.length) throw new Error('Vui lòng chọn ít nhất một kho phụ trách.');
+        await api('/admin/users/' + id + '/role', { method: 'PATCH', body: { role, warehouse_ids: warehouseIds } });
+        notify('success', 'Đã cập nhật quyền và lưu lịch sử thay đổi.');
+        await Promise.all([loadAdminUsers(), viewAdminUser(id)]);
+    }
+
+    async function toggleAdminUser(id) {
+        if (!hasRole('ADMIN')) return;
+        const user = administeredUsers.get(id);
+        if (!user) return;
+        const status = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        if (!window.confirm((status === 'INACTIVE' ? 'Khóa tài khoản ' : 'Mở khóa tài khoản ') + user.full_name + '?')) return;
+        await api('/admin/users/' + id + '/status', { method: 'PATCH', body: { status } });
+        notify('success',status === 'INACTIVE' ? 'Đã khóa tài khoản.' : 'Đã mở khóa tài khoản.');
+        await loadAdminUsers();
+    }
+
     /** Thông báo tạo thành công ngay sau POST; tải lại bảng không được che kết quả đã ghi vào database. */
     async function createProduct(form) {
         if (!hasRole('ADMIN')) return;
@@ -6419,6 +6508,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             products: loadManage,
             categories: loadCategoryList,
             admin: loadManage,
+            users: loadAdminUsers,
         };
         if (canPortalTab(state.portalTab)) await loaders[state.portalTab]();
     }
@@ -6438,6 +6528,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             low: loadLow,
             manage: loadManage,
             products: loadManage,
+            users: loadAdminUsers,
         };
         if (name !== 'catalog' && name !== 'orders' && !isOperator()) return;
         if (['ledger', 'revenue', 'top', 'low'].includes(name) && !hasRole('ADMIN', 'MANAGER')) return;
@@ -6627,6 +6718,8 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             syncWishlist(); openDialog('wishlist-dialog'); await loadWishlist();
         });
         else if (action === 'close-wishlist') $('#wishlist-dialog').close();
+        else if (action === 'view-admin-user') execute(() => busy(button, () => viewAdminUser(id)));
+        else if (action === 'toggle-admin-user') execute(() => busy(button, () => toggleAdminUser(id)));
         else if (action === 'use-default-address') execute(() => prepareDefaultCheckoutAddress(true));
         else if (action === 'different-address') {
             if (state.authBusy || $('#create-order').getAttribute('aria-busy') === 'true') return;
@@ -6787,6 +6880,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
     /** Chọn chi nhánh từ header hoặc giỏ có cùng state; số lượng sai không thay thế giá trị hợp lệ. */
     document.addEventListener('change', (event) => {
         const input = event.target;
+        if (input.id === 'admin-user-role') updateAdminRoleFields();
         if (input.id === 'cart-select-all' || input.hasAttribute('data-cart-selected')) {
             if (state.cartLoading || state.cartRestoreFailed || state.authBusy || $('#create-order').getAttribute('aria-busy') === 'true') return;
             if (input.id === 'cart-select-all') state.cart.forEach(item => { item.selected = input.checked; });
@@ -6888,6 +6982,8 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
                 state.pages.inventory = 0;
                 return loadInventory();
             },
+            'admin-users-filter': () => { state.pages.users = 0; return loadAdminUsers(); },
+            'admin-user-role-form': () => saveAdminUserRole(form),
             'stock-in': () => stockIn(form),
             'ledger-filter': () => {
                 state.pages.ledger = 0;

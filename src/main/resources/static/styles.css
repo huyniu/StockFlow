@@ -7542,3 +7542,19 @@ body:not(.portal-open) .toasts { bottom: 106px; }
 .profile-address-fields legend { padding: 0 8px; font-weight: 600; font-size: 14px; }
 .profile-address-fields label { display: grid; gap: 6px; }
 .checkout-address-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.account-admin-filter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; padding: 20px; margin-bottom: 20px; }
+.account-admin-filter label { display: grid; gap: 7px; min-width: 160px; flex: 1; font-size: 12px; }
+.account-admin-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#portal-users .table-wrap { overflow-x: auto; }
+#portal-users table { min-width: 720px; }
+.account-admin-details > div { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.account-admin-details dt { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.account-admin-details dd { margin: 0; overflow-wrap: anywhere; }
+#admin-user-dialog { width: min(520px, calc(100vw - 28px)); }
+#admin-user-dialog > .icon-button { float: right; }
+#admin-user-role-form { margin-top: 20px; display: grid; gap: 12px; }
+#admin-user-role-form[hidden], #admin-user-warehouse-field[hidden] { display: none; }
+#admin-user-role-form select { width: 100%; margin-top: 6px; }
+#admin-user-warehouse-options { display: grid; gap: 8px; }
+#admin-user-warehouse-options label { display: flex; align-items: center; gap: 8px; }
+#admin-user-role-history li { margin-bottom: 10px; overflow-wrap: anywhere; }
