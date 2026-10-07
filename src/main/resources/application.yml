@@ -11,7 +11,7 @@ ghn:
   sender-phone: ${GHN_SENDER_PHONE:}
 
 server:
-  port: ${PORT:10000}
+  port: ${PORT:8080}
   address: 0.0.0.0
 
 spring:

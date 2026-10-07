@@ -8,10 +8,21 @@ export function initializeProductImageViewer() {
     const image = stage.querySelector('img');
     let zoom = 1;
     let previousOverflow = '';
-    function resize(value) {
+    let drag = null;
+    dialog.querySelector('.image-viewer-hint').textContent = 'Lăn chuột để zoom tại vị trí con trỏ. Giữ và kéo ảnh để di chuyển; dùng + / − hoặc nhấp đúp để zoom.';
+    function resize(value, point) {
+        const rect = stage.getBoundingClientRect();
+        const x = point ? Math.max(0, Math.min(stage.clientWidth, point.clientX - rect.left)) : stage.clientWidth / 2;
+        const y = point ? Math.max(0, Math.min(stage.clientHeight, point.clientY - rect.top)) : stage.clientHeight / 2;
+        const oldZoom = zoom;
+        const left = stage.scrollLeft;
+        const top = stage.scrollTop;
         zoom = Math.max(1, Math.min(4, value));
-        image.style.width = `${zoom * 100}%`;
-        image.style.height = `${zoom * 100}%`;
+        image.style.width = `${stage.clientWidth * zoom}px`;
+        image.style.height = `${stage.clientHeight * zoom}px`;
+        stage.scrollLeft = (left + x) * zoom / oldZoom - x;
+        stage.scrollTop = (top + y) * zoom / oldZoom - y;
+        stage.classList.toggle('is-zoomed', zoom > 1);
         dialog.querySelector('#image-viewer-scale').textContent = `${Math.round(zoom * 100)}%`;
         dialog.querySelector('[data-image-zoom="out"]').disabled = zoom === 1;
         dialog.querySelector('[data-image-zoom="in"]').disabled = zoom === 4;
@@ -40,10 +51,32 @@ export function initializeProductImageViewer() {
     stage.addEventListener('wheel', event => {
         if (event.ctrlKey || !event.deltaY) return;
         event.preventDefault();
-        resize(zoom + (event.deltaY < 0 ? .25 : -.25));
+        resize(zoom + (event.deltaY < 0 ? .25 : -.25), event);
     }, { passive: false });
-    stage.addEventListener('dblclick', () => resize(zoom === 1 ? 2 : 1));
+    stage.addEventListener('dblclick', event => resize(zoom === 1 ? 2 : 1, event));
+    stage.addEventListener('pointerdown', event => {
+        if (zoom <= 1 || event.button !== 0 || drag) return;
+        event.preventDefault();
+        drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: stage.scrollLeft, top: stage.scrollTop };
+        stage.setPointerCapture(event.pointerId);
+        stage.classList.add('is-dragging');
+    });
+    stage.addEventListener('pointermove', event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        stage.scrollLeft = drag.left - (event.clientX - drag.x);
+        stage.scrollTop = drag.top - (event.clientY - drag.y);
+    });
+    function stopDrag() {
+        if (drag && stage.hasPointerCapture(drag.id)) stage.releasePointerCapture(drag.id);
+        drag = null;
+        stage.classList.remove('is-dragging');
+    }
+    stage.addEventListener('pointerup', stopDrag);
+    stage.addEventListener('pointercancel', stopDrag);
+    stage.addEventListener('lostpointercapture', stopDrag);
+    new ResizeObserver(() => { if (dialog.open) resize(zoom); }).observe(stage);
     dialog.addEventListener('close', () => {
+        stopDrag();
         document.body.style.overflow = previousOverflow;
         image.removeAttribute('src');
     });

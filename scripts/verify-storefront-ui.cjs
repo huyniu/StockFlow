@@ -155,6 +155,15 @@ async function noOverflow(label){const dimensions=await evaluate(`({viewport:inn
  assert.equal(await evaluate(`document.querySelector('#image-viewer-scale').textContent`),'150%');
  await evaluate(`document.querySelector('.image-viewer-stage').dispatchEvent(new WheelEvent('wheel',{deltaY:-100,cancelable:true}))`);
  assert.equal(await evaluate(`document.querySelector('#image-viewer-scale').textContent`),'175%');
+
+ await evaluate(`document.querySelector('[data-image-zoom="reset"]').click()`);
+ const anchor=await evaluate(`(()=>{const stage=document.querySelector('.image-viewer-stage');const r=stage.getBoundingClientRect();const x=stage.clientWidth*.7,y=stage.clientHeight*.6;stage.dispatchEvent(new WheelEvent('wheel',{deltaY:-100,clientX:r.left+x,clientY:r.top+y,cancelable:true}));return {left:stage.scrollLeft,top:stage.scrollTop,expectedLeft:x*.25,expectedTop:y*.25,x:r.left+x,y:r.top+y};})()`);
+ assert.ok(Math.abs(anchor.left-anchor.expectedLeft)<2);assert.ok(Math.abs(anchor.top-anchor.expectedTop)<2);
+ await send('Input.dispatchMouseEvent',{type:'mousePressed',x:anchor.x,y:anchor.y,button:'left',clickCount:1});
+ await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:anchor.x-10,y:anchor.y-10,button:'left',buttons:1});
+ await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:anchor.x-10,y:anchor.y-10,button:'left',clickCount:1});
+ const pan=await evaluate(`({left:document.querySelector('.image-viewer-stage').scrollLeft,top:document.querySelector('.image-viewer-stage').scrollTop,dragging:document.querySelector('.image-viewer-stage').classList.contains('is-dragging')})`);
+ assert.ok(Math.abs(pan.left-anchor.left-10)<2);assert.ok(Math.abs(pan.top-anchor.top-10)<2);assert.equal(pan.dragging,false);
  await evaluate(`document.querySelector('[data-image-zoom="reset"]').click()`);
  assert.equal(await evaluate(`document.querySelector('#image-viewer-scale').textContent`),'100%');
  for(const width of [375,1366]) { await viewport(width);await noOverflow('Image viewer '+width);await screenshot('image-viewer-'+width); }
