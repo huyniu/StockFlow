@@ -1155,8 +1155,8 @@ async function manageProductVariants(id, selectedVersionId = null, panel = 'vers
                     <form class="version-admin-edit" data-version-id="${selected.id}">
                         <div class="configuration-section-heading"><h3>Thông tin phiên bản</h3><span class="configuration-state ${selected.archived ? 'is-archived' : ''}">${selected.archived ? 'Đã xóa khỏi cửa hàng' : 'Đang sử dụng'}</span></div>
                         <label>Tên phiên bản<input name="name" maxlength="160" value="${__stockflowApp.escapeHtml(selected.name)}" placeholder="Ví dụ: 256 GB hoặc 40mm GPS" required /></label>
-                        <details class="version-spec-details"><summary>Thông số riêng của phiên bản <span>${selected.specifications.length} dòng</span></summary>
-                            <fieldset class="spec-editor" data-spec-editor="version-edit"><legend>Thông số khác với model</legend><p class="subtle">Cùng tên thông số sẽ ghi đè bảng chung. Xóa hết dòng để dùng bảng chung.</p><div class="spec-editor-rows"></div><button class="button secondary small" type="button" data-action="add-spec-row">+ Thêm thông số</button></fieldset>
+                        <details class="version-spec-details" open><summary>Thông số của phiên bản <span>${effectiveVersionSpecifications(product, selected).length} dòng</span></summary>
+                            <fieldset class="spec-editor" data-spec-editor="version-edit"><legend>Bảng thông số đầy đủ</legend><p class="subtle">Sửa trực tiếp giá trị cần thay đổi. Các dòng không đổi tiếp tục dùng thông số chung. Tên và việc xóa thông số chung được chỉnh tại mục Sửa sản phẩm.</p><div class="spec-editor-rows"></div><button class="button secondary small" type="button" data-action="add-spec-row">+ Thêm thông số</button></fieldset>
                         </details>
                         <div class="configuration-card-actions">
                             <button class="button primary small" type="submit">Lưu phiên bản</button>
@@ -1190,7 +1190,18 @@ async function manageProductVariants(id, selectedVersionId = null, panel = 'vers
                         : '<p class="configuration-empty">Tạo phiên bản ở tab Phiên bản trước, sau đó thêm các màu vào cấu hình đó.</p><button class="button secondary" type="button" data-action="configuration-panel" data-panel="versions">Đi tới Phiên bản</button>'
                 }
             </section>`;
-        if (selected) __stockflowApp.renderSpecEditor(__stockflowApp.$('[data-spec-editor="version-edit"]', dialog), selected.specifications);
+        if (selected) {
+            const editor = __stockflowApp.$('[data-spec-editor="version-edit"]', dialog);
+            __stockflowApp.renderSpecEditor(editor, effectiveVersionSpecifications(product, selected));
+            const sharedNames = new Set((product.specifications || []).map(row => row.name.toLowerCase()));
+            editor.querySelectorAll('.spec-editor-row').forEach(row => {
+                const name = row.querySelector('[data-spec-name]');
+                if (sharedNames.has(name.value.toLowerCase())) {
+                    name.readOnly = true;
+                    row.querySelector('[data-action="remove-spec-row"]').hidden = true;
+                }
+            });
+        }
         __stockflowApp.renderSpecEditor(__stockflowApp.$('[data-spec-editor="version-create"]', dialog), []);
         __stockflowApp.setConfigurationPanel(panel);
         __stockflowApp.openDialog('product-variants-dialog');
@@ -1247,6 +1258,10 @@ function renderAdminColor(product, version, color) {
             </div>
             <fieldset class="configuration-color-fields" ${blocked ? 'disabled' : ''}>
                 <div class="form-grid">
+                    <label>Tên màu<input name="color_name" required maxlength="80" value="${__stockflowApp.escapeHtml(color.color_name)}" /></label>
+                    <label>Màu hiển thị<input name="color_hex" type="color" value="${__stockflowApp.colorHex(color.color_hex)}" /></label>
+                </div>
+                <div class="form-grid">
                     <label
                         >Giá bán (VND)<input
                             name="unit_price"
@@ -1281,13 +1296,28 @@ ${__stockflowApp.escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         </form>`;
     }
 
+function effectiveVersionSpecifications(product, version) {
+        if (version.effective_specifications) return version.effective_specifications;
+        const merged = new Map((product.specifications || []).map(row => [row.name.toLowerCase(), row]));
+        (version.specifications || []).forEach(row => merged.set(row.name.toLowerCase(), row));
+        return [...merged.values()];
+    }
+
 function renderColorCreateForm(product, version) {
         const variants = product.variants || [];
         const total = variants.filter((color) => color.version_id === version.id).length;
+        const sources = variants.filter(color => color.version_id !== version.id && !color.archived &&
+            product.versions.some(sourceVersion => sourceVersion.id === color.version_id && !sourceVersion.archived));
         return /* HTML */ `<details class="configuration-create-disclosure" ${!total ? 'open' : ''}>
             <summary>${__stockflowApp.icon('plus')}Thêm màu cho ${__stockflowApp.escapeHtml(version.name)}</summary>
             <form id="product-variant-create" class="stacked-form catalog-form variant-create-form">
                 <input name="version_id" type="hidden" value="${version.id}" />
+                ${sources.length ? `<div class="color-copy-tools">
+                    <label>Lấy màu và ảnh từ phiên bản khác<select name="copy_source"><option value="">Chọn màu có sẵn</option>${sources.map(color =>
+                        `<option value="${color.id}">${__stockflowApp.escapeHtml(color.version_name + ' — ' + color.color_name)}</option>`).join('')}</select></label>
+                    <button class="button secondary" type="button" data-action="copy-product-color">Sao chép màu và ảnh</button>
+                    <p class="subtle" data-copy-color-notice aria-live="polite">Chỉ sao chép tên màu, màu hiển thị và ảnh. Nhập SKU mới và kiểm tra giá của phiên bản này trước khi lưu.</p>
+                </div>` : ''}
                 <div class="form-grid">
                     <label>SKU mới<input name="sku" maxlength="80" placeholder="Ví dụ: IP17-256-DEN" required /></label
                     ><label>Tên màu<input name="color_name" maxlength="80" placeholder="Ví dụ: Đen" required /></label>
@@ -1320,6 +1350,24 @@ function renderColorCreateForm(product, version) {
                 </button>
             </form>
         </details>`;
+    }
+
+function copyProductColor(form) {
+        if (!__stockflowApp.hasRole('ADMIN') || !form) return;
+        const productId = Number(__stockflowApp.$('#product-variants-dialog').dataset.productId);
+        const product = __stockflowApp.state.products.get(productId);
+        const targetVersion = Number(form.elements.version_id.value);
+        const source = product?.variants.find(color => color.id === Number(form.elements.copy_source.value) &&
+            color.version_id !== targetVersion && !color.archived &&
+            product.versions.some(version => version.id === color.version_id && !version.archived));
+        const notice = form.querySelector('[data-copy-color-notice]');
+        if (!source) { notice.textContent = 'Hãy chọn một màu có sẵn để sao chép.'; return; }
+        form.elements.color_name.value = source.color_name;
+        form.elements.color_hex.value = __stockflowApp.colorHex(source.color_hex);
+        form.elements.image_url.value = source.image_url || '';
+        form.elements.image_urls.value = (source.image_urls || []).join('\n');
+        notice.textContent = 'Đã sao chép màu và bộ ảnh. SKU và giá vẫn giữ giá trị bạn đang nhập; hãy kiểm tra trước khi bấm Thêm màu.';
+        form.elements.sku.focus();
     }
 
 function confirmConfigurationArchive(kind, id) {
@@ -1397,6 +1445,10 @@ async function saveProductVersion(form, create = false) {
         const productId = Number(__stockflowApp.$('#product-variants-dialog').dataset.productId);
         const data = Object.fromEntries(new FormData(form));
         const body = { name: data.name.trim(), specifications: __stockflowApp.readSpecifications(form) };
+        if (!create) {
+            const common = new Map((__stockflowApp.state.products.get(productId)?.specifications || []).map(row => [row.name.toLowerCase(), row.value]));
+            body.specifications = body.specifications.filter(row => !common.has(row.name.toLowerCase()) || common.get(row.name.toLowerCase()) !== row.value);
+        }
         if (data.default_color_name) {
             body.default_color_name = data.default_color_name.trim();
             body.default_color_hex = data.default_color_hex;
@@ -1437,7 +1489,11 @@ async function saveProductVariant(form, create = false) {
             body.color_name = data.color_name.trim();
             body.color_hex = data.color_hex;
             body.version_id = Number(data.version_id);
-        } else body.status = data.status;
+        } else {
+            body.status = data.status;
+            body.color_name = data.color_name.trim();
+            body.color_hex = data.color_hex;
+        }
         await __stockflowApp.api('/products/' + productId + '/variants' + (create ? '' : '/' + form.dataset.variantId), {
             method: create ? 'POST' : 'PATCH',
             body,
@@ -1670,6 +1726,7 @@ Object.defineProperties(__stockflowApp, {
 "refreshConfiguration": { get: () => refreshConfiguration },
 "saveProductVersion": { get: () => saveProductVersion },
 "saveProductVariant": { get: () => saveProductVariant },
+"copyProductColor": { get: () => copyProductColor },
 "viewProductDetail": { get: () => viewProductDetail },
 "toggleProductStatus": { get: () => toggleProductStatus },
 "loadCategoryList": { get: () => loadCategoryList },

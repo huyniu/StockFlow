@@ -822,6 +822,8 @@ document.addEventListener('click', (event) => {
             __stockflowApp.execute(() => __stockflowApp.busy(button, () => __stockflowApp.manageProductVariants(id)));
         } else if (action === 'manage-product-colors' && __stockflowApp.hasRole('ADMIN')) {
             __stockflowApp.execute(() => __stockflowApp.busy(button, () => __stockflowApp.manageProductVariants(id, null, 'colors')));
+        } else if (action === 'copy-product-color' && __stockflowApp.hasRole('ADMIN')) {
+            __stockflowApp.copyProductColor(button.closest('form'));
         } else if (action === 'add-spec-row' && __stockflowApp.hasRole('ADMIN')) {
             const editor = button.closest('[data-spec-editor]');
             __stockflowApp.execute(() => __stockflowApp.appendSpecRow(editor));

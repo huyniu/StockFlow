@@ -83,3 +83,6 @@ body.auth-page-open #auth-form { gap: 14px; }
 .aftercare-sidebar { display: grid; gap: 8px; margin-block: 16px; }
 #checkoutSavedAddress { width: 100%; min-width: 0; text-overflow: ellipsis; }
 @media(max-width: 480px) { .saved-address, .return-card { padding: 12px; } .address-actions .button { flex: 1 1 auto; } }
+.color-copy-tools { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.color-copy-tools select { width: 100%; min-width: 0; }
+.color-copy-tools .button { justify-self: start; white-space: normal; }

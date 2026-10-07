@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import jakarta.validation.constraints.NotBlank;
 
-/** Chỉ sửa dữ liệu riêng của màu; tên màu/SKU giữ nguyên để không làm nhầm định danh lịch sử. */
+/** Sửa tên/mã màu và dữ liệu bán hàng; giữ nguyên SKU và liên kết lịch sử. */
 public record UpdateProductVariantRequest(
         @JsonProperty("unit_price")
         @DecimalMin(value = "0.01", message = "Giá màu phải lớn hơn 0.")
@@ -19,5 +19,14 @@ public record UpdateProductVariantRequest(
         ProductStatus status,
         @JsonProperty("image_url") @Size(max = 2048) @ImageUrl String imageUrl,
         @JsonProperty("image_urls") @Size(max = 8)
-        List<@NotBlank @Size(max = 2048) @ImageUrl String> imageUrls) {
+        List<@NotBlank @Size(max = 2048) @ImageUrl String> imageUrls,
+        @JsonProperty("color_name") @Size(max = 80)
+        @jakarta.validation.constraints.Pattern(regexp = "(?s).*\\S.*", message = "Tên màu không được để trống.")
+        String colorName,
+        @JsonProperty("color_hex")
+        @jakarta.validation.constraints.Pattern(regexp = "#[0-9a-fA-F]{6}", message = "Mã màu phải có dạng #000000.")
+        String colorHex) {
+    public UpdateProductVariantRequest(BigDecimal unitPrice, ProductStatus status, String imageUrl, List<String> imageUrls) {
+        this(unitPrice, status, imageUrl, imageUrls, null, null);
+    }
 }

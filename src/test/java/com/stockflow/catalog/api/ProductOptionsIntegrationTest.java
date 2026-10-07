@@ -78,6 +78,54 @@ class ProductOptionsIntegrationTest {
     private String admin;
     private String customer;
 
+    @Test
+    void editsColorNameAndSwatchWithoutChangingSkuOrInventory() throws Exception {
+        JsonNode root = add(create(null).path("id").asLong(), colorPayload());
+        JsonNode color = root.path("variants").get(1);
+        long productId = root.path("id").asLong(), variantId = color.path("id").asLong();
+        String sku = color.path("sku").asText();
+        long stockCount = inventories.count(), movementCount = ((Number) entities.createNativeQuery("SELECT COUNT(*) FROM inventory_movements").getSingleResult()).longValue();
+        send(patch("/api/v1/products/{id}/variants/{variant}", productId, variantId),
+                Map.of("color_name", "  Đen  ", "color_hex", "#000000"), admin).andExpect(status().isOk());
+        entities.flush(); entities.clear();
+        var saved = variants.findById(variantId).orElseThrow();
+        assertThat(saved.getColorName()).isEqualTo("Đen");
+        assertThat(saved.getColorKey()).isEqualTo("đen");
+        assertThat(saved.getColorHex()).isEqualTo("#000000");
+        assertThat(saved.getSkuProduct().getSku()).isEqualTo(sku);
+        assertThat(saved.getSkuProduct().getId()).isEqualTo(color.path("sku_product_id").asLong());
+        assertThat(inventories.count()).isEqualTo(stockCount);
+        assertThat(((Number) entities.createNativeQuery("SELECT COUNT(*) FROM inventory_movements").getSingleResult()).longValue()).isEqualTo(movementCount);
+        mvc.perform(get("/api/v1/products/{id}", productId)).andExpect(status().isOk())
+                .andExpect(jsonPath("variants[1].color_name").value("Đen"))
+                .andExpect(jsonPath("variants[1].color_hex").value("#000000"));
+    }
+
+    @Test
+    void rejectsDuplicateColorNameWithinSameVersion() throws Exception {
+        JsonNode root = add(create(null).path("id").asLong(), colorPayload());
+        send(patch("/api/v1/products/{id}/variants/{variant}", root.path("id").asLong(), root.path("variants").get(1).path("id").asLong()),
+                Map.of("color_name", "  CAM  "), admin).andExpect(status().isConflict());
+    }
+
+    @Test
+    void rejectsInvalidColorFieldsAndCustomerEdits() throws Exception {
+        JsonNode root = add(create(null).path("id").asLong(), colorPayload());
+        long id = root.path("id").asLong(), variant = root.path("variants").get(1).path("id").asLong();
+        for (Map<String,String> invalid : List.of(Map.of("color_name", "   "), Map.of("color_name", "x".repeat(81)), Map.of("color_hex", "black")))
+            send(patch("/api/v1/products/{id}/variants/{variant}", id, variant), invalid, admin).andExpect(status().isBadRequest());
+        send(patch("/api/v1/products/{id}/variants/{variant}", id, variant), Map.of("color_hex", "#000000"), customer).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void editsSwatchOnlyWithoutChangingExistingName() throws Exception {
+        JsonNode root = add(create(null).path("id").asLong(), colorPayload());
+        send(patch("/api/v1/products/{id}/variants/{variant}", root.path("id").asLong(), root.path("variants").get(1).path("id").asLong()),
+                Map.of("color_hex", "#abcdef"), admin).andExpect(status().isOk())
+                .andExpect(jsonPath("variants[1].color_name").value("Xanh"))
+                .andExpect(jsonPath("variants[1].color_hex").value("#ABCDEF"));
+    }
+
     /** Dữ liệu riêng cho mỗi ca, rollback sau test; không sửa catalog thực tế của người dùng. */
     @BeforeEach
     void setup() {

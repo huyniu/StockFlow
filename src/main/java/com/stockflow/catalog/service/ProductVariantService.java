@@ -121,6 +121,16 @@ public class ProductVariantService {
                 .filter(value -> value.getId().equals(variantId)).findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Màu không thuộc sản phẩm này."));
         Product sku = variant.getSkuProduct();
+        if (request.colorName() != null || request.colorHex() != null) {
+            String name = request.colorName() == null ? variant.getColorName() : request.colorName().strip();
+            if (name.isBlank() || name.length() > 80) throw new BadRequestException("Tên màu phải có từ 1 đến 80 ký tự.");
+            String key = name.toLowerCase(Locale.ROOT);
+            boolean duplicate = parent.getVariants().stream().anyMatch(value ->
+                    !value.getId().equals(variantId) && value.getVersion().getId().equals(variant.getVersion().getId())
+                            && value.getColorKey().equals(key));
+            if (duplicate) throw new ConflictException("Tên màu đã tồn tại trong phiên bản này, kể cả màu đã xóa. Hãy dùng tên khác hoặc khôi phục màu cũ.");
+            variant.updateColor(name, request.colorHex() == null ? variant.getColorHex() : request.colorHex().toUpperCase(Locale.ROOT));
+        }
         if (request.unitPrice() != null) sku.update(null, request.unitPrice(), null);
         if (request.status() != null) {
             if (request.status() == ProductStatus.ACTIVE && variant.getVersion().isArchived()) {

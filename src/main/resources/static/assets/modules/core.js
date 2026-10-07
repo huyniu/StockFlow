@@ -677,6 +677,17 @@ function canPortalTab(tab) {
         );
     }
 
+class ApiError extends Error {
+        constructor(status, reason, payload, path) {
+            const details = (payload?.errors || []).map((error) => error.message).filter(Boolean);
+            super([payload?.message || reason || 'Không thể thực hiện yêu cầu.', ...details].join(' '));
+            this.status = status;
+            this.reason = reason;
+            this.path = path;
+            this.payload = payload;
+        }
+    }
+
 export function register() {
 Object.defineProperties(__stockflowApp, {
 "SESSION_KEY": { get: () => SESSION_KEY },
@@ -1055,16 +1066,6 @@ document.addEventListener('focusin', (event) => {
 (integer = (value) => __stockflowApp.numberFormat.format(Number.isFinite(Number(value)) ? Number(value) : 0));
 (hasRole = (...roles) => Boolean(__stockflowApp.state.user && roles.includes(__stockflowApp.state.user.role)));
 (icon = (name) => '<svg class="icon" aria-hidden="true"><use href="#i-' + name + '"/></svg>');
-class ApiError extends Error {
-        constructor(status, reason, payload, path) {
-            const details = (payload?.errors || []).map((error) => error.message).filter(Boolean);
-            super([payload?.message || reason || 'Không thể thực hiện yêu cầu.', ...details].join(' '));
-            this.status = status;
-            this.reason = reason;
-            this.path = path;
-            this.payload = payload;
-        }
-    }
 document.addEventListener('visibilitychange', () => {
         if (document.visibilityState !== 'visible') __stockflowApp.invalidateOrderRefresh();
         else __stockflowApp.scheduleOrderRefresh(0);

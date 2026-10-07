@@ -47,6 +47,7 @@ function fixture(url,method='GET',body={}) {
 }
 const server=http.createServer(async(req,res)=>{
  const url=new URL(req.url,'http://localhost');
+ if(url.pathname==='/api/v1/diagnostics/rejected'){res.writeHead(409,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'CONFLICT',message:'SKU đã tồn tại.'}));return;}
  if(url.pathname.startsWith('/api/')){let text='';for await(const chunk of req)text+=chunk;const body=text?JSON.parse(text):{};res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(fixture(url,req.method,body)));return;}
  const relative=['/','/login','/register'].includes(url.pathname)?'/index.html':url.pathname;
  const file=path.resolve(assets,'.'+relative);
@@ -92,7 +93,12 @@ async function noOverflow(label){const dimensions=await evaluate(`({viewport:inn
  assert.deepEqual(modes,[null,null,null,'https://donhang.ghn.vn/?order_code=ABC123']);
  // Seed only browser fixtures; no live server, accounts, mail or inventory are touched.
  await evaluate(`sessionStorage.setItem('stockflow.web.session',JSON.stringify({token:'layout-token'}));sessionStorage.setItem('stockflow.web.cart.v1',JSON.stringify({version:1,owner:'customer:1',warehouse_id:1,items:[{product_id:1,quantity:2,selected:true}]}))`);
- await send('Page.navigate',{url:base+'/#shop'});await until(`document.querySelector('#catalog-grid').dataset.catalogStatus==='loaded' || document.querySelector('#catalog-grid').dataset.catalogStatus==='ready'`);
+ await send('Page.navigate',{url:base+'/#shop'});await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='loaded' || document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready'`);
+ const apiError=await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');try{await app.api('/diagnostics/rejected')}catch(error){return {message:error.message,status:error.status,typed:error instanceof app.ApiError}}})()`);
+ assert.deepEqual(apiError,{message:'SKU đã tồn tại.',status:409,typed:true});
+ await send('Network.setBlockedURLs',{urls:['https://*','*diagnostics/offline*']});
+ const offlineError=await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');try{await app.api('/diagnostics/offline')}catch(error){return {status:error.status,typed:error instanceof app.ApiError}}})()`);
+ assert.deepEqual(offlineError,{status:0,typed:true});
  for(const width of [320,375,768,1366]) {await viewport(width);await noOverflow('Storefront '+width);await screenshot('storefront-'+width);}
  await evaluate(`document.querySelector('[data-action="open-cart"]').click()`);await until(`document.querySelector('#cart-dialog').open`);
  for(const width of [320,375,768,1366]) {await viewport(width);await noOverflow('Checkout '+width);assert.ok(await evaluate(`document.querySelector('#cart-items img')!==null`));assert.ok(await evaluate(`(()=>{const d=document.querySelector('#cart-dialog');return d.scrollWidth<=d.clientWidth+1;})()`),'Cart content overflows at '+width);await screenshot('checkout-'+width);}
