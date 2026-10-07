@@ -15,7 +15,8 @@ public record UserResponse(
         String phone,
         String role,
         String status,
-        @JsonProperty("created_at") Instant createdAt) {
+        @JsonProperty("created_at") Instant createdAt,
+        @JsonProperty("default_address") com.stockflow.user.domain.DefaultAddress defaultAddress) {
 
     /**
      * Chuyển {@link User} entity thành DTO response để controller không expose trực tiếp entity ra API.
@@ -28,6 +29,6 @@ public record UserResponse(
                 user.getPhone(),
                 user.getRole().getName(),
                 user.getStatus().name(),
-                user.getCreatedAt());
+                user.getCreatedAt(), user.getDefaultAddress());
     }
 }

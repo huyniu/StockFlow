@@ -183,6 +183,7 @@ public class ReportRepository {
         MapSqlParameterSource parameters = new MapSqlParameterSource();
         String where = """
                 WHERE o.status IN ('CONFIRMED', 'PACKED', 'SHIPPED', 'DELIVERED')
+                AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.order_id = o.id AND p.method = 'COD' AND p.status <> 'PAID')
                 """;
         if (fromDate != null) {
             where += """

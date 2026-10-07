@@ -39,6 +39,10 @@ public class User {
     // Số liên hệ tùy chọn; thông tin người nhận trên đơn vẫn là bản chụp độc lập.
     @Column(length = 30)
     private String phone;
+    @jakarta.persistence.Embedded
+    private DefaultAddress defaultAddress;
+
+    public DefaultAddress getDefaultAddress() { return defaultAddress; }
 
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;

@@ -183,6 +183,31 @@ public class OrderService {
         return confirmPayment(order, "SIMULATED_BANKING", "Xuất hàng sau thanh toán mô phỏng");
     }
 
+    /** Xác nhận đơn COD, chưa ghi nhận đã thu tiền. */
+    @Transactional
+    public OrderResponse confirmCashOnDelivery(Long orderId, Long customerId) {
+        User customer = actor(customerId);
+        Order order = locked(orderId);
+        if (!role(customer).equals("CUSTOMER") || !order.getCustomerId().equals(customerId)) {
+            throw new ForbiddenException("Bạn chỉ được chọn thanh toán cho đơn của mình.");
+        }
+        try { order.getTotalAmount().intValueExact(); }
+        catch (ArithmeticException exception) { throw new BadRequestException("Số tiền COD phải là số nguyên VNĐ trong giới hạn thu hộ."); }
+        Optional<Payment> existing = payments.findByOrderId(orderId);
+        if (existing.isPresent()) {
+            if ("COD".equals(existing.get().getMethod()) &&
+                    (existing.get().isPendingCod() || existing.get().getStatus() == PaymentStatus.PAID)) return response(order);
+            throw new ConflictException("Đơn đã chọn phương thức thanh toán khác hoặc đã hủy COD.");
+        }
+        return confirmPayment(order, "COD", "Xuất hàng cho đơn thanh toán khi nhận hàng");
+    }
+
+    @Transactional(readOnly = true)
+    public com.stockflow.order.dto.PaymentResponse getPayment(Long orderId, Long actorId) {
+        getOrder(orderId, actorId);
+        return payments.findByOrderId(orderId).map(com.stockflow.order.dto.PaymentResponse::from).orElse(null);
+    }
+
     /** Chỉ luồng callback đã kiểm tra chữ ký/số tiền được gọi phương thức nội bộ này. */
     @Transactional
     public OrderResponse confirmVerifiedVNPayPayment(Long orderId) {
@@ -193,6 +218,9 @@ public class OrderService {
         Long orderId = order.getId();
         Long customerId = order.getCustomerId();
         Optional<Payment> existing = payments.findByOrderId(orderId);
+        if (existing.isPresent() && "COD".equals(existing.get().getMethod())) {
+            throw new ConflictException("Đơn đã chọn thanh toán khi nhận hàng.");
+        }
         if (existing.isPresent() && existing.get().getStatus() == PaymentStatus.PAID) {
             return response(order);
         }
@@ -244,9 +272,9 @@ public class OrderService {
             if (shipments.findByOrderId(orderId).map(Shipment::hasShipped).orElse(false)) {
                 throw new ConflictException("Không được hủy đơn đã giao đi.");
             }
-            Payment payment = paidPayment(order);
+            Payment payment = fulfillmentPayment(order);
             restock(order, actorId, "Hoàn kho khi hủy đơn đã thanh toán");
-            payment.refund();
+            payment.cancelOrRefund();
         } else {
             throw new ConflictException("Không được hủy ở trạng thái hiện tại.");
         }
@@ -264,7 +292,7 @@ public class OrderService {
             return OrderResponse.from(order, shipmentAt(order, ShipmentStatus.PREPARING));
         }
         requireStatus(order, OrderStatus.CONFIRMED, "đóng gói");
-        paidPayment(order);
+        fulfillmentPayment(order);
         Shipment shipment = shipments.findByOrderId(orderId)
                 .orElseGet(() -> new Shipment(orderId, newTrackingCode()));
         if (shipment.getStatus() != ShipmentStatus.PREPARING
@@ -284,7 +312,7 @@ public class OrderService {
         authorizeFulfillment(user, order);
         if (order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.DELIVERED) return order;
         requireStatus(order, OrderStatus.PACKED, "GHN shipment");
-        paidPayment(order);
+        fulfillmentPayment(order);
         shipmentAt(order, ShipmentStatus.PREPARING);
         return order;
     }
@@ -307,7 +335,7 @@ public class OrderService {
             return OrderResponse.from(order, shipment);
         }
         requireStatus(order, OrderStatus.PACKED, "xuất giao");
-        paidPayment(order);
+        fulfillmentPayment(order);
         Shipment shipment = shipmentAt(order, ShipmentStatus.PREPARING);
         String trackingCode = requestedCode == null ? shipment.getTrackingCode() : requestedCode;
         if (shipments.existsByTrackingCodeAndOrderIdNot(trackingCode, orderId)) {
@@ -329,9 +357,10 @@ public class OrderService {
             return OrderResponse.from(order, shipmentAt(order, ShipmentStatus.DELIVERED));
         }
         requireStatus(order, OrderStatus.SHIPPED, "giao thành công");
-        paidPayment(order);
+        Payment payment = fulfillmentPayment(order);
         Shipment shipment = shipmentAt(order, ShipmentStatus.SHIPPED);
         shipment.deliver(Instant.now().truncatedTo(ChronoUnit.MICROS));
+        payment.collectCod();
         order.changeStatus(OrderStatus.DELIVERED);
         return OrderResponse.from(order, shipment);
     }
@@ -523,7 +552,16 @@ public class OrderService {
         }
     }
 
-    /** Fulfillment và hoàn kho cần thanh toán PAID hợp lệ, không xử lý đơn được sửa trạng thái thủ công. */
+    private Payment fulfillmentPayment(Order order) {
+        Payment payment = payments.findByOrderId(order.getId())
+                .orElseThrow(() -> new ConflictException("Đơn thiếu thông tin thanh toán."));
+        if (payment.getStatus() != PaymentStatus.PAID && !payment.isPendingCod()) {
+            throw new ConflictException("Thanh toán không hợp lệ để giao hàng.");
+        }
+        return payment;
+    }
+
+    /** Hoàn tiền cần thanh toán PAID hợp lệ. */
     private Payment paidPayment(Order order) {
         Payment payment = payments.findByOrderId(order.getId())
                 .orElseThrow(() -> new ConflictException("Đơn đã xác nhận thiếu thanh toán."));

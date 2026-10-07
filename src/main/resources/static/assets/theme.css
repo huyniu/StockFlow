@@ -595,3 +595,60 @@
 :root[data-theme='dark'] .catalog-shelf-heading .shelf-sort select {
     background: transparent;
 }
+/* Header uses StockFlow blue in both themes; menus retain their own surface colors. */
+:root .shop-header,
+:root[data-theme='dark'] .shop-header.shop-header {
+    background: #2563eb;
+    border-bottom-color: #1d4ed8;
+    color: #fff;
+}
+:root .shop-header .shop-brand,
+:root[data-theme='dark'] .shop-header.shop-header .shop-brand,
+:root[data-theme='dark'] .shop-header.shop-header .brand-shop,
+:root[data-theme='dark'] .shop-header.shop-header .shop-brand small,
+:root[data-theme='dark'] .shop-header.shop-header .header-button,
+:root[data-theme='dark'] .shop-header.shop-header .branch-picker,
+:root[data-theme='dark'] .shop-header.shop-header .branch-picker select,
+:root .shop-header .brand-shop,
+:root .shop-header .shop-brand small,
+:root .shop-header .header-button,
+:root .shop-header .branch-picker,
+:root .shop-header .branch-picker select {
+    color: #fff;
+}
+:root .shop-header .brand-mark {
+    background: rgb(255 255 255 / 16%);
+    border: 1px solid rgb(255 255 255 / 28%);
+}
+:root .shop-header .branch-picker select option {
+    background: var(--surface);
+    color: var(--text);
+}
+:root .shop-header .header-button:hover {
+    color: #dbeafe;
+}
+:root .shop-header .category-menu-toggle,
+:root[data-theme='dark'] .shop-header.shop-header .category-menu-toggle,
+:root[data-theme='dark'] .shop-header.shop-header .cart-trigger,
+:root .shop-header .cart-trigger {
+    background: #fff;
+    color: #1d4ed8;
+    border-color: #fff;
+}
+:root .shop-header .category-menu-toggle:hover,
+:root .shop-header .category-menu-toggle[aria-expanded='true'],
+:root .shop-header .cart-trigger:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-color: #dbeafe;
+}
+:root .shop-header .cart-trigger b {
+    background: #2563eb;
+    color: #fff;
+}
+:root .shop-header .header-button:focus-visible,
+:root .shop-header .branch-picker select:focus-visible,
+:root .shop-header .shop-brand:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+}

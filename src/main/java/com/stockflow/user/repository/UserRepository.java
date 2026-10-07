@@ -14,6 +14,17 @@ import org.springframework.data.repository.query.Param;
  * Repository truy vấn bảng users, ưu tiên load kèm role cho các luồng authentication.
  */
 public interface UserRepository extends JpaRepository<User, Long> {
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+        UPDATE users SET default_province_id=:provinceId, default_province_name=:provinceName,
+        default_district_id=:districtId, default_district_name=:districtName,
+        default_ward_code=:wardCode, default_ward_name=:wardName, default_street_address=:streetAddress
+        WHERE id=:userId AND status='ACTIVE'
+        """, nativeQuery = true)
+    int updateDefaultAddress(@Param("userId") Long userId, @Param("provinceId") Integer provinceId,
+        @Param("provinceName") String provinceName, @Param("districtId") Integer districtId,
+        @Param("districtName") String districtName, @Param("wardCode") String wardCode,
+        @Param("wardName") String wardName, @Param("streetAddress") String streetAddress);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.email = :email")

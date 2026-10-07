@@ -16,7 +16,11 @@ public record UpdateProfileRequest(
         @Pattern(
                 regexp = "(?:\\+?[0-9]{8,15})?",
                 message = "Số điện thoại phải có 8 đến 15 chữ số, có thể bắt đầu bằng +.")
-        String phone) {
+        String phone,
+        @jakarta.validation.Valid @JsonProperty("default_address") DefaultAddressRequest defaultAddress,
+        @JsonProperty("clear_default_address") Boolean clearDefaultAddress) {
+
+    public UpdateProfileRequest(String fullName, String phone) { this(fullName, phone, null, false); }
 
     /** Chuẩn hóa như checkout; không tự đổi mã quốc gia hoặc bắt buộc khách lưu số điện thoại. */
     public UpdateProfileRequest {

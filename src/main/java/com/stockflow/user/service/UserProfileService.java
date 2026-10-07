@@ -17,11 +17,13 @@ public class UserProfileService {
 
     private final UserRepository users;
     private final Validator validator;
+    private final com.stockflow.shipping.client.GhnClient ghn;
 
     /** Nhận repository và bộ kiểm tra để cả HTTP lẫn lời gọi service đều tuân thủ cùng giới hạn. */
-    public UserProfileService(UserRepository users, Validator validator) {
+    public UserProfileService(UserRepository users, Validator validator, com.stockflow.shipping.client.GhnClient ghn) {
         this.users = users;
         this.validator = validator;
+        this.ghn = ghn;
     }
 
     /**
@@ -38,8 +40,22 @@ public class UserProfileService {
         }
         boolean updateName = request.fullName() != null;
         boolean updatePhone = request.phone() != null;
-        if (!updateName && !updatePhone) {
+        boolean updateAddress = request.defaultAddress() != null || Boolean.TRUE.equals(request.clearDefaultAddress());
+        if (!updateName && !updatePhone && !updateAddress) {
             throw new BadRequestException("Gửi ít nhất họ tên hoặc số điện thoại cần cập nhật.");
+        }
+        com.stockflow.user.domain.DefaultAddress address = null;
+        if (request.defaultAddress() != null) {
+            if (Boolean.TRUE.equals(request.clearDefaultAddress())) throw new BadRequestException("Không vừa lưu vừa xóa địa chỉ.");
+            var input = request.defaultAddress();
+            var province = ghn.getProvinces().stream().filter(p -> p.id() == input.provinceId()).findFirst()
+                    .orElseThrow(() -> new BadRequestException("Tỉnh/thành không hợp lệ."));
+            var district = ghn.getDistricts(input.provinceId()).stream().filter(d -> d.id() == input.districtId()).findFirst()
+                    .orElseThrow(() -> new BadRequestException("Quận/huyện không thuộc tỉnh/thành đã chọn."));
+            var ward = ghn.getWards(input.districtId()).stream().filter(w -> w.code().equals(input.wardCode())).findFirst()
+                    .orElseThrow(() -> new BadRequestException("Phường/xã không thuộc quận/huyện đã chọn."));
+            address = new com.stockflow.user.domain.DefaultAddress(province.id(), province.name(), district.id(), district.name(),
+                    ward.code(), ward.name(), input.streetAddress());
         }
         String phone = updatePhone && request.phone().isEmpty() ? null : request.phone();
         int updated = users.updateProfile(
@@ -52,6 +68,14 @@ public class UserProfileService {
                 UserStatus.ACTIVE);
         if (updated != 1) {
             throw new UnauthorizedException("Tài khoản không còn hoạt động. Vui lòng đăng nhập lại.");
+        }
+        if (updateAddress) {
+            int addressUpdated = users.updateDefaultAddress(currentUserId,
+                address == null ? null : address.provinceId, address == null ? null : address.provinceName,
+                address == null ? null : address.districtId, address == null ? null : address.districtName,
+                address == null ? null : address.wardCode, address == null ? null : address.wardName,
+                address == null ? null : address.streetAddress);
+            if (addressUpdated != 1) throw new UnauthorizedException("Tài khoản không còn hoạt động.");
         }
         // Nạp lại sau bulk UPDATE; tránh trả thông tin cũ từ principal hoặc persistence context.
         return users.findById(currentUserId)

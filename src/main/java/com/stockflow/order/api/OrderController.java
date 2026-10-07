@@ -110,6 +110,18 @@ public class OrderController {
         return service.confirmPaymentSimulation(id, user.getId());
     }
 
+    @PostMapping("/{id}/cod/confirm")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public OrderResponse cod(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        return service.confirmCashOnDelivery(id, user.getId());
+    }
+
+    @GetMapping("/{id}/payment")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'WAREHOUSE_STAFF', 'MANAGER', 'ADMIN')")
+    public com.stockflow.order.dto.PaymentResponse payment(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        return service.getPayment(id, user.getId());
+    }
+
     /** ADMIN/MANAGER hoặc staff kho được giao đóng gói đơn đã thanh toán. */
     @PostMapping("/{id}/pack")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")

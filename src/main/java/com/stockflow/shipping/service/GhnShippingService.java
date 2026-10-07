@@ -59,7 +59,8 @@ public class GhnShippingService {
         payload.put("payment_type_id", 1);
         payload.put("service_type_id", 2);
         payload.put("required_note", "KHONGCHOXEMHANG");
-        payload.put("cod_amount", 0); // StockFlow orders have already been paid.
+        boolean pendingCod = jdbc.queryForObject("SELECT COUNT(*) FROM payments WHERE order_id=? AND method='COD' AND status='PENDING'", Integer.class, orderId) > 0;
+        payload.put("cod_amount", pendingCod ? order.getTotalAmount().intValueExact() : 0);
         payload.put("weight", ShippingQuoteService.CHECKOUT_WEIGHT); payload.put("length", 15); payload.put("width", 15); payload.put("height", 10);
         payload.put("content", "StockFlow order " + order.getOrderCode());
         if (delivery.getNote() != null) payload.put("note", delivery.getNote());

@@ -3,6 +3,10 @@
     'use strict';
 
     const SESSION_KEY = 'stockflow.web.session';
+    let wishlistOwner = null;
+    let wishlistIds = new Set();
+    let wishlistLoadVersion = 0;
+    let checkoutDifferentAddress = false;
     // Giỏ chỉ tồn tại trong phiên của tab và gắn với danh tính đã được backend xác thực.
     const CART_KEY = 'stockflow.web.cart.v1';
     // Khóa retry chỉ lưu chủ phiên, mã ngẫu nhiên và hash; không lưu địa chỉ/điện thoại hoặc nội dung đơn.
@@ -156,6 +160,9 @@
         catalogMaxPrice: '',
         catalogSort: 'id,asc',
         catalogBrandId: '',
+        catalogSpecName: '',
+        catalogSpecValue: '',
+        specificationOptions: [],
         discoveryDirty: true,
         branchId: '',
         categories: [],
@@ -763,7 +770,7 @@
     function saveCart() {
         if (!state.cartReady || state.cartLoading || state.cartRestoreFailed) return;
         writeCartSnapshot(
-            [...state.cart.values()].map((item) => ({ product_id: item.product.id, quantity: item.quantity })),
+            [...state.cart.values()].map((item) => ({ product_id: item.product.id, quantity: item.quantity, selected: item.selected !== false })),
         );
     }
 
@@ -808,7 +815,7 @@
                 return true;
             });
             return {
-                items: items.map((item) => ({ product_id: item.product_id, quantity: item.quantity })),
+                items: items.map((item) => ({ product_id: item.product_id, quantity: item.quantity, selected: item.selected !== false })),
                 warehouse_id:
                     Number.isSafeInteger(saved.warehouse_id) && saved.warehouse_id > 0 ? saved.warehouse_id : null,
             };
@@ -877,7 +884,8 @@
                         removed++;
                     } else {
                         const { product, item } = result.value;
-                        restored.set(id, { product, quantity: restored.get(id)?.quantity || item.quantity });
+                        restored.set(id, { product, quantity: restored.get(id)?.quantity || item.quantity,
+                            selected: restored.get(id)?.selected ?? item.selected });
                     }
                 }
             }
@@ -1024,6 +1032,17 @@
         $('#identity-role').textContent = ROLE_LABELS[state.user?.role] || 'Khách';
         $('#identity-role').className = 'badge ' + (ROLE_CLASSES[state.user?.role] || 'neutral');
         $('#open-login').hidden = Boolean(state.user);
+        const accountMenu = $('#header-account');
+        accountMenu.hidden = !state.user;
+        accountMenu.open = false;
+        const name = state.user?.full_name || state.user?.email || '';
+        $('#header-account-name').textContent = name;
+        $('#header-account-name').title = name;
+        $('#account-menu-name').textContent = name;
+        $('#account-menu-email').textContent = state.user?.email || '';
+        $('#account-menu-role').textContent = ROLE_LABELS[state.user?.role] || '';
+        $('#account-portal-label').textContent = hasRole('WAREHOUSE_STAFF') ? 'Truy cập cổng vận hành kho' : 'Truy cập cổng quản trị';
+        syncWishlist();
         $('#logout').hidden = !state.user;
         $('#portal-name').textContent = state.user?.full_name || state.user?.email || '';
         $('#portal-scope').textContent = hasRole('WAREHOUSE_STAFF')
@@ -1044,7 +1063,7 @@
             element.hidden = !hasRole(...element.dataset.roles.split(','));
         });
         // Không sửa hồ sơ khi dữ liệu chưa tải xong hoặc đang ghi; tránh ghi đè nội dung đang nhập.
-        $$('#profile-form input, #profile-save').forEach((element) => {
+        $$('#profile-form input, #profile-form select, #profile-save').forEach((element) => {
             element.disabled =
                 !hasRole('CUSTOMER') ||
                 !state.profileReady ||
@@ -1052,12 +1071,14 @@
                 state.authBusy ||
                 element.getAttribute('aria-busy') === 'true';
         });
+        $('#profileDistrict').disabled ||= !$('#profileProvince').value;
+        $('#profileWard').disabled ||= !$('#profileDistrict').value;
         $$('.shop-header [data-action="my-orders"], [data-shop-tab="orders"]').forEach((button) => {
             button.hidden = isOperator();
         });
         const create = $('#create-order');
         create.disabled =
-            state.cart.size === 0 ||
+            selectedCartItems().length === 0 ||
             isOperator() ||
             state.authBusy ||
             state.cartLoading ||
@@ -1070,10 +1091,13 @@
               ? 'Đang khôi phục giỏ và cập nhật thông tin sản phẩm…'
               : 'Một đơn được chuẩn bị tại một chi nhánh. Giữ hàng trong 15 phút.';
         // Không cho sửa giỏ chưa đồng bộ vì lần thử lại có thể phục hồi số lượng cũ từ bản lưu.
-        const cartLocked = state.cartLoading || state.cartRestoreFailed || state.authBusy;
-        $$('[data-cart-quantity], [data-action="remove-cart"]').forEach((element) => {
+        const cartLocked = state.cartLoading || state.cartRestoreFailed || state.authBusy || create.getAttribute('aria-busy') === 'true';
+        $$('.checkout-address-actions button').forEach(button => { button.disabled = cartLocked; });
+        $('[data-action="use-default-address"]').disabled ||= !state.user?.default_address;
+        $$('[data-cart-quantity], [data-cart-selected], #cart-select-all, [data-action="remove-cart"]').forEach((element) => {
             element.disabled = cartLocked;
         });
+        $('#cart-select-all').disabled = cartLocked || !state.cart.size;
         $$('[data-action="cart-plus"], [data-action="cart-minus"]').forEach((button) => {
             const quantity = state.cart.get(Number(button.dataset.id))?.quantity || 0;
             button.disabled =
@@ -1294,7 +1318,7 @@
         $$('[data-dialog-notice]', dialog).forEach((element) => element.remove());
         if (id === 'cart-dialog') {
             prefillCheckoutFromProfile();
-            execute(loadCheckoutProvinces);
+            execute(prepareDefaultCheckoutAddress);
         }
         dialog.showModal();
         syncMobilePurchase();
@@ -1335,6 +1359,7 @@
             : '—';
         $('#profile-name').value = state.user?.full_name || '';
         $('#profile-phone').value = state.user?.phone || '';
+        $('#profileStreetAddress').value = state.user?.default_address?.street_address || '';
     }
 
     /** Tải lại hồ sơ thật; epoch của API loại bỏ phản hồi thuộc tài khoản cũ sau khi đổi vai trò. */
@@ -1347,6 +1372,7 @@
         renderPermissions();
         try {
             state.user = await api('/users/me', { channel: 'profile-read' });
+            await loadProfileAddress();
             state.profileReady = true;
             renderProfile();
             renderIdentity();
@@ -1364,6 +1390,11 @@
     /** Chỉ gửi liên hệ được phép; không đổi token, email hoặc vai trò và không tự sửa giỏ/đơn cũ. */
     async function saveProfile() {
         if (!hasRole('CUSTOMER') || !state.profileReady || state.profileSaving) return;
+        const province = $('#profileProvince').value, district = $('#profileDistrict').value;
+        const ward = $('#profileWard').value, street = $('#profileStreetAddress').value.trim();
+        const anyAddress = Boolean(province || district || ward || street);
+        if (anyAddress && !(province && district && ward && street)) throw new Error('Vui lòng chọn đủ tỉnh, quận, phường và số nhà/tên đường.');
+        const address = anyAddress ? { province_id: Number(province), district_id: Number(district), ward_code: ward, street_address: street } : null;
         const epoch = state.epoch;
         state.profileSaving = true;
         $('#profile-status').textContent = 'Đang lưu thông tin…';
@@ -1371,7 +1402,7 @@
         try {
             state.user = await api('/users/me', {
                 method: 'PATCH',
-                body: { full_name: $('#profile-name').value, phone: $('#profile-phone').value },
+                body: { full_name: $('#profile-name').value, phone: $('#profile-phone').value, default_address: address, clear_default_address: !anyAddress },
                 channel: 'profile-save',
             });
             renderProfile();
@@ -1396,6 +1427,58 @@
         if (!hasRole('CUSTOMER')) return;
         if (!$('#delivery-name').value.trim()) $('#delivery-name').value = state.user.full_name || '';
         if (!$('#delivery-phone').value.trim()) $('#delivery-phone').value = state.user.phone || '';
+    }
+
+    let profileLocationVersion = 0;
+    async function loadProfileAddress() {
+        const address = state.user?.default_address;
+        const values = await api('/locations/provinces');
+        $('#profileProvince').innerHTML = '<option value="">Chọn tỉnh / thành phố</option>' + values.map(p => '<option value="' + p.ProvinceID + '">' + escapeHtml(p.ProvinceName) + '</option>').join('');
+        resetLocationSelect('profileDistrict', 'Chọn quận / huyện');
+        resetLocationSelect('profileWard', 'Chọn phường / xã');
+        $('#profileProvince').value = address?.province_id || '';
+        if (!address) return;
+        await changeProfileLocation('province');
+        $('#profileDistrict').value = address.district_id;
+        await changeProfileLocation('district');
+        $('#profileWard').value = address.ward_code;
+    }
+
+    async function changeProfileLocation(level) {
+        const version = ++profileLocationVersion;
+        const province = level === 'province';
+        if (province) resetLocationSelect('profileDistrict', 'Chọn quận / huyện');
+        resetLocationSelect('profileWard', 'Chọn phường / xã');
+        const source = province ? $('#profileProvince') : $('#profileDistrict');
+        const id = source.value;
+        if (!id) return;
+        const values = await api(province ? '/locations/districts' : '/locations/wards', { query: province ? { province_id: id } : { district_id: id } });
+        if (version !== profileLocationVersion || id !== source.value) return;
+        const target = province ? $('#profileDistrict') : $('#profileWard');
+        target.innerHTML += values.map(value => '<option value="' + escapeHtml(province ? value.DistrictID : value.WardCode) + '">' + escapeHtml(province ? value.DistrictName : value.WardName) + '</option>').join('');
+        target.disabled = false;
+    }
+
+    async function prepareDefaultCheckoutAddress(force = false) {
+        if (state.authBusy || $('#create-order').getAttribute('aria-busy') === 'true') return;
+        if (!force && checkoutDifferentAddress) { await loadCheckoutProvinces(); return; }
+        if (force) checkoutDifferentAddress = false;
+        await loadCheckoutProvinces();
+        const address = state.user?.default_address;
+        if (!address || (!force && ($('#checkoutProvince').value || $('#checkoutStreetAddress').value.trim()))) return;
+        $('#checkoutProvince').value = address.province_id;
+        if (!$('#checkoutProvince').value) throw new Error('Địa chỉ mặc định không còn trong danh sách GHN. Hãy chọn lại địa chỉ.');
+        let version = shippingLocationVersion + 1;
+        await changeCheckoutLocation('province');
+        if (version !== shippingLocationVersion) return;
+        $('#checkoutDistrict').value = address.district_id;
+        version = shippingLocationVersion + 1;
+        await changeCheckoutLocation('district');
+        if (version !== shippingLocationVersion) return;
+        $('#checkoutWard').value = address.ward_code;
+        if (!$('#checkoutDistrict').value || !$('#checkoutWard').value) throw new Error('Địa chỉ mặc định cần được cập nhật. Hãy chọn lại quận/phường.');
+        if (force || !$('#checkoutStreetAddress').value.trim()) $('#checkoutStreetAddress').value = address.street_address;
+        await refreshCheckoutFee();
     }
 
     /** Dữ liệu công khai tách khỏi lựa chọn kho vận hành; không gọi báo cáo hoặc kho nội bộ cho khách. */
@@ -1979,7 +2062,6 @@
         document.body.classList.toggle('category-menu-inline', inline);
         $('#home-categories').classList.toggle('pinned', inline);
         $('.shop-main').inert = open && !inline;
-        $('.shop-nav').inert = open;
         // Không đặt inert trên main ở chế độ ngoài vì chính menu cần mở cũng nằm trong main.
         $$('#shop-catalog > :not(.shop-discovery), .shop-discovery > .shop-hero, .shop-footer').forEach((element) => {
             element.inert = inline;
@@ -2247,6 +2329,12 @@
 
     /** Xóa một điều kiện hoặc toàn bộ bộ lọc; không thay sản phẩm hay số lượng trong giỏ. */
     async function clearCatalogFilter(filter) {
+        if (filter === 'all' || filter === 'specification') {
+            state.catalogSpecName = '';
+            state.catalogSpecValue = '';
+            $('#catalog-spec-filter').reset();
+            renderSpecificationValueOptions();
+        }
         if (filter === 'all' || filter === 'category') $('#catalog-category').value = '';
         if (filter === 'all' || filter === 'category' || filter === 'brand') state.catalogBrandId = '';
         renderCatalogBrandOptions();
@@ -2267,6 +2355,7 @@
     function renderCatalogActiveFilters() {
         const category = state.categories.find((item) => String(item.id) === $('#catalog-category').value);
         const filters = [];
+        if (state.catalogSpecName && state.catalogSpecValue) filters.push({ key: 'specification', label: state.catalogSpecName + ': ' + state.catalogSpecValue });
         if (category) filters.push({ key: 'category', label: category.name });
         const brand = state.brands.find((item) => String(item.id) === state.catalogBrandId);
         if (brand) filters.push({ key: 'brand', label: 'Hãng: ' + brand.name });
@@ -3025,6 +3114,7 @@
                 const stock = productStock(product);
                 return `
                     <article class="product-card">
+                        ${wishlistButton(product.id, product.name)}
                         <a class="product-card-link" href="${productPagePath(product.id)}" data-product-link data-product-id="${product.id}" aria-label="Xem sản phẩm ${escapeHtml(product.name)}">
                             ${productArt(product)}
                             <div class="product-card-body">
@@ -3057,6 +3147,77 @@
                 `;
             })
             .join('');
+    }
+
+    function wishlistButton(id, name) {
+        const selected = wishlistIds.has(Number(id));
+        return '<button type="button" class="wishlist-product-button' + (selected ? ' is-saved' : '')
+            + '" data-action="toggle-wishlist" data-id="' + id + '" aria-pressed="' + selected
+            + '" aria-label="' + escapeHtml((selected ? 'Bỏ yêu thích ' : 'Yêu thích ') + name)
+            + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg></button>';
+    }
+
+    function syncWishlist() {
+        const owner = state.user ? 'user:' + state.user.id : 'guest';
+        if (owner !== wishlistOwner) {
+            wishlistOwner = owner;
+            wishlistLoadVersion++;
+            try {
+                const saved = JSON.parse(localStorage.getItem('stockflow.wishlist.' + owner) || '[]');
+                wishlistIds = new Set(Array.isArray(saved) ? saved.filter(id => Number.isSafeInteger(id) && id > 0).slice(0, 100) : []);
+            } catch { wishlistIds = new Set(); }
+            $('#wishlist-dialog').close();
+            $('#wishlist-content').replaceChildren();
+        }
+        $('#wishlist-count').textContent = wishlistIds.size;
+        $$('[data-action="toggle-wishlist"]').forEach(button => {
+            const selected = wishlistIds.has(Number(button.dataset.id));
+            button.classList.toggle('is-saved', selected);
+            button.setAttribute('aria-pressed', String(selected));
+            const product = state.products.get(Number(button.dataset.id));
+            button.setAttribute('aria-label', (selected ? 'Bỏ yêu thích ' : 'Yêu thích ') + (product?.name || 'sản phẩm'));
+        });
+    }
+
+    async function toggleWishlist(id) {
+        syncWishlist();
+        if (!Number.isSafeInteger(id) || id <= 0 || state.authBusy) return;
+        const selected = wishlistIds.has(id);
+        if (!selected && wishlistIds.size >= 100) throw new Error('Bạn có thể lưu tối đa 100 sản phẩm yêu thích.');
+        const next = new Set(wishlistIds);
+        if (selected) next.delete(id); else next.add(id);
+        try { localStorage.setItem('stockflow.wishlist.' + wishlistOwner, JSON.stringify([...next])); }
+        catch { throw new Error('Không lưu được yêu thích. Hãy cho phép trình duyệt lưu dữ liệu.'); }
+        wishlistIds = next;
+        syncWishlist();
+        notify('success', selected ? 'Đã bỏ sản phẩm khỏi yêu thích.' : 'Đã thêm sản phẩm vào yêu thích.');
+        if ($('#wishlist-dialog').open) await loadWishlist();
+    }
+
+    async function loadWishlist() {
+        const version = ++wishlistLoadVersion;
+        const owner = wishlistOwner;
+        const ids = [...wishlistIds];
+        const target = $('#wishlist-content');
+        if (!ids.length) {
+            target.innerHTML = '<div class="empty-state"><h3>Chưa có sản phẩm yêu thích</h3><p>Bấm trái tim trên sản phẩm để lưu vào đây.</p></div>';
+            return;
+        }
+        target.innerHTML = '<p class="subtle">Đang tải sản phẩm yêu thích…</p>';
+        const results = await Promise.allSettled(ids.map(id => api('/products/' + id, { anonymous: true })));
+        if (version !== wishlistLoadVersion || owner !== wishlistOwner || !$('#wishlist-dialog').open) return;
+        const products = [];
+        const unavailable = [];
+        results.forEach((result, index) => {
+            if (result.status === 'fulfilled' && result.value?.status === 'ACTIVE') {
+                state.products.set(result.value.id, result.value);
+                products.push(result.value);
+            } else unavailable.push(ids[index]);
+        });
+        target.innerHTML = '<div class="wishlist-grid">' + productCards(products) + '</div>'
+            + unavailable.map(id => '<div class="wishlist-unavailable">Không tải được sản phẩm #' + id
+                + '<button type="button" class="button secondary small" data-action="toggle-wishlist" data-id="' + id + '">Bỏ khỏi yêu thích</button></div>').join('');
+        syncWishlist();
     }
 
     /** Cả thẻ là liên kết trang sản phẩm; nút thêm giỏ riêng không bị lồng vào liên kết. */
@@ -3218,6 +3379,7 @@
         body.innerHTML = `
             <header class="product-detail-heading">
                 <h1 id="shop-product-name" tabindex="-1">${escapeHtml(title)}</h1>
+                <div class="wishlist-detail-action">${wishlistButton(root.id, root.name)}<span>Lưu sản phẩm yêu thích</span></div>
                 <div class="product-detail-meta">
                     ${root.brand_name ? '<span>Thương hiệu <strong>' + escapeHtml(root.brand_name) + '</strong></span>' : ''}
                     <span class="shop-product-sku">Mã sản phẩm <span class="mono">${escapeHtml(product.sku)}</span></span>
@@ -3619,6 +3781,8 @@
                     q: $('#catalog-query').value.trim(),
                     minPrice: state.catalogMinPrice,
                     maxPrice: state.catalogMaxPrice,
+                    specificationName: state.catalogSpecName,
+                    specificationValue: state.catalogSpecValue,
                 },
             });
             result.content.forEach((product) => state.products.set(product.id, product));
@@ -3643,16 +3807,32 @@
     }
 
     /** Giỏ nhiều mặt hàng, đơn giá tạm tính từ catalog; backend chụp giá thật tại thời điểm đặt. */
+    function selectedCartItems() {
+        return [...state.cart.values()].filter(item => item.selected !== false);
+    }
+
+    function consumePurchasedCartItems(items) {
+        for (const purchased of items) {
+            const current = state.cart.get(purchased.product_id);
+            if (!current) continue;
+            if (current.quantity > purchased.quantity) current.quantity -= purchased.quantity;
+            else state.cart.delete(purchased.product_id);
+        }
+    }
+
     function renderCart() {
         let total = 0;
         let quantity = 0;
         $('#cart-items').innerHTML = [...state.cart.values()]
             .map((item) => {
                 const product = saleSku(state.products.get(item.product.id) || item.product);
-                total += Number(product.unit_price) * item.quantity;
+                if (item.selected !== false) total += Number(product.unit_price) * item.quantity;
                 quantity += item.quantity;
                 return (
-                    '<div class="cart-line"><div class="cart-line-head"><div><strong>' +
+                    '<div class="cart-line' + (item.selected === false ? ' cart-line-unselected' : '') + '">'
+                    + '<input class="cart-line-select" type="checkbox" data-cart-selected="' + product.id + '" '
+                    + (item.selected !== false ? 'checked ' : '') + 'aria-label="Chọn thanh toán ' + escapeHtml(cartProductName(product)) + '" />'
+                    + cartThumbnail(product) + '<div class="cart-line-head"><div><strong>' +
                     escapeHtml(cartProductName(product)) +
                     '</strong><span class="meta-line mono">' +
                     escapeHtml(product.sku) +
@@ -3730,12 +3910,27 @@
         renderShippingTotal();
         $('#cart-badge').textContent = integer(quantity);
         $('#cart-count').textContent = integer(state.cart.size);
+        const selectedCount = selectedCartItems().length;
+        const all = $('#cart-select-all');
+        all.checked = state.cart.size > 0 && selectedCount === state.cart.size;
+        all.indeterminate = selectedCount > 0 && selectedCount < state.cart.size;
+        $('#cart-selected-count').textContent = 'Đã chọn ' + selectedCount + '/' + state.cart.size + ' sản phẩm';
         renderPermissions();
     }
 
     /** Gộp theo productId để mỗi sản phẩm chỉ xuất hiện một lần trong request đặt đơn. */
+    function cartThumbnail(product) {
+        const source = safeProductImageUrl(product.image_url)
+            || (Array.isArray(product.image_urls) ? product.image_urls.map(safeProductImageUrl).find(Boolean) : null);
+        return '<div class="cart-thumbnail">'
+            + (source ? '<img data-cart-thumbnail src="' + escapeHtml(source) + '" alt="' + escapeHtml(cartProductName(product))
+                + '" width="72" height="72" loading="lazy" decoding="async" />' : '')
+            + '<span class="cart-thumbnail-empty" ' + (source ? 'hidden' : '') + '>Chưa có ảnh</span></div>';
+    }
+
     function addCart(id, quantity = 1) {
         if (isOperator()) return;
+        if ($('#create-order').getAttribute('aria-busy') === 'true') throw new Error('Vui lòng chờ đặt hàng hoàn tất trước khi sửa giỏ.');
         if (state.cartLoading || state.cartRestoreFailed || state.authBusy) {
             throw new Error('Vui lòng khôi phục giỏ và chờ phiên đăng nhập cập nhật xong trước khi thêm sản phẩm.');
         }
@@ -3746,7 +3941,7 @@
         if (!Number.isInteger(quantity) || quantity < 1) throw new Error('Số lượng phải là số nguyên dương.');
         const totalQuantity = (item ? item.quantity : 0) + quantity;
         if (totalQuantity > MAX_QUANTITY) throw new Error('Số lượng đã đạt giới hạn.');
-        state.cart.set(id, { product, quantity: totalQuantity });
+        state.cart.set(id, { product, quantity: totalQuantity, selected: true });
         saveCart();
         renderCart();
         bounceCart();
@@ -3755,6 +3950,7 @@
 
     /** Số lượng giỏ phải là số nguyên dương trong giới hạn INTEGER của API. */
     function setCartQuantity(id, quantity) {
+        if ($('#create-order').getAttribute('aria-busy') === 'true') return;
         if (state.cartLoading || state.cartRestoreFailed) return;
         const item = state.cart.get(id);
         if (!item) return;
@@ -3778,10 +3974,11 @@
     }
 
     function renderShippingTotal() {
-        const subtotal = [...state.cart.values()].reduce((sum, item) => sum + Number(saleSku(state.products.get(item.product.id) || item.product).unit_price) * item.quantity, 0);
-        $('#checkoutShippingFee').textContent = checkoutShippingQuote ? amount(checkoutShippingQuote.fee)
+        const selected = selectedCartItems();
+        const subtotal = selected.reduce((sum, item) => sum + Number(saleSku(state.products.get(item.product.id) || item.product).unit_price) * item.quantity, 0);
+        $('#checkoutShippingFee').textContent = !selected.length ? amount(0) : checkoutShippingQuote ? amount(checkoutShippingQuote.fee)
             + (checkoutShippingQuote.testMode ? ' (phí thử nghiệm)' : '') : 'Chọn địa chỉ / chờ tính phí';
-        $('#checkoutTotal').textContent = amount(subtotal + (checkoutShippingQuote?.fee || 0));
+        $('#checkoutTotal').textContent = amount(subtotal + (selected.length ? checkoutShippingQuote?.fee || 0 : 0));
     }
 
     async function loadCheckoutProvinces() {
@@ -3843,6 +4040,8 @@
     }
 
     document.addEventListener('change', event => {
+        if (event.target.id === 'profileProvince') execute(() => changeProfileLocation('province'));
+        else if (event.target.id === 'profileDistrict') execute(() => changeProfileLocation('district'));
         if (event.target.id === 'checkoutProvince') execute(() => changeCheckoutLocation('province'));
         else if (event.target.id === 'checkoutDistrict') execute(() => changeCheckoutLocation('district'));
         else if (event.target.id === 'checkoutWard') execute(refreshCheckoutFee);
@@ -3850,6 +4049,7 @@
 
     /** Xóa người nhận khi đổi tài khoản hoặc đặt xong, tránh giữ dữ liệu cá nhân của phiên trước. */
     function resetCheckoutDetails() {
+        checkoutDifferentAddress = false;
         shippingLocationVersion++;
         shippingFeeVersion++;
         checkoutShippingQuote = null;
@@ -3921,6 +4121,7 @@
 
     /** CUSTOMER tạo đơn có người nhận; lỗi 400/409 giữ giỏ, địa chỉ và chi nhánh để khách điều chỉnh. */
     async function createOrder() {
+        renderPermissions();
         if (!state.user) {
             openAuth('checkout');
             return;
@@ -3929,6 +4130,8 @@
         if (state.cartLoading || state.cartRestoreFailed)
             throw new Error('Khôi phục giỏ và cập nhật giá trước khi đặt hàng.');
         if (!state.cart.size) throw new Error('Thêm ít nhất một sản phẩm vào giỏ.');
+        const selected = selectedCartItems();
+        if (!selected.length) throw new Error('Chọn ít nhất một sản phẩm muốn thanh toán.');
         if (!state.branchId) throw new Error('Chọn chi nhánh chuẩn bị đơn.');
         const district = $('#checkoutDistrict').value;
         const ward = $('#checkoutWard').value;
@@ -3946,7 +4149,7 @@
             to_district_id: Number(district),
             to_ward_code: ward,
             shipping_fee: checkoutShippingQuote.fee,
-            items: [...state.cart.values()].map((item) => ({
+            items: selected.map((item) => ({
                 product_id: item.product.id,
                 quantity: item.quantity,
             })),
@@ -3983,7 +4186,7 @@
             throw new Error('Chưa nhận được thông tin đơn hợp lệ. Thử lại để tra lại cùng lần đặt hàng.');
         }
         forgetCheckoutAttempt();
-        state.cart.clear();
+        consumePurchasedCartItems(body.items);
         saveCart();
         resetCheckoutDetails();
         state.order = result;
@@ -4242,13 +4445,15 @@
             .map((item) => {
                 const product = state.products.get(item.product_id);
                 return (
-                    '<div class="order-item"><div><strong>' +
+                    '<div class="order-item"><div class="order-item-product">' +
+                    cartThumbnail(product ? saleSku(product) : { name: 'Sản phẩm #' + item.product_id }) +
+                    '<div class="order-item-description"><strong>' +
                     escapeHtml(product ? cartProductName(saleSku(product)) : 'Sản phẩm #' + item.product_id) +
                     '</strong><span class="meta-line">' +
                     integer(item.quantity) +
                     ' × ' +
                     amount(item.unit_price) +
-                    '</span></div><strong class="price">' +
+                    '</span></div></div><strong class="price">' +
                     amount(item.line_total) +
                     '</strong>' +
                     (hasRole('CUSTOMER') && order.status === 'DELIVERED'
@@ -4278,6 +4483,7 @@
             escapeHtml(dateTime(order.updated_at)) +
             '</div></div>' +
             renderDeliveryDetails(order) +
+            '<p class="meta-line" data-order-payment></p>' +
             (order.status === 'PENDING'
                 ? '<div class="countdown">' +
                   icon('clock') +
@@ -4315,15 +4521,15 @@
                 ? '<button type="button" class="button primary" data-action="operate-order" data-operation="ghn-ship" data-id="' +
                   order.id + '">🚚 Bắn đơn sang GHN (Tự động lấy mã vận đơn)</button>' : '') +
             (hasRole('CUSTOMER') && order.status === 'PENDING'
-                ? '<button type="button" class="button primary" data-action="pay-order" data-id="' +
+                ? '<button type="button" class="button primary" data-action="cod-order" data-id="' +
                   order.id +
                   '">' +
                   icon('card') +
-                  'Xác nhận thanh toán mô phỏng</button>'
+                  'Thanh toán khi nhận hàng (COD)</button>'
                 : '') +
             (hasRole('CUSTOMER') && order.status === 'PENDING'
                 ? '<button type="button" class="button secondary" data-action="vnpay-order" data-id="' +
-                  order.id + '">' + icon('card') + 'Thanh toán qua VNPay (Sandbox)</button>'
+                  order.id + '"><img class="payment-method-logo" src="/assets/vnpay-logo.svg" alt="VNPay" width="84" height="26">Thanh toán qua VNPay</button>'
                 : '') +
             (canCancel
                 ? '<button type="button" class="button danger" data-action="cancel-order" data-id="' +
@@ -4341,6 +4547,16 @@
                 ? '<p class="meta-line" data-order-sync>Tự cập nhật trạng thái khi bạn đang xem đơn.</p>'
                 : '');
         updateCountdown();
+        const paymentLabel = detail.querySelector('[data-order-payment]');
+        api('/orders/' + order.id + '/payment').then((payment) => {
+            if (!paymentLabel?.isConnected || state.order?.id !== order.id || !payment) return;
+            const method = payment.method === 'COD' ? 'Thanh toán khi nhận hàng (COD)'
+                : payment.method === 'VNPAY' ? 'VNPay' : 'Thanh toán mô phỏng';
+            const status = payment.status === 'PENDING' ? 'Chưa thu tiền — thanh toán khi nhận hàng'
+                : payment.status === 'PAID' ? 'Đã thanh toán'
+                : payment.status === 'REFUNDED' ? 'Đã hoàn tiền' : 'Đã hủy';
+            paymentLabel.textContent = method + ' · ' + status;
+        }).catch(() => {});
     }
 
     /** Countdown chỉ nhắc hạn và kích hoạt GET; EXPIRED cùng thao tác nhả hàng vẫn do backend quyết định. */
@@ -4376,7 +4592,7 @@
         $('#confirm-message').textContent =
             action === 'return'
                 ? 'Xác nhận đã nhận lại toàn bộ hàng của đơn. Hệ thống sẽ hoàn kho và hoàn tiền mô phỏng. Chỉ thực hiện sau khi kiểm tra hàng.'
-                : 'Đơn sẽ được hủy. Hệ thống giải phóng hàng đang giữ hoặc hoàn kho và hoàn tiền mô phỏng theo trạng thái hiện tại.';
+                : 'Đơn sẽ được hủy. Hệ thống giải phóng hàng đang giữ hoặc hoàn kho. Chỉ hoàn tiền nếu đơn đã thanh toán.';
         openDialog('confirm-dialog');
     }
 
@@ -4392,7 +4608,7 @@
     /** Mọi hành động gửi POST thật; không trừ kho tại client hoặc ship lần hai. */
     async function mutateOrder(id, action) {
         invalidateOrderRefresh();
-        const segment = action === 'pay' ? 'payment-simulations/confirm' : action;
+        const segment = action === 'pay' ? 'payment-simulations/confirm' : action === 'cod' ? 'cod/confirm' : action;
         const path = '/orders/' + id + '/' + segment;
         let body;
         if (action === 'ship') {
@@ -4406,6 +4622,7 @@
         renderOrder();
         const messages = {
             pay: 'Thanh toán mô phỏng đã được xác nhận.',
+            cod: 'Đã xác nhận đơn COD. Bạn thanh toán khi nhận hàng.',
             cancel: 'Đã hủy đơn và trả lại tồn kho phù hợp.',
             pack: 'Đã đóng gói và chuẩn bị vận đơn.',
             ship: 'Đã xuất giao. Mã vận đơn: ' + (order.shipment?.tracking_code || ''),
@@ -6108,6 +6325,8 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             if ($('#catalog-query').value.trim()) query.set('q', $('#catalog-query').value.trim());
             if (state.catalogMinPrice !== '') query.set('minPrice', state.catalogMinPrice);
             if (state.catalogMaxPrice !== '') query.set('maxPrice', state.catalogMaxPrice);
+            if (state.catalogSpecName) query.set('specificationName', state.catalogSpecName);
+            if (state.catalogSpecValue) query.set('specificationValue', state.catalogSpecValue);
             if (state.catalogSort !== 'id,asc') query.set('sort', state.catalogSort);
             return '/' + (query.size ? '?' + query.toString() : '') + '#shop';
         }
@@ -6247,6 +6466,11 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
                 }
                 return;
             }
+            if (image instanceof HTMLImageElement && image.hasAttribute('data-cart-thumbnail')) {
+                image.hidden = true;
+                $('.cart-thumbnail-empty', image.closest('.cart-thumbnail')).hidden = false;
+                return;
+            }
             if (image instanceof HTMLImageElement && image.hasAttribute('data-color-thumbnail')) {
                 image.hidden = true;
                 return;
@@ -6310,6 +6534,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
             if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
             closeSearchSuggestions();
             event.preventDefault();
+            if ($('#wishlist-dialog').open) $('#wishlist-dialog').close();
             execute(() => activateView('shop', 'product', { productId: productLink.dataset.productId }));
             return;
         }
@@ -6398,6 +6623,20 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         else if (action === 'open-shop') execute(() => activateView('shop', 'catalog'));
         else if (action === 'my-orders') execute(() => activateView('shop', 'orders'));
         else if (action === 'my-account') execute(() => activateView('shop', 'account'));
+        else if (action === 'open-wishlist') execute(async () => {
+            syncWishlist(); openDialog('wishlist-dialog'); await loadWishlist();
+        });
+        else if (action === 'close-wishlist') $('#wishlist-dialog').close();
+        else if (action === 'use-default-address') execute(() => prepareDefaultCheckoutAddress(true));
+        else if (action === 'different-address') {
+            if (state.authBusy || $('#create-order').getAttribute('aria-busy') === 'true') return;
+            checkoutDifferentAddress = true;
+            shippingLocationVersion++; shippingFeeVersion++; checkoutShippingQuote = null;
+            $('#checkoutProvince').value = ''; $('#checkoutStreetAddress').value = '';
+            resetLocationSelect('checkoutDistrict', 'Chọn quận / huyện'); resetLocationSelect('checkoutWard', 'Chọn phường / xã');
+            renderShippingTotal(); $('#checkoutProvince').focus();
+        }
+        else if (action === 'toggle-wishlist') execute(() => toggleWishlist(id));
         else if (action === 'dismiss-notice') $('#api-notice').hidden = true;
         else if (action === 'dismiss-toast') button.closest('.toast').remove();
         else if (action === 'logout') {
@@ -6459,14 +6698,15 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         } else if (action === 'select-product-color') {
             selectProductSku(id);
             $('[data-action="select-product-color"][data-id="' + id + '"]')?.focus({ preventScroll: true });
-        } else if (action === 'add-cart')
+        } else if (action === 'add-cart') {
+            if (state.products.get(id)?.variants?.length && $('#wishlist-dialog').open) $('#wishlist-dialog').close();
             execute(() =>
                 state.products.get(id)?.variants?.length
                     ? activateView('shop', 'product', { productId: id })
                     : addCart(id),
             );
-        else if (action === 'remove-cart') {
-            if (state.cartLoading || state.cartRestoreFailed) return;
+        } else if (action === 'remove-cart') {
+            if (state.cartLoading || state.cartRestoreFailed || $('#create-order').getAttribute('aria-busy') === 'true') return;
             state.cart.delete(id);
             saveCart();
             renderCart();
@@ -6478,6 +6718,7 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         } else if (action === 'refresh') execute(() => busy(button, refreshSection));
         else if (action === 'view-order') execute(() => busy(button, () => lookupOrder(id)));
         else if (action === 'pay-order') execute(() => busy(button, () => mutateOrder(id, 'pay')));
+        else if (action === 'cod-order') execute(() => busy(button, () => mutateOrder(id, 'cod')));
         else if (action === 'vnpay-order') execute(() => busy(button, () => payWithVNPay(id)));
         else if (action === 'cancel-order') confirmOrderAction(id, 'cancel');
         else if (action === 'operate-order') {
@@ -6546,6 +6787,19 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
     /** Chọn chi nhánh từ header hoặc giỏ có cùng state; số lượng sai không thay thế giá trị hợp lệ. */
     document.addEventListener('change', (event) => {
         const input = event.target;
+        if (input.id === 'cart-select-all' || input.hasAttribute('data-cart-selected')) {
+            if (state.cartLoading || state.cartRestoreFailed || state.authBusy || $('#create-order').getAttribute('aria-busy') === 'true') return;
+            if (input.id === 'cart-select-all') state.cart.forEach(item => { item.selected = input.checked; });
+            else {
+                const item = state.cart.get(Number(input.dataset.cartSelected));
+                if (item) item.selected = input.checked;
+            }
+            const id = input.dataset.cartSelected;
+            saveCart();
+            renderCart();
+            if (id) $('[data-cart-selected="' + id + '"]')?.focus({ preventScroll: true });
+            return;
+        }
         if (
             (input.id === 'configuration-version-select' || input.id === 'configuration-show-archived') &&
             hasRole('ADMIN')
@@ -6597,6 +6851,14 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         if (!form.reportValidity()) return;
         const button = $('button[type="submit"]', form);
         const handlers = {
+            'catalog-spec-filter': async () => {
+                const name = $('#catalog-spec-name').value.trim();
+                const value = $('#catalog-spec-value').value.trim();
+                if (!name || !value) throw new Error('Vui lòng nhập cả tên thông số và giá trị.');
+                state.catalogSpecName = name;
+                state.catalogSpecValue = value;
+                await reloadCatalogFilters();
+            },
             'review-form': submitProductReview,
             'catalog-filter': () => reloadCatalogFilters(),
             'catalog-price-filter': applyCatalogPriceDraft,
@@ -6675,6 +6937,11 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         $('#catalog-query').value = query.get('q') || '';
         state.catalogMinPrice = query.get('minPrice') || '';
         state.catalogMaxPrice = query.get('maxPrice') || '';
+        state.catalogSpecName = query.get('specificationName') || '';
+        state.catalogSpecValue = query.get('specificationValue') || '';
+        $('#catalog-spec-name').value = state.catalogSpecName;
+        $('#catalog-spec-value').value = state.catalogSpecValue;
+        renderSpecificationValueOptions();
         const sort = query.get('sort') || 'id,asc';
         const choices = [...$('#catalog-sort').options].map((option) => option.value);
         state.catalogSort = choices.includes(sort) ? sort : 'id,asc';
@@ -6750,6 +7017,74 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
     window.addEventListener('hashchange', onLocationChange);
 
     /** Tải lại trang kiểm tra actor qua users/me; request khởi tạo cũ không ghi đè đăng nhập mới. */
+    function initializeContactWidget() {
+        const widget = $('#contact-widget');
+        const toggle = $('#contact-toggle');
+        const panel = $('#contact-panel');
+        const backToTop = $('#back-to-top');
+        backToTop.hidden = false;
+        function updateBackToTop() {
+            const visible = window.scrollY >= 300;
+            backToTop.classList.toggle('is-visible', visible);
+            backToTop.inert = !visible;
+            backToTop.setAttribute('aria-hidden', String(!visible));
+        }
+        window.addEventListener('scroll', updateBackToTop, { passive: true });
+        updateBackToTop();
+        backToTop.addEventListener('click', () => {
+            setOpen(false);
+            window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+        });
+        function setOpen(open) {
+            widget.classList.toggle('is-open', open);
+            toggle.setAttribute('aria-expanded', String(open));
+            panel.setAttribute('aria-hidden', String(!open));
+            panel.inert = !open;
+        }
+        toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
+        toggle.addEventListener('mouseenter', () => {
+            if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setOpen(true);
+        });
+        widget.addEventListener('mouseleave', () => {
+            if (!widget.contains(document.activeElement)) setOpen(false);
+        });
+        widget.addEventListener('focusout', (event) => {
+            if (!widget.contains(event.relatedTarget)) setOpen(false);
+        });
+        widget.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') { setOpen(false); toggle.focus(); }
+            if (event.key === 'ArrowDown' && event.target === toggle) {
+                event.preventDefault(); setOpen(true); panel.querySelector('a:not([hidden])')?.focus();
+            }
+        });
+        document.addEventListener('click', (event) => {
+            if (!widget.contains(event.target)) setOpen(false);
+        });
+    }
+
+    function initializeAccountMenu() {
+        const menu = $('#header-account');
+        const toggle = menu.querySelector('summary');
+        toggle.addEventListener('mouseenter', () => {
+            if (state.user && window.matchMedia('(hover: hover) and (pointer: fine)').matches) menu.open = true;
+        });
+        menu.addEventListener('mouseleave', () => {
+            if (!menu.contains(document.activeElement)) menu.open = false;
+        });
+        menu.addEventListener('focusout', (event) => {
+            if (!menu.contains(event.relatedTarget)) menu.open = false;
+        });
+        menu.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') { menu.open = false; toggle.focus(); }
+        });
+        menu.addEventListener('click', (event) => {
+            if (event.target.closest('button[data-action]')) menu.open = false;
+        });
+        document.addEventListener('click', (event) => {
+            if (!menu.contains(event.target)) menu.open = false;
+        });
+    }
+
     async function loadShopContact() {
         try {
             const contact = await api('/storefront/contact', { anonymous: true });
@@ -6830,6 +7165,9 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
     }
 
     async function initialize() {
+        initializeAccountMenu();
+        initializeContactWidget();
+        void loadSpecificationOptions();
         void loadShopContact();
         const epoch = state.epoch;
         renderContext();
@@ -6860,5 +7198,19 @@ ${escapeHtml((color.image_urls || []).join('\n'))}</textarea>
         await routeFromLocation();
     }
     window.setInterval(updateCountdown, 1000);
+    function renderSpecificationValueOptions() {
+        const name = $('#catalog-spec-name').value.trim().toLowerCase();
+        const values = [...new Set(state.specificationOptions.filter(option => option.name.trim().toLowerCase() === name).map(option => option.value))];
+        $('#catalog-spec-values').innerHTML = values.map(value => '<option value="' + escapeHtml(value) + '"></option>').join('');
+    }
+    async function loadSpecificationOptions() {
+        try {
+            state.specificationOptions = await api('/products/specification-options', { anonymous: true });
+            const names = [...new Set(state.specificationOptions.map(option => option.name))];
+            $('#catalog-spec-names').innerHTML = names.map(name => '<option value="' + escapeHtml(name) + '"></option>').join('');
+            renderSpecificationValueOptions();
+        } catch { /* Manual entry remains available when suggestions fail. */ }
+    }
+    $('#catalog-spec-name').addEventListener('input', renderSpecificationValueOptions);
     execute(initialize);
 })();

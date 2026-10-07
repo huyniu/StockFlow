@@ -79,6 +79,13 @@ public class ProductService {
             Long brandId,
             boolean grouped,
             Pageable pageable) {
+        return listProducts(categoryId, status, search, minPrice, maxPrice, brandId, grouped, pageable, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> listProducts(Long categoryId, ProductStatus status, String search,
+            BigDecimal minPrice, BigDecimal maxPrice, Long brandId, boolean grouped, Pageable pageable,
+            String specificationName, String specificationValue) {
         validatePriceRange(minPrice, maxPrice);
         if (brandId != null && brandId <= 0) {
             throw new BadRequestException("ID thương hiệu phải lớn hơn 0.");
@@ -87,6 +94,7 @@ public class ProductService {
         Pageable stablePage = stableProductPage(pageable);
         Specification<Product> filter = buildFilter(
                 categoryIds, status, search, minPrice, maxPrice, brandId, grouped);
+        filter = filter.and(ProductAttributeFilter.create(specificationName, specificationValue, grouped));
         if (grouped) {
             // Sắp theo giá từ tại SQL, trước LIMIT; không lấy một trang rồi mới sắp lại bằng Java.
             filter = filter.and((root, query, builder) -> {

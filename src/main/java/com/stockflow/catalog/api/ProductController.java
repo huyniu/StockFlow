@@ -57,9 +57,11 @@ public class ProductController {
             @RequestParam(required = false) Long brandId,
             // Storefront gộp model/phiên bản/màu và lọc theo giá từ; mặc định giữ danh sách SKU vận hành.
             @RequestParam(defaultValue = "false") boolean grouped,
+            @RequestParam(required = false) String specificationName,
+            @RequestParam(required = false) String specificationValue,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         return PageResponse.from(productService.listProducts(
-                categoryId, status, q, minPrice, maxPrice, brandId, grouped, pageable));
+                categoryId, status, q, minPrice, maxPrice, brandId, grouped, pageable, specificationName, specificationValue));
     }
 
     /**

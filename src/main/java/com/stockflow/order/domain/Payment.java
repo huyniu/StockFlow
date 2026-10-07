@@ -2,7 +2,7 @@ package com.stockflow.order.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
-/** Một thanh toán mô phỏng duy nhất cho mỗi đơn, có thể hoàn tiền khi quản lý hủy trước giao hàng. */
+/** Một thanh toán duy nhất mỗi đơn; COD chờ thu tiền, VNPay/mô phỏng ghi nhận đã trả. */
 @Entity @Table(name = "payments")
 public class Payment {
  @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
@@ -20,6 +20,7 @@ public class Payment {
  public Payment(Long orderId, BigDecimal amount, String method) {
   this.orderId = orderId; this.amount = amount; this.status = PaymentStatus.PAID;
   this.method = method; this.paidAt = Instant.now();
+  if ("COD".equals(method)) { this.status = PaymentStatus.PENDING; this.paidAt = null; }
  }
  /** Hoàn tiền mô phỏng khi đơn đã xác nhận bị hủy trước giao hàng. */
  public void refund() { status = PaymentStatus.REFUNDED; }
@@ -27,4 +28,12 @@ public class Payment {
  public Long getId() { return id; }
  /** Lấy trạng thái thanh toán. */
  public PaymentStatus getStatus() { return status; }
+ public String getMethod() { return method; }
+ public BigDecimal getAmount() { return amount; }
+ public Instant getPaidAt() { return paidAt; }
+ public boolean isPendingCod() { return "COD".equals(method) && status == PaymentStatus.PENDING; }
+ public void collectCod() {
+  if (isPendingCod()) { status = PaymentStatus.PAID; paidAt = Instant.now(); }
+ }
+ public void cancelOrRefund() { status = isPendingCod() ? PaymentStatus.FAILED : PaymentStatus.REFUNDED; }
 }
