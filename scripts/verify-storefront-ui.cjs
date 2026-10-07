@@ -148,6 +148,20 @@ async function noOverflow(label){const dimensions=await evaluate(`({viewport:inn
  await send('Page.navigate',{url:base+'/san-pham/1'});
  await until(`(document.querySelector('#recently-viewed-products')?.querySelector('[data-product-id="1"]') ?? null)!==null && !document.querySelector('#recently-viewed').hidden`);
  assert.deepEqual(await evaluate(`JSON.parse(localStorage.getItem('stockflow.recently-viewed'))`),[1]);
+ await evaluate(`document.querySelector('[data-open-product-image]').click()`);
+ await until(`document.querySelector('#product-image-viewer').open`);
+ assert.equal(await evaluate(`document.querySelector('#product-image-viewer img').src===document.querySelector('#shop-product-main-image').src`),true);
+ await evaluate(`document.querySelector('[data-image-zoom="in"]').click()`);
+ assert.equal(await evaluate(`document.querySelector('#image-viewer-scale').textContent`),'150%');
+ await evaluate(`document.querySelector('.image-viewer-stage').dispatchEvent(new WheelEvent('wheel',{deltaY:-100,cancelable:true}))`);
+ assert.equal(await evaluate(`document.querySelector('#image-viewer-scale').textContent`),'175%');
+ await evaluate(`document.querySelector('[data-image-zoom="reset"]').click()`);
+ assert.equal(await evaluate(`document.querySelector('#image-viewer-scale').textContent`),'100%');
+ for(const width of [375,1366]) { await viewport(width);await noOverflow('Image viewer '+width);await screenshot('image-viewer-'+width); }
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+ await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+ await until(`!document.querySelector('#product-image-viewer').open`);
+
  await send('Page.reload',{});
  await until(`document.querySelector('#recently-viewed-products')?.children.length===1`);
  await evaluate(`document.querySelector('.shop-footer [data-shop-tab="catalog"]').click()`); await until(`!document.querySelector('#shop-catalog').hidden`);

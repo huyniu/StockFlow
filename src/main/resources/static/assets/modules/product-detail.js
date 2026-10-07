@@ -321,6 +321,7 @@ function renderShopProductGallery(product) {
                         decoding="async"
                         data-image-fallback="${__stockflowApp.escapeHtml(photo.fallback)}"
                     />
+                    <button class="product-image-zoom-trigger" type="button" data-open-product-image aria-label="Mở ảnh sản phẩm và phóng to"><span>⤢ Xem ảnh lớn</span></button>
                     <span class="product-photo-caption">${__stockflowApp.escapeHtml(photo.label)}</span>
                     <span class="product-image-error" hidden>Chưa tải được ảnh. Vui lòng kiểm tra kết nối.</span>
                     <span id="shop-product-image-count" class="gallery-counter" aria-live="polite">1 / ${photos.length}</span>
