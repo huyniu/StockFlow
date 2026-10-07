@@ -13,4 +13,4 @@ WORKDIR /app
 COPY --from=builder /workspace/target/stockflow-*.jar /app/stockflow.jar
 USER 10001:10001
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/stockflow.jar"]
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-Xmx350m", "-jar", "/app/stockflow.jar"]

@@ -10,6 +10,9 @@ ghn:
   from-district-id: ${GHN_FROM_DISTRICT_ID:1450}
   sender-phone: ${GHN_SENDER_PHONE:}
 
+server:
+  port: ${PORT:8080}
+
 spring:
   servlet:
     multipart:
