@@ -10,6 +10,7 @@
     "css/catalog-filters.css",
     "css/account-contact.css",
     "css/auth-artwork.css",
-    "css/compact-header.css"
+    "css/compact-header.css",
+    "css/brand-logo.css"
   ]
 }

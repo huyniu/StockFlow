@@ -1,0 +1,31 @@
+/* Giữ nguyên ảnh thương hiệu; khung chỉ cắt phần trong suốt thừa ở trên và dưới.
+   Nền sáng giữ chữ xanh đậm dễ đọc trên header xanh và trong cả hai theme. */
+.stockflow-logo {
+    display: block;
+    width: 194px;
+    height: 44px;
+    max-width: 100%;
+    object-fit: cover;
+    object-position: center;
+    background: #fff;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+.shop-header .shop-brand .stockflow-logo { width: 210px; height: 48px; }
+.auth-page-brand .stockflow-logo { width: 240px; height: 56px; }
+#auth-dialog .dialog-header .stockflow-logo { width: 185px; height: 42px; }
+.footer-brand .stockflow-logo { width: 220px; height: 50px; }
+.sidebar .brand { flex-direction: column; align-items: flex-start; gap: 7px; padding-inline: 0; }
+.sidebar .brand .stockflow-logo { width: 184px; height: 42px; }
+.sidebar .brand small { margin: 0; }
+
+@media (max-width: 1050px) {
+    .shop-header .shop-brand .stockflow-logo { width: 194px; height: 44px; }
+}
+@media (max-width: 760px) {
+    .shop-header .shop-brand .stockflow-logo { width: 166px; height: 38px; }
+    .auth-page-brand .stockflow-logo { width: 210px; height: 48px; }
+}
+@media (max-width: 350px) {
+    .shop-header .shop-brand .stockflow-logo { width: 142px; height: 34px; }
+}
