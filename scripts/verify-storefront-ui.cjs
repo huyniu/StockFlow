@@ -5,6 +5,9 @@ const chrome=process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Applicatio
 const evidence=path.join(root,'target/ui-verification');fs.mkdirSync(evidence,{recursive:true});
 const user={id:1,email:'layout@example.test',full_name:'Khách hàng có tên rất dài để kiểm tra giao diện',role:'CUSTOMER',status:'ACTIVE'};
 const product={id:1,sku:'TEST-01',name:'Sản phẩm có tên rất dài dùng để kiểm tra bố cục giỏ hàng trên điện thoại',category_id:1,category_name:'Điện thoại',unit_price:200000,status:'ACTIVE',available_quantity:25,image_url:'/assets/stockflow.svg',versions:[],variants:[],specifications:[]};
+product.brand_id=1;product.brand_name='Apple';
+const tablet={...product,id:2,sku:'TABLET-01',name:'Máy tính bảng kiểm tra danh mục',category_id:2,category_name:'Máy tính bảng'};
+const samsungPhone={...product,id:3,sku:'SAMSUNG-01',name:'Điện thoại Samsung kiểm tra hãng',brand_id:2,brand_name:'Samsung'};
 const page=content=>({content,total_elements:content.length,total_pages:1,number:0,size:20,first:true,last:true});
 let resetRequests=0;
 let savedAddresses=[], returnRequests=[], deliveredVisible=false;
@@ -35,12 +38,19 @@ function fixture(url,method='GET',body={}) {
  if(p.endsWith('/locations/wards'))return [{DistrictID:1450,WardCode:'20907',WardName:'Mễ Trì'}];
  if(p.endsWith('/locations/mode'))return {test_mode:true};
  if(p.endsWith('/locations/calculate-fee'))return {shipping_fee:30000,service_type_id:2};
- if(p.endsWith('/categories'))return [{id:1,name:'Điện thoại',slug:'dien-thoai',parent_id:null}];
- if(p.endsWith('/brands')||p.endsWith('/products/specification-options')||p.endsWith('/storefront/bestsellers')||p.endsWith('/wishlist'))return [];
+ if(p.endsWith('/categories'))return [{id:1,name:'Điện thoại',slug:'dien-thoai',parent_id:null},{id:2,name:'Máy tính bảng',slug:'may-tinh-bang',parent_id:null},{id:3,name:'Laptop',slug:'laptop',parent_id:null}];
+ if(p.endsWith('/brands'))return [{id:1,name:'Apple',slug:'apple',category_ids:[1,2]},{id:2,name:'Samsung',slug:'samsung',category_ids:[1]}];
+ if(p.endsWith('/products/specification-options')||p.endsWith('/storefront/bestsellers')||p.endsWith('/wishlist'))return [];
  if(p.includes('/storefront/contact'))return {zalo_url:'https://zalo.me/0968935896'};
  if(p.endsWith('/storefront/branches')||p.endsWith('/warehouses/operating-options'))return [{id:1,name:'Kho Hà Nội',address:'Hà Nội',status:'ACTIVE'}];
  if(p.endsWith('/products/1'))return product;
- if(p.endsWith('/products'))return page([product]);
+ if(p.endsWith('/products/2'))return tablet;
+ if(p.endsWith('/products/3'))return samsungPhone;
+ if(p.endsWith('/products')){
+  const category=url.searchParams.get('categoryId'),brand=url.searchParams.get('brandId');
+  const products=category==='2'?[tablet]:category==='3'?[]:brand==='2'?[samsungPhone]:[product];
+  return page(brand?products.filter(row=>String(row.brand_id)===brand):products);
+ }
  if(p.endsWith('/orders/my')||p.endsWith('/orders'))return page(deliveredVisible?[deliveredOrder]:[]);
  if(p.includes('/inventories'))return page([]);
  return [];
@@ -100,6 +110,89 @@ async function noOverflow(label){const dimensions=await evaluate(`({viewport:inn
  const offlineError=await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');try{await app.api('/diagnostics/offline')}catch(error){return {status:error.status,typed:error instanceof app.ApiError}}})()`);
  assert.deepEqual(offlineError,{status:0,typed:true});
  for(const width of [320,375,768,1366]) {await viewport(width);await noOverflow('Storefront '+width);await screenshot('storefront-'+width);}
+ // Preview the group first; browsing its products is a separate, explicit action.
+ const assertCategoryResults=async(id,name,productName)=>{
+  await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready' && document.querySelector('#catalog-title')?.textContent===${JSON.stringify(name)}`);
+  assert.equal(await evaluate(`new URLSearchParams(location.search).get('categoryId')`),String(id));
+  assert.ok((await evaluate(`document.querySelector('#catalog-grid').textContent`)).includes(productName));
+  await until(`(()=>{const title=document.querySelector('#catalog-title').getBoundingClientRect();const header=document.querySelector('.shop-header').getBoundingClientRect();const products=document.querySelector('#catalog-grid').getBoundingClientRect();return title.top>=header.bottom && (!matchMedia('(max-width:900px)').matches || products.top<innerHeight-64);})()`);
+  if(await evaluate(`matchMedia('(max-width:900px)').matches`))assert.equal(await evaluate(`document.querySelector('#catalog-filters-panel').open`),false);
+  await noOverflow('Category results');
+ };
+ const tap=async selector=>{
+  const point=await evaluate(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+  assert.ok(point.y>0 && point.y<850,'Tap target is visible: '+selector+' '+JSON.stringify(point));
+  await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]});
+  await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ };
+ const previewHeaderCategory=async id=>{
+  const touch=await evaluate(`matchMedia('(max-width:900px)').matches`);
+  await send('Emulation.setTouchEmulationEnabled',{enabled:touch,maxTouchPoints:1});
+  const before=await evaluate(`({url:location.href,category:document.querySelector('#catalog-category').value,scroll:scrollY,visible:document.querySelector('.shop-panel:not([hidden])').id})`);
+  if(touch)await tap('#category-menu-toggle');else await evaluate(`document.querySelector('#category-menu-toggle').click()`);
+  await until(`document.querySelector('#category-menu-toggle').getAttribute('aria-expanded')==='true'`);
+  const inline=await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');return app.state.categoryMenuInline;})()`);
+  if(!inline)await until(`Number(getComputedStyle(document.querySelector('#category-menu-panel')).opacity)>.99`);
+  const list=inline?'#home-category-list':'#category-menu-list',detail=inline?'#home-category-detail':'#category-menu-detail';
+  if(touch)await tap(list+' [data-menu-category="'+id+'"]');else await evaluate(`document.querySelector('${list} [data-menu-category="${id}"]').click()`);
+  await until(`document.querySelector('${list} [data-menu-category="${id}"]').getAttribute('aria-expanded')==='true' && document.querySelector('${detail} h2').textContent===${JSON.stringify({1:'Điện thoại',2:'Máy tính bảng',3:'Laptop'}[id])}`);
+  assert.equal(await evaluate(`document.querySelector('#category-menu-toggle').getAttribute('aria-expanded')`),'true');
+  assert.deepEqual(await evaluate(`({url:location.href,category:document.querySelector('#catalog-category').value,scroll:scrollY,visible:document.querySelector('.shop-panel:not([hidden])').id})`),before,'Preview keeps the current page and product filters');
+  return {touch,detail};
+ };
+ const selectHeaderCategory=async id=>{
+  const {touch,detail}=await previewHeaderCategory(id);
+  if(touch){await evaluate(`document.querySelector('#category-menu-panel').scrollTop=document.querySelector('#category-menu-panel').scrollHeight;document.querySelector('${detail}').scrollTop=document.querySelector('${detail}').scrollHeight`);await tap(detail+' .menu-browse-button');}
+  else await evaluate(`document.querySelector('${detail} .menu-browse-button').click()`);
+ };
+ for(const width of [320,375,768,1366]) {
+  await viewport(width);
+  for(const theme of ['light','dark']) {
+   await evaluate(`document.documentElement.dataset.theme='${theme}'`);
+   await selectHeaderCategory(2);await assertCategoryResults(2,'Máy tính bảng',tablet.name);
+   assert.ok(!(await evaluate(`document.querySelector('#catalog-grid').textContent`)).includes(product.name));
+   await screenshot('category-'+width+'-'+theme);
+  }
+ }
+ await viewport(375);
+ await previewHeaderCategory(1);
+ assert.ok((await evaluate(`document.querySelector('#category-menu-detail').textContent`)).includes('Apple'));
+ assert.ok((await evaluate(`document.querySelector('#category-menu-detail').textContent`)).includes('Samsung'));
+ await screenshot('mobile-phone-brands');
+ await tap('#category-menu-detail [data-action="browse-brand"][data-brand-id="2"]');
+ await assertCategoryResults(1,'Điện thoại',samsungPhone.name);
+ assert.equal(await evaluate(`new URLSearchParams(location.search).get('brandId')`),'2');
+ assert.ok(!(await evaluate(`document.querySelector('#catalog-grid').textContent`)).includes(product.name));
+ await previewHeaderCategory(1);
+ await evaluate(`document.querySelector('#category-menu-panel').scrollTop=document.querySelector('#category-menu-panel').scrollHeight`);
+ await tap('#category-menu-detail [data-price-range="budget"]');
+ await assertCategoryResults(1,'Điện thoại',samsungPhone.name);
+ assert.equal(await evaluate(`new URLSearchParams(location.search).get('maxPrice')`),'1000000');
+ assert.equal(await evaluate(`new URLSearchParams(location.search).get('brandId')`),'2');
+ await selectHeaderCategory(2);await assertCategoryResults(2,'Máy tính bảng',tablet.name);
+ await evaluate(`document.querySelector('#catalog-filters-toggle').click()`);
+ assert.equal(await evaluate(`document.querySelector('#catalog-filters-panel').open`),true);
+ await evaluate(`document.querySelector('[data-price-chip="under-500"]').click()`);
+ await until(`document.querySelector('#catalog-grid').dataset.catalogStatus==='ready' && new URLSearchParams(location.search).get('maxPrice')==='499999.99'`);
+ assert.equal(await evaluate(`document.querySelector('#catalog-category').value`),'2');
+ assert.equal(await evaluate(`document.querySelector('#catalog-filters-panel').open`),true);
+ await selectHeaderCategory(3);
+ await assertCategoryResults(3,'Laptop','Chưa có sản phẩm phù hợp');
+ assert.equal(await evaluate(`document.querySelectorAll('#catalog-grid .product-card').length`),0);
+ await selectHeaderCategory(1);await assertCategoryResults(1,'Điện thoại',product.name);
+ await evaluate(`document.querySelector('#catalog-grid [data-product-link]').click()`);
+ await until(`!document.querySelector('#shop-product').hidden && document.querySelector('#shop-product-detail-body').dataset.productId==='1'`);
+ await selectHeaderCategory(2);await assertCategoryResults(2,'Máy tính bảng',tablet.name);
+ await evaluate(`document.querySelector('[data-action="my-account"]').click()`);
+ await until(`!document.querySelector('#shop-account').hidden`);
+ await selectHeaderCategory(1);await assertCategoryResults(1,'Điện thoại',product.name);
+ await selectHeaderCategory(2);await assertCategoryResults(2,'Máy tính bảng',tablet.name);
+ await evaluate(`document.querySelector('#discovery-categories [href*="categoryId=1"]').click()`);
+ await assertCategoryResults(1,'Điện thoại',product.name);
+ await send('Page.reload',{ignoreCache:true});
+ await assertCategoryResults(1,'Điện thoại',product.name);
+ await selectHeaderCategory(1);await assertCategoryResults(1,'Điện thoại',product.name);
+ console.log('PASS: touch category preview without navigation, brand/price selection, catalog/product/profile entry, reload, empty category and mobile filters');
  await evaluate(`document.querySelector('[data-action="open-cart"]').click()`);await until(`document.querySelector('#cart-dialog').open`);
  for(const width of [320,375,768,1366]) {await viewport(width);await noOverflow('Checkout '+width);assert.ok(await evaluate(`document.querySelector('#cart-items img')!==null`));assert.ok(await evaluate(`(()=>{const d=document.querySelector('#cart-dialog');return d.scrollWidth<=d.clientWidth+1;})()`),'Cart content overflows at '+width);await screenshot('checkout-'+width);}
  await viewport(375);await evaluate(`document.querySelector('#checkoutProvince').value='201';document.querySelector('#checkoutProvince').dispatchEvent(new Event('change',{bubbles:true}))`);await until(`!document.querySelector('#checkoutDistrict').disabled`);

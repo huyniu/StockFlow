@@ -110,7 +110,8 @@ body.auth-page-open #auth-submit:hover { background: linear-gradient(105deg,#1d4
 .auth-gyro-ring-two { transform: rotateX(68deg) rotateZ(-30deg); border-color: #22d3ee; }
 .auth-gyro-ring-three { transform: rotateZ(-22deg) rotateY(-28deg); border-color: #3b82f6; opacity: .65; }
 .auth-cube { position: absolute; left: 81px; top: 81px; width: 108px; height: 108px; transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(34deg) rotateZ(8deg); }
-.auth-cube-face { position: absolute; inset: 0; border: 1px solid #0891b2; background: repeating-linear-gradient(0deg,transparent 0 11px,#22d3ee33 11px 12px),repeating-linear-gradient(90deg,transparent 0 11px,#22d3ee33 11px 12px),linear-gradient(135deg,#38bdf855,#22d3ee28); box-shadow: inset 0 0 24px #22d3ee30; }
+.auth-cube-face { position: absolute; inset: 0; border: 1px solid #0891b2; background: transparent; }
+.auth-cube-face::after { content: ''; position: absolute; top: -3px; left: -3px; width: 5px; height: 5px; background: #38bdf8; box-shadow: 106px 0 #38bdf8,0 106px #38bdf8,106px 106px #38bdf8; }
 .auth-cube-front { transform: translateZ(54px); }
 .auth-cube-back { transform: rotateY(180deg) translateZ(54px); }
 .auth-cube-left { transform: rotateY(-90deg) translateZ(54px); }
@@ -121,7 +122,35 @@ body.auth-page-open #auth-submit:hover { background: linear-gradient(105deg,#1d4
 :root[data-theme='dark'] .auth-page-form-side { background: radial-gradient(ellipse at 100% 0,#1d4ed81a,transparent 60%),#080f1d; }
 :root[data-theme='dark'] .auth-page-art { background-image: linear-gradient(#38bdf909 1px,transparent 1px),linear-gradient(90deg,#38bdf909 1px,transparent 1px),radial-gradient(ellipse at center,#0ea5e927,transparent 70%); background-size: 24px 24px,24px 24px,auto; }
 :root[data-theme='dark'] .auth-cube-face { border-color: #67e8f9; }
-@media (prefers-reduced-motion: reduce) { .auth-art-motion { transform: none; } }
+.auth-cube { animation: auth-cube-spin 20s linear infinite; }
+.auth-gyro-ring-one { animation: auth-ring-one-spin 12s linear infinite; }
+.auth-gyro-ring-two { animation: auth-ring-two-spin 15s linear infinite; }
+.auth-gyro-ring-three { border-style: dotted; animation: auth-ring-three-spin 24s linear infinite; }
+.auth-quantum-core { position: absolute; top: 102px; left: 102px; width: 66px; height: 66px; filter: drop-shadow(0 0 12px #22d3ee70); animation: auth-core-spin 9s linear infinite; }
+@keyframes auth-cube-spin {
+    from { transform: rotateX(-20deg) rotateY(34deg) rotateZ(8deg); }
+    to { transform: rotateX(340deg) rotateY(394deg) rotateZ(368deg); }
+}
+@keyframes auth-ring-one-spin {
+    from { transform: rotateY(68deg) rotateZ(24deg) rotateX(0deg); }
+    to { transform: rotateY(428deg) rotateZ(24deg) rotateX(360deg); }
+}
+@keyframes auth-ring-two-spin {
+    from { transform: rotateX(68deg) rotateZ(-30deg) rotateY(0deg); }
+    to { transform: rotateX(68deg) rotateZ(-30deg) rotateY(-360deg); }
+}
+@keyframes auth-ring-three-spin {
+    from { transform: rotateZ(-22deg) rotateY(-28deg); }
+    to { transform: rotateZ(338deg) rotateY(-28deg); }
+}
+@keyframes auth-core-spin {
+    from { transform: rotateZ(-15deg); }
+    to { transform: rotateZ(345deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .auth-art-motion { transform: none; }
+    .auth-cube,.auth-gyro-ring,.auth-quantum-core { animation: none; }
+}
 .auth-webgl-container { position: absolute; inset: 39px 0 35px; pointer-events: none; overflow: hidden; }
 .auth-webgl-container canvas { display: block; width: 100%; height: 100%; }
 .auth-page-art.webgl-ready #auth-art-scene,

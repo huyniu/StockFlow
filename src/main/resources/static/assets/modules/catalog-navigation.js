@@ -300,7 +300,8 @@ function renderShopCategoryMenu() {
         __stockflowApp.$('#category-menu-list').innerHTML = categories
             .map(
                 (category) => `
-            <button type="button" class="category-menu-item" data-menu-category="${category.id}" data-action="browse-category">
+            <button type="button" class="category-menu-item" data-menu-category="${category.id}" data-action="preview-category"
+                aria-controls="category-menu-detail" aria-expanded="false">
                 ${__stockflowApp.icon(__stockflowApp.shopCategoryIcon(category))}
                 <span>${__stockflowApp.escapeHtml(category.name)}</span>
                 ${__stockflowApp.icon('arrow')}
@@ -312,7 +313,7 @@ function renderShopCategoryMenu() {
             .map(
                 (category) => `
             <button type="button" class="category-menu-item" data-menu-category="${category.id}"
-                data-action="browse-category" aria-controls="home-category-detail" aria-expanded="false">
+                data-action="preview-category" aria-controls="home-category-detail" aria-expanded="false">
                 ${__stockflowApp.icon(__stockflowApp.shopCategoryIcon(category))}
                 <span>${__stockflowApp.escapeHtml(category.name)}</span>
                 ${__stockflowApp.icon('arrow')}
@@ -323,10 +324,22 @@ function renderShopCategoryMenu() {
         __stockflowApp.renderShopCategoryMenuDetail();
     }
 
+function openCategoryPreview(id) {
+        if (id && !__stockflowApp.state.categories.some((category) => String(category.id) === id)) return;
+        if (__stockflowApp.canUseHomeCategoryMenu()) {
+            __stockflowApp.previewHomeCategory(id);
+            return;
+        }
+        if (!__stockflowApp.state.categoryMenuOpen) __stockflowApp.setShopCategoryMenu(true);
+        __stockflowApp.previewShopCategory(id);
+    }
+
 function previewShopCategory(id) {
         if (__stockflowApp.state.menuCategoryId === id) return;
         __stockflowApp.state.menuCategoryId = id;
         __stockflowApp.renderShopCategoryMenuDetail();
+        __stockflowApp.$('#category-menu-panel').scrollTop = 0;
+        __stockflowApp.$('#category-menu-detail').scrollTop = 0;
     }
 
 function renderShopCategoryMenuDetail() {
@@ -334,6 +347,7 @@ function renderShopCategoryMenuDetail() {
             const active = button.dataset.menuCategory === __stockflowApp.state.menuCategoryId;
             button.classList.toggle('active', active);
             button.setAttribute('aria-pressed', String(active));
+            button.setAttribute('aria-expanded', String(active));
         });
         __stockflowApp.$('#category-menu-detail').innerHTML = __stockflowApp.categoryMenuContent(__stockflowApp.state.menuCategoryId);
         if (__stockflowApp.state.homeCategoryId !== null) {
@@ -687,11 +701,15 @@ async function reloadCatalogFilters({ scroll = false } = {}) {
         __stockflowApp.state.pages.catalog = 0;
         if (__stockflowApp.state.view !== 'shop' || __stockflowApp.state.shopTab !== 'catalog') await __stockflowApp.activateView('shop', 'catalog');
         else await __stockflowApp.loadCatalog();
-        if (scroll) {
-            __stockflowApp.$('#product-shelf').scrollIntoView({ block: 'start', behavior: 'auto' });
-            __stockflowApp.$('#catalog-title').tabIndex = -1;
-            __stockflowApp.$('#catalog-title').focus({ preventScroll: true });
-        }
+        if (scroll) __stockflowApp.scrollToCatalogResults();
+    }
+
+function scrollToCatalogResults({ behavior = 'auto' } = {}) {
+        // Chọn danh mục phải thấy kết quả; bộ lọc dài chỉ mở khi khách cần trên màn hình nhỏ.
+        if (window.matchMedia('(max-width: 900px)').matches) __stockflowApp.$('#catalog-filters-panel').open = false;
+        __stockflowApp.$('#product-shelf').scrollIntoView({ block: 'start', behavior });
+        __stockflowApp.$('#catalog-title').tabIndex = -1;
+        __stockflowApp.$('#catalog-title').focus({ preventScroll: true });
     }
 
 async function clearCatalogFilter(filter) {
@@ -1454,6 +1472,7 @@ Object.defineProperties(__stockflowApp, {
 "categoryPriceRanges": { get: () => categoryPriceRanges },
 "shopCategoryIcon": { get: () => shopCategoryIcon },
 "renderShopCategoryMenu": { get: () => renderShopCategoryMenu },
+"openCategoryPreview": { get: () => openCategoryPreview },
 "previewShopCategory": { get: () => previewShopCategory },
 "renderShopCategoryMenuDetail": { get: () => renderShopCategoryMenuDetail },
 "categoryMenuContent": { get: () => categoryMenuContent },
@@ -1484,6 +1503,7 @@ Object.defineProperties(__stockflowApp, {
 "priceSlider": { get: () => priceSlider },
 "cancelPriceTrackPointer": { get: () => cancelPriceTrackPointer },
 "reloadCatalogFilters": { get: () => reloadCatalogFilters },
+"scrollToCatalogResults": { get: () => scrollToCatalogResults },
 "clearCatalogFilter": { get: () => clearCatalogFilter },
 "renderCatalogActiveFilters": { get: () => renderCatalogActiveFilters },
 "loadBranches": { get: () => loadBranches },
@@ -1519,6 +1539,11 @@ Object.defineProperties(__stockflowApp, {
 }
 
 export function initializeFeature() {
+const filtersPanel = __stockflowApp.$('#catalog-filters-panel');
+const compactFilters = window.matchMedia('(max-width: 900px)');
+const syncFiltersPanel = () => { filtersPanel.open = !compactFilters.matches; };
+syncFiltersPanel();
+compactFilters.addEventListener('change', syncFiltersPanel);
 (QUICK_PRICE_RANGES = {
         all: { min: '', max: '' },
         'under-500': { min: '', max: '499999.99' },

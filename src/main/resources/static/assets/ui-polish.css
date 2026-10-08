@@ -13,7 +13,7 @@
 #auth-page .auth-page-intro { padding: clamp(24px, 3vw, 48px); }
 #auth-page .auth-page-intro h1 { font-size: clamp(28px, 3vw, 42px); margin: 16px 0 12px; }
 #auth-page .auth-page-eyebrow { margin-top: 20px; font-size: 10px; }
-#auth-page .auth-page-art { height: clamp(200px, 31vh, 280px); margin-top: 20px; }
+#auth-page .auth-page-art { height: clamp(280px, 36vh, 320px); margin-top: 20px; }
 #auth-page .auth-page-benefits { margin-top: 12px; gap: 8px; }
 #auth-page .auth-page-benefits li { padding: 12px; }
 #auth-page .auth-page-benefits li span { display: none; }

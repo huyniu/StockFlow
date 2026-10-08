@@ -210,6 +210,9 @@ async function routeFromLocation() {
                 { navigation: 'replace' },
             );
         }
+        if (__stockflowApp.state.view === 'shop' && __stockflowApp.state.shopTab === 'catalog' && window.location.search) {
+            __stockflowApp.scrollToCatalogResults();
+        }
     }
 
 function onLocationChange() {
@@ -569,7 +572,10 @@ document.addEventListener('click', (event) => {
             if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
             window.history.pushState(null, '', catalogLink.href);
-            __stockflowApp.execute(__stockflowApp.routeFromLocation);
+            __stockflowApp.execute(async () => {
+                await __stockflowApp.routeFromLocation();
+                __stockflowApp.scrollToCatalogResults();
+            });
             return;
         }
         const productLink = event.target.closest('[data-product-link]');
@@ -650,12 +656,9 @@ document.addEventListener('click', (event) => {
             __stockflowApp.$('#cart-dialog').close();
             __stockflowApp.execute(async () => {
                 if (__stockflowApp.state.view !== 'shop' || __stockflowApp.state.shopTab !== 'catalog') await __stockflowApp.activateView('shop', 'catalog');
-                __stockflowApp.$('#product-shelf').scrollIntoView({
-                    block: 'start',
+                __stockflowApp.scrollToCatalogResults({
                     behavior: __stockflowApp.reducedStorefrontMotion.matches ? 'auto' : 'smooth',
                 });
-                __stockflowApp.$('#catalog-title').tabIndex = -1;
-                __stockflowApp.$('#catalog-title').focus({ preventScroll: true });
             });
         } else if (action === 'open-auth') __stockflowApp.openAuth();
         else if (action === 'close-auth') {
@@ -707,6 +710,7 @@ document.addEventListener('click', (event) => {
             });
         } else if (action === 'toggle-category-menu') __stockflowApp.setShopCategoryMenu(!__stockflowApp.state.categoryMenuOpen);
         else if (action === 'close-category-menu') __stockflowApp.setShopCategoryMenu(false, { restoreFocus: true });
+        else if (action === 'preview-category') __stockflowApp.openCategoryPreview(button.dataset.menuCategory);
         else if (action === 'browse-category') __stockflowApp.execute(() => __stockflowApp.browseShopCategory(button.dataset.menuCategory));
         else if (action === 'browse-price-range') {
             // Giữ hãng khi đổi giá trong cùng nhóm, dù dùng menu header hay menu bên trái.

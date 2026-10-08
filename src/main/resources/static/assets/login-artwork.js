@@ -1,6 +1,6 @@
 /* Adapted from the user's Stitch ANIMATION_21. Three.js r125 is vendored with its MIT license.
    The existing CSS cube remains a fallback when WebGL/library loading is unavailable. */
-(() => {
+export function initializeLoginArtwork() {
     'use strict';
     const container = document.getElementById('auth-webgl-container');
     if (!container) return;
@@ -57,7 +57,7 @@
         const mat = value => { materials.add(value); return value; };
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, .1, 1000);
-        camera.position.set(0, 0, 7.5);
+        camera.position.set(0, 0, 6);
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
         renderer.setClearColor(0x000000, 0);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -189,4 +189,4 @@
     window.addEventListener('pagehide', dispose);
     window.addEventListener('pageshow', () => { void sync(); });
     window.StockFlowAuthArtwork = { setActive(value) { active = Boolean(value); void sync(); } };
-})();
+}

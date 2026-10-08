@@ -19,6 +19,7 @@
                         ><small>ĐIỆN THOẠI · LAPTOP · PHỤ KIỆN</small></span
                     >
                 </a>
+                <div class="shop-header-search-row">
                 <!-- Menu lấy danh mục thật từ API; khoảng giá được áp dụng tại database, không tạo thương hiệu giả. -->
                 <div class="category-menu-anchor">
                     <button
@@ -28,6 +29,7 @@
                         data-action="toggle-category-menu"
                         aria-expanded="false"
                         aria-controls="category-menu-panel"
+                        aria-label="Danh mục sản phẩm"
                     >
                         <svg class="icon"><use href="#i-grid" /></svg>
                         <span>Danh mục</span>
@@ -64,7 +66,7 @@
                     <input
                         id="catalog-query"
                         type="search"
-                        placeholder="Tìm điện thoại, laptop, phụ kiện hoặc mã SKU…"
+                        placeholder="Tìm sản phẩm, mã SKU…"
                         maxlength="200"
                         autocomplete="off"
                         role="combobox"
@@ -99,12 +101,13 @@
                     </div>
                     <span id="search-suggestions-status" class="sr-only" role="status" aria-live="polite"></span>
                 </form>
-                <label class="branch-picker"
-                    >Chi nhánh phục vụ
+                <label class="branch-picker">
+                    <span class="branch-picker-label">Chi nhánh phục vụ</span>
                     <select id="shop-warehouse" data-store-warehouse aria-label="Chọn chi nhánh phục vụ">
                         <option value="">Đang tải chi nhánh…</option>
                     </select>
                 </label>
+                </div>
                 <div class="shop-header-actions">
                     <button type="button" class="header-button wishlist-header" data-action="open-wishlist" aria-label="Xem sản phẩm yêu thích">
                         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg><span>Yêu thích <b id="wishlist-count">0</b></span>
@@ -294,6 +297,12 @@
                         </select>
                         <button class="text-button" type="button" data-action="refresh">Làm mới</button>
                     </div>
+                    <details id="catalog-filters-panel" class="catalog-filters-panel" open>
+                        <summary id="catalog-filters-toggle">
+                            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8Z" /></svg>
+                            <span>Bộ lọc sản phẩm</span>
+                            <span class="menu-chevron" aria-hidden="true">⌄</span>
+                        </summary>
                     <!-- Hai đầu mút giá và thứ tự sắp xếp gửi cùng danh mục/từ khóa, áp dụng trước phân trang. -->
                     <div class="catalog-discovery-filters price-discovery compact-discovery">
                         <form id="catalog-spec-filter" class="catalog-spec-filter">
@@ -458,6 +467,7 @@
                             <p id="catalog-price-error" class="catalog-price-error" role="status" hidden></p>
                         </form>
                     </div>
+                    </details>
                     <div
                         id="catalog-active-filters"
                         class="catalog-active-filters"

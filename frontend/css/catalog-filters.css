@@ -1,3 +1,35 @@
+/* Kết quả luôn nằm dưới header cố định, kể cả khi chiều cao header thay đổi theo màn hình. */
+#product-shelf {
+    scroll-margin-top: calc(var(--demo-height) + var(--shop-header-height,112px) + 16px);
+}
+.catalog-filters-panel {
+    min-width: 0;
+    margin-bottom: 20px;
+}
+.catalog-filters-panel > summary { display: none; }
+@media (max-width: 900px) {
+    .catalog-filters-panel > summary {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        list-style: none;
+    }
+    .catalog-filters-panel > summary::-webkit-details-marker { display: none; }
+    .catalog-filters-panel > summary .menu-chevron { margin-left: auto; }
+    .catalog-filters-panel[open] > summary .menu-chevron { transform: rotate(180deg); }
+    .catalog-filters-panel > summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+    .catalog-filters-panel .catalog-discovery-filters { margin: 10px 0 0; }
+}
+
 /* Năm khoảng giá nằm ngay dưới thanh kéo; nhãn rút gọn vẫn có tên đầy đủ cho công cụ hỗ trợ. */
 .compact-discovery .quick-price-filters {
     display: grid;
@@ -517,4 +549,3 @@
         margin-top: 4px;
     }
 }
-

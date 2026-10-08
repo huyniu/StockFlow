@@ -1,4 +1,6 @@
 import { loadFragments } from '/assets/modules/fragments.js';
+import { initializeLoginArtwork } from '/assets/login-artwork.js';
+import { initializeCompactHeader } from '/assets/modules/compact-header.js';
 import { initializeAccountServices } from '/assets/modules/account-services.js';
 import { initializeAfterSales } from '/assets/modules/after-sales.js';
 import { initializeRecentlyViewed } from '/assets/modules/recently-viewed.js';
@@ -7,6 +9,8 @@ import { initializeProductImageViewer } from '/assets/modules/product-image-view
 
 try {
     await loadFragments();
+    initializeLoginArtwork();
+    initializeCompactHeader();
     const features = await Promise.all([
         import('/assets/modules/core.js'),
         import('/assets/modules/auth-profile.js'),

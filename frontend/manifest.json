@@ -9,6 +9,7 @@
     "css/product-interactions.css",
     "css/catalog-filters.css",
     "css/account-contact.css",
-    "css/auth-artwork.css"
+    "css/auth-artwork.css",
+    "css/compact-header.css"
   ]
 }
