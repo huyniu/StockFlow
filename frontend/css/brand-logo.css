@@ -1,4 +1,4 @@
-/* Logo SVG giữ đủ khối lập phương, tên và tagline; đổi màu chữ theo nền hiển thị. */
+/* Logo SVG gồm khối lập phương và tên thương hiệu; đổi màu chữ theo nền hiển thị. */
 .stockflow-logo {
     display: block;
     width: 194px;
@@ -12,10 +12,8 @@
 .stockflow-logo .brand-logo-dark { display: none; }
 :root[data-theme='dark'] .stockflow-logo .brand-logo-light { display: none; }
 :root[data-theme='dark'] .stockflow-logo .brand-logo-dark { display: block; }
-.shop-header .shop-brand .stockflow-logo { width: 210px; height: 48px; background: #fff; }
-/* Header luôn xanh; sidebar luôn tối, nên chọn logo theo chính nền của từng vùng. */
-:root .shop-header .stockflow-logo .brand-logo-light { display: block; }
-:root .shop-header .stockflow-logo .brand-logo-dark { display: none; }
+.shop-header .shop-brand .stockflow-logo { width: 210px; height: 48px; background: transparent; border-radius: 0; }
+/* Header dùng chữ trắng trên nền xanh/navy; sidebar luôn dùng bản chữ sáng. */
 :root .sidebar .stockflow-logo .brand-logo-light { display: none; }
 :root .sidebar .stockflow-logo .brand-logo-dark { display: block; }
 .auth-page-brand .stockflow-logo { width: 240px; height: 56px; background: var(--surface); }
