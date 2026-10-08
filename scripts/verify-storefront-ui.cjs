@@ -11,6 +11,7 @@ const samsungPhone={...product,id:3,sku:'SAMSUNG-01',name:'Điện thoại Samsu
 const page=content=>({content,total_elements:content.length,total_pages:1,number:0,size:20,first:true,last:true});
 let resetRequests=0;
 let savedAddresses=[], returnRequests=[], deliveredVisible=false;
+const variantRequests=[];
 const deliveredOrder={id:1,order_code:'ORDER-TEST-1',customer_id:1,warehouse_id:1,status:'DELIVERED',total_amount:430000,shipping_fee:30000,created_at:new Date().toISOString(),updated_at:new Date().toISOString(),items:[{product_id:1,quantity:2,unit_price:200000,line_total:400000}],delivery_details:{recipient_name:'Khách',recipient_phone:'0901234567',address:'12 Mễ Trì'},shipment:{status:'DELIVERED',tracking_code:'GHN_HAN_1_1234',carrier_mode:'SIMULATED'}};
 function fixture(url,method='GET',body={}) {
  const p=url.pathname;
@@ -40,6 +41,12 @@ function fixture(url,method='GET',body={}) {
  if(p.endsWith('/locations/calculate-fee'))return {shipping_fee:30000,service_type_id:2};
  if(p.endsWith('/categories'))return [{id:1,name:'Điện thoại',slug:'dien-thoai',parent_id:null},{id:2,name:'Máy tính bảng',slug:'may-tinh-bang',parent_id:null},{id:3,name:'Laptop',slug:'laptop',parent_id:null}];
  if(p.endsWith('/brands'))return [{id:1,name:'Apple',slug:'apple',category_ids:[1,2]},{id:2,name:'Samsung',slug:'samsung',category_ids:[1]}];
+ if(method==='POST' && p.endsWith('/products/1/variants')){
+  variantRequests.push({method,body});product.variants.push({...body,id:22,version_name:'256GB',status:'ACTIVE'});return product;
+ }
+ if(method==='PATCH' && p.endsWith('/products/1/variants/21')){
+  variantRequests.push({method,body});Object.assign(product.variants.find(row=>row.id===21),body);return product;
+ }
  if(p.endsWith('/products/specification-options')||p.endsWith('/storefront/bestsellers')||p.endsWith('/wishlist'))return [];
  if(p.includes('/storefront/contact'))return {zalo_url:'https://zalo.me/0968935896'};
  if(p.endsWith('/storefront/branches')||p.endsWith('/warehouses/operating-options'))return [{id:1,name:'Kho Hà Nội',address:'Hà Nội',status:'ACTIVE'}];
@@ -288,6 +295,41 @@ async function noOverflow(label){const dimensions=await evaluate(`({viewport:inn
  assert.deepEqual(await evaluate(`JSON.parse(localStorage.getItem('stockflow.recently-viewed'))`),[]);
  user.role='ADMIN';await send('Page.navigate',{url:base+'/index.html#portal/users'});await until(`document.querySelector('#users-rows')?.textContent.includes('layout@example.test')`);
  for(const width of [320,375,768,1366]) {await viewport(width);await noOverflow('Admin '+width);await screenshot('admin-'+width);}
+ // Custom validation must recover after editing; a stale error otherwise blocks native submit.
+ product.versions=[{id:11,name:'256GB',specifications:[]},{id:12,name:'512GB',specifications:[]}];
+ product.variants=[{id:21,sku:'TEST-OLD',version_id:11,version_name:'256GB',color_name:'Blue',color_hex:'#2563eb',unit_price:200000,status:'ACTIVE',image_urls:[]},
+  {id:23,sku:'TEST-COPY',version_id:12,version_name:'512GB',color_name:'White',color_hex:'#ffffff',unit_price:200000,status:'ACTIVE',image_urls:['/assets/stockflow.svg']}];
+ const galleryUrls=[
+  'https://cdn2.cellphones.com.vn/x/media/catalog/product/i/p/iphone-17-pro-max_3.jpg',
+  'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-17-pro-max_1_3.jpg',
+  'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-17-pro-max-1_4.jpg',
+  'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-17-pro-max-2_1_1.jpg',
+  'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-17-pro-max-3.jpg'];
+ const setGallery=async(selector,urls)=>{
+  const edit=async function(selector,urls){const {app}=await import('/assets/modules/context.js');const input=document.querySelector(selector);input.value=urls.join('\n');input.dispatchEvent(new Event('input',{bubbles:true}));return {count:app.readGalleryInput(input).length,valid:input.validity.valid,message:input.validationMessage};};
+  return evaluate('('+edit.toString()+')('+JSON.stringify(selector)+','+JSON.stringify(urls)+')');
+ };
+ await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');await app.manageProductVariants(1,11,'colors');const f=document.querySelector('#product-variant-create');f.closest('details').open=true;f.elements.sku.value='TEST-NEW';f.elements.color_name.value='Blue';})()`);
+ const createGallery='#product-variant-create textarea[name="image_urls"]',editGallery='.variant-admin-edit[data-variant-id="21"] textarea[name="image_urls"]';
+ const ninePhotos=Array.from({length:9},(_,i)=>'https://example.test/image-'+i+'.jpg');
+ assert.equal((await setGallery(createGallery,ninePhotos)).valid,false);
+ await evaluate(`document.querySelector('#product-variant-create').requestSubmit()`);assert.equal(variantRequests.length,0);
+ assert.deepEqual(await setGallery(createGallery,[...galleryUrls,'','']),{count:5,valid:true,message:''});
+ await evaluate(`document.querySelector('#product-variant-create').requestSubmit()`);
+ await until(`document.querySelector('.variant-admin-edit[data-variant-id="22"]')!==null`);
+ assert.equal(variantRequests.length,1);assert.equal(variantRequests[0].method,'POST');assert.deepEqual(variantRequests[0].body.image_urls,galleryUrls);
+ assert.equal((await setGallery(editGallery,[galleryUrls[0],galleryUrls[0]])).valid,false);
+ assert.equal((await setGallery(editGallery,['javascript:alert(1)'])).valid,false);
+ assert.deepEqual(await setGallery(editGallery,galleryUrls),{count:5,valid:true,message:''});
+ await evaluate(`document.querySelector('.variant-admin-edit[data-variant-id="21"]').requestSubmit()`);
+ await until(`(async()=>{const {app}=await import('/assets/modules/context.js');return app.state.products.get(1)?.variants.find(row=>row.id===21)?.image_urls.length===5 && !document.querySelector('.variant-admin-edit[data-variant-id="21"] button[type="submit"]').disabled;})()`);
+ assert.equal(variantRequests.length,2);assert.equal(variantRequests[1].method,'PATCH');assert.deepEqual(variantRequests[1].body.image_urls,galleryUrls);
+ assert.equal((await setGallery(createGallery,ninePhotos.slice(0,8))).valid,true);
+ assert.equal((await setGallery(createGallery,ninePhotos)).valid,false);
+ await evaluate(`(()=>{const f=document.querySelector('#product-variant-create');f.elements.copy_source.value='23';f.querySelector('[data-action="copy-product-color"]').click();})()`);
+ assert.deepEqual(await evaluate(`(()=>{const input=document.querySelector('${createGallery}');return {value:input.value,valid:input.validity.valid,message:input.validationMessage};})()`),{value:'/assets/stockflow.svg',valid:true,message:''});
+ await evaluate(`document.querySelector('#product-variants-dialog').close()`);
+ console.log('PASS: gallery validation recovers after excess/duplicate/unsafe URLs, exact five nested CDN URLs submitted on create/update, eight-image boundary and copied gallery');
  await evaluate(`document.querySelector('.aftercare-sidebar [data-action="open-returns"]').click()`);
  await until(`document.querySelector('[data-action="review-return"]')!==null`);
  await evaluate(`document.querySelector('[data-action="review-return"]').click();document.querySelector('#return-review-form').elements.note.value='Đồng ý nhận hàng về để kiểm tra';document.querySelector('#return-review-form').requestSubmit()`);

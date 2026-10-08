@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <title>StockFlow</title>
+  <defs>
+    <linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#087def"/></linearGradient>
+    <linearGradient id="left" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="#0759a8"/><stop offset="1" stop-color="#071f49"/></linearGradient>
+    <linearGradient id="right" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#72adff"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#279aff" flood-opacity=".25"/></filter>
+  </defs>
+  <circle cx="64" cy="64" r="61" fill="#f6f9fc" stroke="#dce7f4"/>
+  <circle cx="64" cy="64" r="53" fill="#fff"/>
+  <g transform="translate(24 24) scale(.8)" filter="url(#glow)">
+    <path d="M50 4 91 28 50 52 9 28Z" fill="url(#top)"/>
+    <path d="M9 28 50 52 50 100 9 76Z" fill="url(#left)"/>
+    <path d="M50 52 91 28 91 76 50 100Z" fill="url(#right)"/>
+    <path d="M17 28 50 9 83 28 50 47Z" fill="#b7e4ff" opacity=".25"/>
+    <path d="M17 40 43 55 43 85 17 70Z" fill="#0075c9" opacity=".18"/>
+    <path d="M58 55 83 40 83 70 58 85Z" fill="#b4ceff" opacity=".28"/>
+    <path d="M50 5V52M10 29 50 52 90 29" fill="none" stroke="#93ddff" stroke-width="1.7" opacity=".62"/>
+    <circle cx="50" cy="52" r="4.6" fill="none" stroke="#fff" stroke-width="2.3"/>
+    <circle cx="50" cy="52" r="1.7" fill="#e0faff"/>
+  </g>
+</svg>

@@ -1366,6 +1366,7 @@ function copyProductColor(form) {
         form.elements.color_hex.value = __stockflowApp.colorHex(source.color_hex);
         form.elements.image_url.value = source.image_url || '';
         form.elements.image_urls.value = (source.image_urls || []).join('\n');
+        __stockflowApp.validateProductGalleryInput(form.elements.image_urls);
         notice.textContent = 'Đã sao chép màu và bộ ảnh. SKU và giá vẫn giữ giá trị bạn đang nhập; hãy kiểm tra trước khi bấm Thêm màu.';
         form.elements.sku.focus();
     }
@@ -1762,6 +1763,11 @@ document.addEventListener('input', (event) => {
                 input,
                 window.setTimeout(() => __stockflowApp.renderGalleryInputPreview(input), 300),
             );
+            return;
+        }
+        if (input.matches('#product-variant-create textarea[name="image_urls"], .variant-admin-edit textarea[name="image_urls"]')) {
+            // Browser kiểm tra customValidity trước submit; phải xóa lỗi cũ ngay khi sửa danh sách.
+            __stockflowApp.validateProductGalleryInput(input);
             return;
         }
         if (!input.dataset.imageInput) return;
