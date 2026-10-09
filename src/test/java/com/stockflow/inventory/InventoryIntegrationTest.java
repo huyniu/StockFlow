@@ -159,6 +159,40 @@ class InventoryIntegrationTest {
   mvc.perform(get("/api/v1/inventories").header("Authorization", bearer(user("CUSTOMER")))).andExpect(status().isForbidden());
   mvc.perform(get("/api/v1/inventories")).andExpect(status().isUnauthorized());
  }
+ /** Hai SKU có ảnh riêng phải được nối qua inventory_id, giữ nguyên số liệu ledger. */
+ @Test void ledgerIncludesTheCorrectProductImageWithoutChangingBalances() throws Exception {
+  product.updateImageUrl("https://example.com/phone-white.png");
+  product = products.save(product);
+  stockIn(staff, 8).andExpect(status().isCreated());
+  Product other = new Product(product.getCategory(), UUID.randomUUID().toString(), "Điện thoại màu đen", BigDecimal.TEN, ProductStatus.ACTIVE);
+  other.updateImageUrl("https://example.com/phone-black.png");
+  other = products.save(other);
+  Long otherInventory = service.stockIn(new StockInRequest(other.getId(), warehouse.getId(), 3, "Nhập SKU màu đen"), admin.getId()).id();
+  for (Product expected : List.of(product, other)) {
+   Long inventory = expected.getId().equals(product.getId()) ? inventoryId() : otherInventory;
+   int quantity = expected.getId().equals(product.getId()) ? 8 : 3;
+   mvc.perform(get("/api/v1/inventories/movements").param("inventoryId", inventory.toString())
+     .param("size", "1").header("Authorization", bearer(admin)))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.total_elements").value(1))
+    .andExpect(jsonPath("$.content[0].product_id").value(expected.getId()))
+    .andExpect(jsonPath("$.content[0].product_name").value(expected.getName()))
+    .andExpect(jsonPath("$.content[0].product_sku").value(expected.getSku()))
+    .andExpect(jsonPath("$.content[0].image_url").value(expected.getImageUrl()))
+    .andExpect(jsonPath("$.content[0].quantity").value(quantity))
+    .andExpect(jsonPath("$.content[0].balance_before").value(0))
+    .andExpect(jsonPath("$.content[0].balance_after").value(quantity));
+  }
+  assertThat(jdbc.queryForObject("select count(*) from inventory_movements where inventory_id in (?, ?)",
+   Long.class, inventoryId(), otherInventory)).isEqualTo(2);
+ }
+ /** Sản phẩm không có ảnh vẫn đọc được sổ cái để giao diện dùng icon dự phòng. */
+ @Test void ledgerProductWithoutImageStillLoads() throws Exception {
+  stockIn(staff, 2).andExpect(status().isCreated());
+  mvc.perform(get("/api/v1/inventories/movements").param("inventoryId", inventoryId().toString())
+    .header("Authorization", bearer(admin)))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].product_id").value(product.getId()))
+   .andExpect(jsonPath("$.content[0].image_url").isEmpty());
+ }
  /** Tạo người dùng có role đã seed để sinh JWT thật. */
  private User user(String role) {
   return users.save(verifiedUser(UUID.randomUUID() + "@example.com", "hash-kiểm-thử", "Người kiểm thử", roles.findByName(role).orElseThrow()));

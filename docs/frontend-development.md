@@ -105,6 +105,22 @@ Kiểm chứng 09/10/2026: API local trả **7 sản phẩm đang bán theo mode
 
 File sửa trong lượt này: `frontend/css/account-contact.css`, `assets/fragments/storefront.html`, `assets/modules/navigation-events.js`, bundle `styles.css`, `scripts/verify-mobile-support.cjs`, `scripts/verify-storefront-ui.cjs`, tài liệu này. Backend, nghiệp vụ mua hàng và các thay đổi tinh gọn cửa hàng trước đó được giữ nguyên.
 
+## Ảnh sản phẩm trong bảng quản trị
+
+`productCell()` trong `assets/modules/admin.js` dùng ảnh của đúng SKU qua `saleSku()`, tên/phiên bản/màu và mã sản phẩm. Tồn kho, sản phẩm bán chạy, cảnh báo tồn kho và sổ cái dùng cùng khung ảnh 52 × 52 px. CSS nguồn ở `frontend/css/portal.css`; build bundle như hướng dẫn ở đầu tài liệu. Ảnh dùng `object-fit: contain`, tải lazy, trang trí cạnh tên sản phẩm (`alt=""`, `aria-hidden`), không thêm điểm Tab. Khi thiếu ảnh hoặc URL không hợp lệ, giữ icon hộp; khi tải ảnh lỗi, handler `data-admin-thumbnail` trong `navigation-events.js` ẩn ảnh và để hiện icon, không làm lệch hàng.
+
+API đọc sổ cái bổ sung `product_id`, `product_name`, `product_sku`, `image_url` từ sản phẩm hiện tại. `InventoryService.history()` nạp các inventory thuộc trang bằng một truy vấn có EntityGraph, tránh tải toàn bộ tồn kho hoặc truy vấn từng biến động. Đây là thông tin nhận diện catalog hiện tại; các snapshot số lượng, trước/sau, ghi chú, người thực hiện và thời điểm không đổi. Không có migration hoặc thay đổi quyền/nghiệp vụ ghi sổ. Cần khởi động lại Spring Boot để API đang chạy nhận các trường mới, rồi tải lại trang bằng Ctrl+F5.
+
+```powershell
+node scripts/verify-portal-product-images.cjs
+# Dùng ảnh thực tế của catalog local; số liệu kho/báo cáo vẫn là fixture tách biệt:
+node scripts/verify-portal-product-images.cjs --real-images
+```
+
+Script phục vụ UI workspace và API giả lập chỉ GET, không tạo tài khoản/đơn/biến động thật. Chế độ `--real-images` đọc catalog công khai từ `STOCKFLOW_LOCAL_URL` (mặc định `http://localhost:8080`) để lấy ảnh Sony, HP và iPhone. Kiểm tra Chrome 320/375/768/1366/1920 px sáng/tối: ảnh đúng màu SKU, vào thẳng sổ cái, SKU không có trong cache, URL không an toàn, ảnh thiếu/hỏng, kích thước khung, tràn trang. Bảng rộng trên mobile vẫn cuộn ngang trong vùng bảng. Ảnh/metrics tại `target/portal-product-images-verification/`; chưa thay thế điện thoại thật, Safari hoặc Render.
+
+Kiểm chứng ngày 09/10/2026: kiểm tra trình duyệt với ảnh catalog thật PASS; Maven **793/793 PASS, 0 failures/errors/skipped** (giữ 791 test cũ, thêm hai test nối ảnh SKU/sổ cái và trường hợp không có ảnh). Log `target/portal-product-images-tests.log`.
+
 V26 lưu hash OTP đặt lại mật khẩu, hạn 15 phút, tối đa 5 lần nhập sai, chống gửi lại trước 60 giây/5 email mỗi giờ. Đổi hoặc đặt lại mật khẩu vô hiệu hóa JWT cũ. Rate limit IP phục hồi hiện nằm trong tiến trình; triển khai nhiều instance cần kho giới hạn dùng chung.
 
 V27 lưu loại vận đơn: `SIMULATED`, `GHN_SANDBOX`, `GHN_PRODUCTION`, `MANUAL`. Chỉ GHN production có link tra cứu; không suy đoán vận đơn cũ là đơn GHN thật.

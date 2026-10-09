@@ -11,6 +11,8 @@ import jakarta.persistence.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.*;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /** Nhập kho và ghi sổ cái nguyên tử; mỗi thay đổi tồn kho có một biến động cùng transaction. */
 @Service
@@ -57,7 +59,12 @@ public class InventoryService {
  /** Lịch sử chỉ dành cho quản trị viên và quản lý, hỗ trợ lọc theo inventoryId. */
  @Transactional(readOnly = true)
  public Page<InventoryMovementResponse> history(Long inventoryId, Pageable pageable) {
-  return movements.search(inventoryId, pageable).map(InventoryMovementResponse::from);
+  Page<InventoryMovement> page = movements.search(inventoryId, pageable);
+  if (page.isEmpty()) return page.map(InventoryMovementResponse::from);
+  Map<Long, Product> products = inventories.findWithProductsByIds(page.getContent().stream()
+   .map(InventoryMovement::getInventoryId).distinct().toList()).stream()
+   .collect(Collectors.toMap(Inventory::getId, Inventory::getProduct));
+  return page.map(movement -> InventoryMovementResponse.from(movement, products.get(movement.getInventoryId())));
  }
  /** Xác minh người thực hiện còn tồn tại trước khi ghi nhận vào sổ cái. */
  private User requireActor(Long actorId) {

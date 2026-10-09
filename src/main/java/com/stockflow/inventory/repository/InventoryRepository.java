@@ -1,6 +1,8 @@
 package com.stockflow.inventory.repository;
 import com.stockflow.inventory.domain.Inventory;
 import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.*;
@@ -29,4 +31,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
  @EntityGraph(attributePaths = {"product", "warehouse"})
  @Query("select i from Inventory i where (:productId is null or i.product.id = :productId) and (:warehouseId is null or i.warehouse.id = :warehouseId)")
  Page<Inventory> search(@Param("productId") Long productId, @Param("warehouseId") Long warehouseId, Pageable pageable);
+ /** Nạp sản phẩm cho đúng các dòng sổ cái trong trang, tránh truy vấn từng biến động. */
+ @EntityGraph(attributePaths = "product")
+ @Query("select i from Inventory i where i.id in :ids")
+ List<Inventory> findWithProductsByIds(@Param("ids") Collection<Long> ids);
 }

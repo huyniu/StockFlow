@@ -54,16 +54,27 @@ function renderPager(name, result) {
             '>Sau</button></div>';
     }
 
-function productCell(product) {
-        return (
-            '<div class="product-cell"><span class="product-symbol">' +
-            __stockflowApp.icon('box') +
-            '</span><div><strong>' +
-            __stockflowApp.escapeHtml(product.name || product.product_name) +
-            '</strong><span class="meta-line mono">' +
-            __stockflowApp.escapeHtml(product.sku || product.product_sku || '#' + product.product_id) +
-            '</span></div></div>'
-        );
+function productCell(product, metadata = '') {
+        const productId = product.product_id ?? (product.inventory_id == null ? product.id : null);
+        const cached = __stockflowApp.state.products.get(Number(productId));
+        const sku = cached ? __stockflowApp.saleSku(cached) : product;
+        const name = cached
+            ? __stockflowApp.cartProductName(sku)
+            : product.product_name || product.name || 'Sản phẩm của tồn kho #' + product.inventory_id;
+        const code = product.product_sku || product.sku || sku.sku || (productId ? '#' + productId : '');
+        const image = __stockflowApp.safeProductImageUrl(sku.image_url) ||
+            (sku.image_urls || []).map(__stockflowApp.safeProductImageUrl).find(Boolean) ||
+            __stockflowApp.safeProductImageUrl(product.image_url);
+        return `<div class="product-cell">
+            <span class="product-symbol" aria-hidden="true">
+                ${__stockflowApp.icon('box')}
+                ${image ? `<img src="${__stockflowApp.escapeHtml(image)}" alt="" width="52" height="52"
+                    loading="lazy" decoding="async" data-admin-thumbnail />` : ''}
+            </span>
+            <div class="product-cell-copy"><strong>${__stockflowApp.escapeHtml(name)}</strong>
+                <span class="meta-line mono">${__stockflowApp.escapeHtml([code, metadata].filter(Boolean).join(' · '))}</span>
+            </div>
+        </div>`;
     }
 
 async function loadInventory() {
@@ -87,17 +98,8 @@ async function loadInventory() {
                     (stock) =>
                         '<tr class="' +
                         (stock.available_quantity <= 5 ? 'inventory-warning' : '') +
-                        '"><td><strong>' +
-                        __stockflowApp.escapeHtml(
-                            __stockflowApp.state.products.has(stock.product_id)
-                                ? __stockflowApp.cartProductName(__stockflowApp.saleSku(__stockflowApp.state.products.get(stock.product_id)))
-                                : stock.product_name,
-                        ) +
-                        '</strong><span class="meta-line mono">#' +
-                        stock.product_id +
-                        ' · Tồn kho #' +
-                        stock.id +
-                        '</span>' +
+                        '"><td>' +
+                        __stockflowApp.productCell(stock, 'Tồn kho #' + stock.id) +
                         (stock.available_quantity <= 5
                             ? '<span class="stock-alert-badge">' +
                               __stockflowApp.icon('alert') +
@@ -153,7 +155,8 @@ async function loadLedger() {
             __stockflowApp.$('#ledger-rows').innerHTML = result.content
                 .map(
                     (movement) =>
-                        '<tr><td><strong>' +
+                        '<tr><td>' + __stockflowApp.productCell(movement) +
+                        '<div class="ledger-movement-details"><strong>' +
                         __stockflowApp.escapeHtml(__stockflowApp.MOVEMENT_LABELS[movement.type] || movement.type) +
                         '</strong><span class="meta-line mono">' +
                         __stockflowApp.escapeHtml(movement.type) +
@@ -161,7 +164,7 @@ async function loadLedger() {
                         movement.inventory_id +
                         ' · Biến động #' +
                         movement.id +
-                        '</span></td><td class="align-right price">' +
+                        '</span></div></td><td class="align-right price">' +
                         __stockflowApp.integer(movement.quantity) +
                         '</td><td><div class="balance-change"><span>' +
                         __stockflowApp.integer(movement.balance_before) +

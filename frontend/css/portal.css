@@ -253,19 +253,39 @@ tbody tr:hover {
     gap: 10px;
     min-width: 170px;
 }
+.product-cell-copy {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
 .product-symbol {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 33px;
-    height: 33px;
-    border-radius: 8px;
-    background: #ebeff5;
-    color: #8a96aa;
+    flex: 0 0 52px;
+    width: 52px;
+    height: 52px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface-muted);
+    color: var(--muted);
+}
+.product-symbol img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 4px;
+    background: #fff;
 }
 .product-symbol .icon {
     width: 18px;
     height: 18px;
+}
+.ledger-movement-details {
+    margin: 8px 0 0 62px;
 }
 .pagination {
     display: flex;
@@ -679,4 +699,3 @@ tbody tr:hover {
     font-size: 9px;
     padding: 28px 0 20px;
 }
-

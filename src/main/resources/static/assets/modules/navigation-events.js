@@ -519,6 +519,10 @@ document.addEventListener(
         'error',
         (event) => {
             const image = event.target;
+            if (image instanceof HTMLImageElement && image.hasAttribute('data-admin-thumbnail')) {
+                image.hidden = true;
+                return;
+            }
             if (image instanceof HTMLImageElement && image.hasAttribute('data-search-image')) {
                 image.hidden = true;
                 return;
