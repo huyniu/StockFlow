@@ -4,13 +4,7 @@ import { rememberProduct } from './recently-viewed.js';
 function renderProducts(products) {
         const cards = __stockflowApp.productCards(products);
         __stockflowApp.$('#catalog-grid').innerHTML = cards
-            ? cards +
-              `
-                <p class="catalog-demo-note">
-                    Sản phẩm chưa có ảnh đã lưu dùng hình minh họa theo danh mục.
-                    Giá từ là giá thấp nhất của các lựa chọn đang bán. Giá và tồn được xác nhận theo SKU khi đặt hàng.
-                </p>
-            `
+            ? cards
             : '<div class="grid-message">Chưa có sản phẩm phù hợp. Thử đổi danh mục, từ khóa hoặc khoảng giá.' +
               '<br /><button class="button secondary small" type="button" data-action="clear-catalog-filter" data-filter="all">Xóa bộ lọc</button></div>';
         __stockflowApp.prepareStorefrontReveals();
@@ -27,7 +21,7 @@ function productDescription(product) {
 function productSpecifications(product) {
         const rows = Array.isArray(product.specifications) ? product.specifications : [];
         return `<section id="product-specifications" class="product-specifications">
-            <div class="specifications-heading"><span class="eyebrow">THÔNG TIN SẢN PHẨM</span><h3>Thông số kỹ thuật</h3></div>
+            <div class="specifications-heading"><h3>Thông số kỹ thuật</h3></div>
             ${rows.length ? `<dl class="specifications-table">${rows.map((row) => `<div><dt>${__stockflowApp.escapeHtml(row.name)}</dt><dd>${__stockflowApp.escapeHtml(row.value)}</dd></div>`).join('')}</dl>` : '<p class="subtle">Cửa hàng chưa bổ sung thông số kỹ thuật.</p>'}
         </section>`;
     }

@@ -1,6 +1,6 @@
 import { app as __stockflowApp } from './context.js';
 
-let SESSION_KEY, wishlistOwner, wishlistIds, wishlistLoadVersion, checkoutDifferentAddress, administeredUsers, CART_KEY, CHECKOUT_ATTEMPT_KEY, checkoutAttempt, MAX_CART_ITEMS, ORDER_REFRESH_MS, EXPIRED_ORDER_REFRESH_MS, READ_TIMEOUT_MS, MAX_QUANTITY, MAX_GALLERY_IMAGES, CATALOG_PRICE_RANGES, LAPTOP_PRICE_RANGES, AUDIO_PRICE_RANGES, DEMO_ACCOUNTS, STATUS_LABELS, MOVEMENT_LABELS, ROLE_CLASSES, ROLE_LABELS, PORTAL_TITLES, PRODUCT_IMAGES, PRODUCT_IMAGE_RULES, CATEGORY_IMAGES, state, requests, channels, searchSuggestions, SEARCH_SUGGESTION_DELAY_MS, SEARCH_SUGGESTION_LIMIT, routedLocation, imagePreviewTimers, numberFormat, moneyFormat, $, $$, mobilePurchaseMedia, purchaseObserver, purchaseScrollFrame, cartBounceTimer, orderRefreshTimer, orderRefreshRun, orderRefreshVersion, orderRefreshFailures, lastOrderRefreshAttempt, storefrontRevealSelector, reducedStorefrontMotion, observedStorefrontReveals, productRevealThreshold, storefrontRevealObserver, homeCategoryDesktop, escapeHtml, amount, integer, hasRole, icon, isOperator;
+let SESSION_KEY, wishlistOwner, wishlistIds, wishlistLoadVersion, checkoutDifferentAddress, administeredUsers, CART_KEY, CHECKOUT_ATTEMPT_KEY, checkoutAttempt, MAX_CART_ITEMS, ORDER_REFRESH_MS, EXPIRED_ORDER_REFRESH_MS, READ_TIMEOUT_MS, MAX_QUANTITY, MAX_GALLERY_IMAGES, CATALOG_PRICE_RANGES, LAPTOP_PRICE_RANGES, AUDIO_PRICE_RANGES, DEMO_ACCOUNTS, STATUS_LABELS, MOVEMENT_LABELS, ROLE_CLASSES, ROLE_LABELS, PORTAL_TITLES, PRODUCT_IMAGES, PRODUCT_IMAGE_RULES, CATEGORY_IMAGES, state, requests, channels, searchSuggestions, SEARCH_SUGGESTION_DELAY_MS, SEARCH_SUGGESTION_LIMIT, routedLocation, imagePreviewTimers, numberFormat, moneyFormat, $, $$, mobilePurchaseMedia, purchaseObserver, purchaseScrollFrame, cartBounceTimer, orderRefreshTimer, orderRefreshRun, orderRefreshVersion, orderRefreshFailures, lastOrderRefreshAttempt, storefrontRevealSelector, reducedStorefrontMotion, observedStorefrontReveals, storefrontRevealObserver, homeCategoryDesktop, escapeHtml, amount, integer, hasRole, icon, isOperator;
 
 function syncMobilePurchase() {
         const bar = __stockflowApp.$('#mobile-purchase-bar');
@@ -56,10 +56,8 @@ function bounceCart() {
 
 function revealStorefrontElement(element) {
         element.classList.add('is-revealed');
-        if (!element.matches('.product-card')) {
-            __stockflowApp.storefrontRevealObserver?.unobserve(element);
-            __stockflowApp.observedStorefrontReveals.delete(element);
-        }
+        __stockflowApp.storefrontRevealObserver?.unobserve(element);
+        __stockflowApp.observedStorefrontReveals.delete(element);
     }
 
 function prepareStorefrontReveals() {
@@ -68,26 +66,10 @@ function prepareStorefrontReveals() {
             __stockflowApp.storefrontRevealObserver = new IntersectionObserver(
                 (entries) => {
                     entries.forEach((entry) => {
-                        const element = entry.target;
-                        if (!element.matches('.product-card')) {
-                            if (entry.isIntersecting) __stockflowApp.revealStorefrontElement(element);
-                            return;
-                        }
-                        if (entry.isIntersecting && entry.intersectionRatio >= __stockflowApp.productRevealThreshold) {
-                            __stockflowApp.revealStorefrontElement(element);
-                            return;
-                        }
-                        // Cuộn lên làm thẻ rời mép dưới: thu nhẹ và mờ dần, không ẩn các thẻ đang xem.
-                        const bottom = entry.rootBounds?.bottom ?? window.innerHeight;
-                        const leavingBottom =
-                            entry.boundingClientRect.top >=
-                            bottom - entry.boundingClientRect.height * __stockflowApp.productRevealThreshold;
-                        if (leavingBottom && !element.contains(document.activeElement)) {
-                            element.classList.remove('is-revealed');
-                        }
+                        if (entry.isIntersecting) __stockflowApp.revealStorefrontElement(entry.target);
                     });
                 },
-                { rootMargin: '0px 0px -32px 0px', threshold: [0, __stockflowApp.productRevealThreshold] },
+                { rootMargin: '0px 0px -32px 0px', threshold: 0 },
             );
         }
         // Khi phân trang hoặc đổi SKU, bỏ tham chiếu tới các thẻ cũ đã rời DOM.
@@ -108,7 +90,7 @@ function prepareStorefrontReveals() {
                     element.classList.add('scroll-reveal');
                 }
             }
-            if (element.matches('.product-card') || !element.classList.contains('is-revealed')) {
+            if (!element.classList.contains('is-revealed')) {
                 __stockflowApp.observedStorefrontReveals.add(element);
                 __stockflowApp.storefrontRevealObserver.observe(element);
             }
@@ -744,7 +726,6 @@ Object.defineProperties(__stockflowApp, {
 "storefrontRevealSelector": { get: () => storefrontRevealSelector },
 "reducedStorefrontMotion": { get: () => reducedStorefrontMotion },
 "observedStorefrontReveals": { get: () => observedStorefrontReveals },
-"productRevealThreshold": { get: () => productRevealThreshold },
 "storefrontRevealObserver": { get: () => storefrontRevealObserver, set: value => { storefrontRevealObserver = value; } },
 "homeCategoryDesktop": { get: () => homeCategoryDesktop },
 "revealStorefrontElement": { get: () => revealStorefrontElement },
@@ -1020,14 +1001,12 @@ document.addEventListener('close', __stockflowApp.syncMobilePurchase, true);
         '.shop-benefits > span',
         '.shelf-heading',
         '.catalog-discovery-filters',
-        '.product-card',
         '.product-description',
         '.product-specifications',
         '.shop-footer',
     ].join(', '));
 (reducedStorefrontMotion = window.matchMedia('(prefers-reduced-motion: reduce)'));
 (observedStorefrontReveals = new Set());
-(productRevealThreshold = 0.12);
 (storefrontRevealObserver = null);
 (homeCategoryDesktop = window.matchMedia('(min-width: 1001px)'));
 __stockflowApp.homeCategoryDesktop.addEventListener('change', () => {

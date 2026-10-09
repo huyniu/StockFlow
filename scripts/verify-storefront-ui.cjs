@@ -276,12 +276,24 @@ async function noOverflow(label){const dimensions=await evaluate(`({viewport:inn
  await evaluate(`document.querySelector('.shop-footer [data-shop-tab="catalog"]').click()`); await until(`!document.querySelector('#shop-catalog').hidden`);
  for(const width of [375,768,1366]) { await viewport(width);await noOverflow('Recent products/footer '+width);await evaluate(`document.querySelector('.shop-footer').scrollIntoView()`);await evaluate(`new Promise(resolve=>setTimeout(resolve,400))`);await screenshot('recent-footer-'+width); }
  await viewport(1366);
- await evaluate(`(()=>{const track=document.querySelector('#recently-viewed-products');const card=track.firstElementChild;for(let i=0;i<7;i++)track.append(card.cloneNode(true));track.scrollLeft=0;track.scrollIntoView({block:'center'});track.dispatchEvent(new Event('pointerleave'));})()`);
- await until(`document.querySelector('#recently-viewed-products').scrollLeft>10`);
+ // Autoplay intentionally stops for reduced motion; test it under an explicit normal-motion preference.
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+ // The image-viewer drag leaves the pointer on the page; move it away so hover does not pause autoplay.
+ await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:0,y:0});
+ await evaluate(`(()=>{const track=document.querySelector('#recently-viewed-products');const card=track.firstElementChild;for(let i=0;i<7;i++)track.append(card.cloneNode(true));track.scrollLeft=0;track.scrollIntoView({block:'center',behavior:'instant'});track.dispatchEvent(new Event('pointerleave'));})()`);
+ try {await until(`document.querySelector('#recently-viewed-products').scrollLeft>10`);} catch(error) {
+  console.error('Carousel diagnostics',await evaluate(`(()=>{const e=document.querySelector('#recently-viewed-products'),r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,width:e.clientWidth,scrollWidth:e.scrollWidth,children:e.children.length,hover:e.matches(':hover'),focus:e.contains(document.activeElement),hidden:document.hidden,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,display:getComputedStyle(e).display,active:document.activeElement.id};})()`));throw error;
+ }
  await evaluate(`document.querySelector('#recently-viewed-products').dispatchEvent(new Event('pointerenter'));new Promise(resolve=>setTimeout(resolve,600))`);
  const pausedScroll=await evaluate(`document.querySelector('#recently-viewed-products').scrollLeft`);
  await evaluate(`new Promise(resolve=>setTimeout(resolve,4200))`);
  assert.equal(await evaluate(`document.querySelector('#recently-viewed-products').scrollLeft`),pausedScroll);
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+ await evaluate(`document.querySelector('#recently-viewed-products').dispatchEvent(new Event('pointerleave'))`);
+ const reducedScroll=await evaluate(`document.querySelector('#recently-viewed-products').scrollLeft`);
+ await evaluate(`new Promise(resolve=>setTimeout(resolve,4200))`);
+ assert.equal(await evaluate(`document.querySelector('#recently-viewed-products').scrollLeft`),reducedScroll);
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
  for(const selector of ['#recently-viewed-products','#bestseller-grid']) {
   const wheel=await evaluate(`(()=>{const track=document.querySelector('${selector}');if('${selector}'==='#bestseller-grid'){track.closest('section').hidden=false;track.replaceChildren(document.querySelector('#catalog-grid .product-card').cloneNode(true));}if(track.children.length<8){const card=track.firstElementChild;for(let i=0;i<8;i++)track.append(card.cloneNode(true));}track.dispatchEvent(new Event('pointerenter'));track.scrollLeft=0;const event=new WheelEvent('wheel',{deltaY:120,bubbles:true,cancelable:true});track.dispatchEvent(event);return {left:track.scrollLeft,blocked:event.defaultPrevented};})()`);
   assert.ok(wheel.left>0,selector+JSON.stringify(wheel));assert.equal(wheel.blocked,true);

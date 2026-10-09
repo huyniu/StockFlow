@@ -34,7 +34,8 @@ for (const product of products) {
     product.max_price ??= product.unit_price;
 }
 // These files were clean at task start. Serve their original revision for repeatable before screenshots.
-const originalAssets = before ? new Map(['/styles.css', '/assets/modules/catalog-navigation.js', '/assets/fragments/storefront.html']
+const originalAssets = before ? new Map(['/styles.css', '/assets/modules/catalog-navigation.js', '/assets/fragments/storefront.html',
+    '/assets/modules/core.js', '/assets/modules/product-detail.js', '/assets/modules/cart-checkout.js']
     .map(route => [route, execFileSync('git', ['show', 'HEAD:src/main/resources/static' + route], { cwd: root })])) : new Map();
 const page = content => ({ content, total_elements: content.length, total_pages: 1, page: 0, size: 20, last: true });
 const apiRequests = [];
@@ -124,11 +125,23 @@ async function cardMetrics() {
             button:rect(button),buttonText:button.textContent.trim(),buttonTextRect:rect({getBoundingClientRect:()=>range.getBoundingClientRect()}),buttonSize:parseFloat(getComputedStyle(button).fontSize),
             buttonClient:button.clientWidth,buttonScroll:button.scrollWidth};})};})()`);
 }
+async function surfaceMetrics() {
+    // Check the CSS scope explicitly; the broader UI suite navigates the real auth/admin screens.
+    return evaluate(`(()=>{const classes=document.body.className,read=()=>({background:getComputedStyle(document.body).backgroundColor,
+        aura:getComputedStyle(document.querySelector('.aura-bg')).display,
+        layerBackground:getComputedStyle(document.querySelector('.aura-layer-1')).backgroundImage,
+        layerBlend:getComputedStyle(document.querySelector('.aura-layer-1')).mixBlendMode,
+        layerBlur:getComputedStyle(document.querySelector('.aura-layer-1')).filter});
+        document.body.classList.remove('portal-open','auth-page-open');const storefront=read();
+        document.body.classList.add('auth-page-open');const auth=read();
+        document.body.classList.remove('auth-page-open');document.body.classList.add('portal-open');const portal=read();
+        document.body.className=classes;return {storefront,auth,portal};})()`);
+}
 (async () => {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const base = 'http://127.0.0.1:' + server.address().port;
     browser = spawn(chrome, ['--headless=new', '--no-first-run', '--no-default-browser-check', '--disable-background-networking',
-        '--disable-component-update', '--remote-debugging-port=0', '--user-data-dir=' + path.join(evidence, 'chrome-profile'), 'about:blank'],
+        '--disable-component-update', '--remote-debugging-port=0', '--user-data-dir=' + path.join(evidence, 'chrome-profile-' + process.pid), 'about:blank'],
         { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
     const endpoint = await new Promise((resolve, reject) => {
         let output = ''; const timer = setTimeout(() => reject(Error('Chrome startup timeout')), 15000);
@@ -147,7 +160,7 @@ async function cardMetrics() {
     session = (await send('Target.attachToTarget', { targetId: target.targetId, flatten: true }, false)).sessionId;
     await send('Page.enable'); await send('Runtime.enable'); await send('Network.enable');
     await send('Network.setBlockedURLs', { urls: ['https://*'] });
-    // Capture final layout instead of sampling the staggered card entrance/hover transition mid-animation.
+    // Measure layout without motion, then explicitly test ordinary scrolling with motion enabled.
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
     for (const width of [320, 375, 414, 768, 1366]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width < 768 });
@@ -155,10 +168,12 @@ async function cardMetrics() {
         await send('Page.navigate', { url: base + '/?categoryId=1#shop' });
         await until(`document.querySelectorAll('#catalog-grid .product-card').length===4 && document.querySelector('#catalog-grid').dataset.catalogStatus==='ready'`);
         for (const theme of ['light', 'dark']) {
-            await evaluate(`document.documentElement.dataset.theme='${theme}';document.documentElement.style.scrollBehavior='auto';
+            await evaluate(`if(document.documentElement.dataset.theme!=='${theme}')document.querySelector('#theme-toggle').click();document.documentElement.style.scrollBehavior='auto';
                 window.scrollTo({top:scrollY+document.querySelector('#catalog-grid').getBoundingClientRect().top-document.querySelector('.shop-header').getBoundingClientRect().bottom-16,behavior:'instant'})`);
             await new Promise(resolve => setTimeout(resolve, 150));
-            const result = await cardMetrics(); metrics.push({ width, theme, ...result });
+            const result = await cardMetrics();
+            result.surfaces = await surfaceMetrics();
+            metrics.push({ width, theme, ...result });
             await screenshot(`${stage}-${width}-${theme}`);
             if (!before) {
                 assert.ok(result.pageWidth <= width + 1, 'Page overflow at ' + width);
@@ -184,6 +199,14 @@ async function cardMetrics() {
                     }
                 }
                 assert.equal(result.cards[0].buttonText, 'Chọn phiên bản');
+                assert.equal(result.surfaces.storefront.aura, 'none', 'No decorative aura behind the storefront');
+                assert.equal(result.surfaces.storefront.background, theme === 'dark' ? 'rgb(11, 18, 32)' : 'rgb(248, 250, 252)');
+                const surfaceBaselineFile = path.join(evidence, 'before-metrics.json');
+                if (fs.existsSync(surfaceBaselineFile)) {
+                    const baseline = JSON.parse(fs.readFileSync(surfaceBaselineFile)).find(row => row.width === width && row.theme === theme);
+                    assert.deepEqual(result.surfaces.auth, baseline.surfaces.auth, 'Authentication background unchanged');
+                    assert.deepEqual(result.surfaces.portal, baseline.surfaces.portal, 'Admin background unchanged');
+                }
                 for (const card of result.cards.slice(1)) assert.equal(card.buttonText, 'Thêm vào giỏ');
                 const rows = new Map();
                 for (const card of result.cards) { const key = Math.round(card.card.y); if (!rows.has(key)) rows.set(key, []); rows.get(key).push(card); }
@@ -204,14 +227,42 @@ async function cardMetrics() {
             }
         }
         if (!before) {
+            await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
+            await send('Page.navigate', { url: base + '/?categoryId=1#shop' });
+            await until(`document.querySelectorAll('#catalog-grid .product-card').length===4`);
+            for (const theme of ['light', 'dark']) {
+                await evaluate(`if(document.documentElement.dataset.theme!=='${theme}')document.querySelector('#theme-toggle').click()`);
+                for (const position of ['0', 'document.documentElement.scrollHeight', '0']) {
+                    await evaluate(`window.scrollTo({top:${position},behavior:'instant'})`);
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                    const visibility = await evaluate(`[...document.querySelectorAll('.product-card')].map(card=>({
+                        opacity:getComputedStyle(card).opacity,pointerEvents:getComputedStyle(card).pointerEvents,reveal:card.classList.contains('scroll-reveal')}))`);
+                    assert.ok(visibility.length >= 4);
+                    for (const card of visibility) {
+                        assert.equal(card.opacity, '1', 'Loaded cards always visible with normal motion at ' + width);
+                        assert.equal(card.pointerEvents, 'auto', 'Loaded cards remain interactive');
+                        assert.equal(card.reveal, false, 'Cards excluded from the reveal observer');
+                    }
+                }
+            }
+            await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
             const badge = Number(await evaluate(`document.querySelector('#cart-badge').textContent`));
-            await click('#catalog-grid [data-product-link][data-product-id="2"]');
+            await evaluate(`document.querySelector('#catalog-grid [data-product-link][data-product-id="2"]').focus()`);
+            assert.ok(await evaluate(`getComputedStyle(document.activeElement,'::after').outlineStyle!=='none'`), 'Keyboard focus stays visible');
+            assert.equal(await evaluate(`getComputedStyle(document.activeElement.closest('.product-card')).transform`), 'none', 'Reduced motion disables card lift');
+            await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+            await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
             await until(`document.querySelector('#shop-product-detail-body')?.dataset.productId==='2' && !document.querySelector('#shop-product').hidden`);
             assert.ok((await evaluate(`document.querySelector('.shop-product-sku').textContent`)).includes('SHORT-02'));
             await send('Page.navigate', { url: base + '/?categoryId=1#shop' });
             await until(`document.querySelectorAll('#catalog-grid .product-card').length===4`);
             await click('#catalog-grid [data-action="add-cart"][data-id="2"]');
             await until(`Number(document.querySelector('#cart-badge').textContent)===${badge + 1}`);
+            assert.equal(await evaluate(`document.querySelector('#api-notice').hidden`), true, 'Cart success has no duplicate page banner');
+            assert.equal(await evaluate(`document.querySelectorAll('#toasts .toast').length`), 1, 'One cart success toast');
+            assert.ok((await evaluate(`document.querySelector('#toasts .toast').textContent`)).includes(products[1].name));
+            assert.equal(await evaluate(`document.querySelector('#toasts').getAttribute('aria-live')`), 'polite', 'Cart feedback is announced');
+            await screenshot(`cart-feedback-${width}`);
             await click('#catalog-grid [data-action="add-cart"][data-id="1"]');
             await until(`!document.querySelector('#shop-product').hidden && document.querySelector('[data-action="select-product-version"][data-id="12"]')`);
             assert.equal(Number(await evaluate(`document.querySelector('#cart-badge').textContent`)), badge + 1, 'Variant card opens details without adding to cart');
@@ -222,12 +273,35 @@ async function cardMetrics() {
             assert.ok((await evaluate(`document.querySelector('.shop-product-sku').textContent`)).includes('IPHONE-512-BLACK'));
             await click('#shop-product-add-form button[type="submit"]');
             await until(`Number(document.querySelector('#cart-badge').textContent)===${badge + 2}`);
+            assert.equal(await evaluate(`document.querySelector('#api-notice').hidden`), true, 'Variant cart success has no duplicate banner');
             const selected = await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');const item=app.state.cart.get(103);return {version:item.product.version_name,color:item.product.color_name,sku:item.product.sku,price:item.product.unit_price};})()`);
             assert.deepEqual(selected, { version: '512GB', color: 'Đen', sku: 'IPHONE-512-BLACK', price: 49990000 });
             assert.ok(await evaluate(`document.documentElement.scrollWidth<=innerWidth+1`), 'Details no overflow at ' + width);
             await screenshot(`detail-${width}`);
         }
-        console.log(`${before ? 'CAPTURED' : 'PASS'}: ${width}px, light/dark${before ? '' : ', layout + details + version/color + cart'}`);
+        console.log(`${before ? 'CAPTURED' : 'PASS'}: ${width}px, light/dark${before ? '' : ', layout + scroll visibility + keyboard + details + version/color + cart'}`);
+    }
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
+    for (const width of [375, 1366]) {
+        await send('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width < 768 });
+        await evaluate(`sessionStorage.removeItem('stockflow.web.cart.v1')`);
+        await send('Page.navigate', { url: base + '/' });
+        await until(`document.querySelectorAll('#catalog-grid .product-card').length===4 && document.querySelector('a.hero-device')`);
+        await new Promise(resolve => setTimeout(resolve, 750));
+        for (const theme of ['light', 'dark']) {
+            await evaluate(`if(document.documentElement.dataset.theme!=='${theme}')document.querySelector('#theme-toggle').click();window.scrollTo({top:0,behavior:'instant'})`);
+            await new Promise(resolve => setTimeout(resolve, 400));
+            if (!before) {
+                assert.equal(await evaluate(`document.documentElement.dataset.theme`), theme, 'Theme toggle stays applied');
+                assert.equal(await evaluate(`getComputedStyle(document.querySelector('.hero-shop-button')).backgroundColor`), theme === 'dark' ? 'rgb(96, 165, 250)' : 'rgb(37, 99, 235)', 'Hero CTA retains brand blue');
+                assert.equal(await evaluate(`getComputedStyle(document.querySelector('.tech-hero')).backgroundImage`), 'none');
+                assert.equal(await evaluate(`getComputedStyle(document.querySelector('.hero-showcase'),'::before').content`), 'none');
+                assert.ok(await evaluate(`[...document.querySelectorAll('a.hero-device')].every(card=>getComputedStyle(card).animationName==='none')`));
+                assert.equal(await evaluate(`document.querySelectorAll('.hero-atmosphere,.hero-label,#storefront-view .eyebrow,.catalog-demo-note').length`), 0);
+                assert.ok(await evaluate(`document.documentElement.scrollWidth<=innerWidth+1`));
+            }
+            await screenshot(`${stage}-home-${width}-${theme}`);
+        }
     }
     assert.equal(exceptions.length, 0, JSON.stringify(exceptions));
     assert.ok(apiRequests.every(request => request.method === 'GET'), 'No order/inventory/API writes');

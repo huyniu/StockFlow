@@ -163,10 +163,55 @@
 .contact-toggle:focus-visible, .back-to-top:focus-visible, .contact-panel a:focus-visible { outline: 3px solid #0068ff; outline-offset: 3px; }
 body:has(dialog[open]) .contact-widget { display: none; }
 body:not(.portal-open) .toasts { bottom: 106px; }
+.mobile-support-actions, .contact-action-label { display: none; }
+/* The catalog occupies these screens' right gutter: put support in the footer, never over cards. */
+@media (max-width: 1439px) {
+    .mobile-support-actions { display: block; margin-bottom: 24px; }
+    #contact-widget {
+        position: static;
+        inset: auto;
+        z-index: auto;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas: 'contact top' 'panel panel';
+        align-items: stretch;
+        gap: 12px;
+    }
+    #contact-toggle, #back-to-top {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding: 10px 8px;
+        border: 1px solid var(--line);
+        box-shadow: none;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    #contact-toggle { grid-area: contact; background: var(--brand); color: var(--brand-contrast); border-color: var(--brand); }
+    #contact-toggle:hover { background: var(--brand-hover); }
+    #back-to-top { grid-area: top; background: var(--surface-muted); color: var(--text); }
+    #back-to-top:hover { background: var(--brand-soft); }
+    .contact-action-label { display: inline; }
+    #contact-panel {
+        grid-area: panel;
+        position: static;
+        display: none;
+        width: 100%;
+        min-width: 0;
+        background: var(--surface);
+        box-shadow: none;
+        transform: none;
+        transition: none;
+    }
+    #contact-widget.is-open #contact-panel { display: block; transform: none; }
+    #contact-panel::after { content: none; }
+    #contact-panel a:hover { background: var(--surface-muted); transform: none; }
+    #contact-toggle:focus-visible, #back-to-top:focus-visible, #contact-panel a:focus-visible { outline-color: var(--brand); }
+}
+@media (max-width: 360px) {
+    #contact-widget { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'contact' 'top' 'panel'; }
+}
 @media (max-width: 767px) {
-    .contact-widget { right: 14px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
-    .back-to-top { min-height: 48px; }
-    body.mobile-purchase-visible .contact-widget { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
     body.mobile-purchase-visible .toasts { bottom: calc(166px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) {

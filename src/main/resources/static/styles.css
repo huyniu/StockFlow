@@ -6421,23 +6421,6 @@ body.category-menu-open {
     will-change: opacity, translate;
     pointer-events: none;
 }
-/* Thẻ sản phẩm thu/mở nhẹ cả hai chiều; scale riêng giữ nguyên độ nâng và bóng khi rê chuột. */
-.product-card.scroll-reveal {
-    scale: 0.97;
-    transition:
-        opacity 350ms ease var(--reveal-delay, 0ms),
-        translate 400ms cubic-bezier(0.2, 0.65, 0.3, 1) var(--reveal-delay, 0ms),
-        scale 400ms cubic-bezier(0.2, 0.65, 0.3, 1) var(--reveal-delay, 0ms),
-        transform 350ms ease,
-        box-shadow 350ms ease;
-}
-.product-card.scroll-reveal.is-revealed {
-    scale: 1;
-}
-.product-card.scroll-reveal:not(.is-revealed) {
-    /* Thu ngay khi rời mép dưới; chỉ lúc hiện mới dùng độ trễ so le giữa các cột. */
-    transition-delay: 0ms;
-}
 /* Người dùng bàn phím không phải chờ phần tử nhận focus chạy xong hiệu ứng. */
 .scroll-reveal:focus-within {
     opacity: 1;
@@ -7567,10 +7550,55 @@ body.category-menu-open {
 .contact-toggle:focus-visible, .back-to-top:focus-visible, .contact-panel a:focus-visible { outline: 3px solid #0068ff; outline-offset: 3px; }
 body:has(dialog[open]) .contact-widget { display: none; }
 body:not(.portal-open) .toasts { bottom: 106px; }
+.mobile-support-actions, .contact-action-label { display: none; }
+/* The catalog occupies these screens' right gutter: put support in the footer, never over cards. */
+@media (max-width: 1439px) {
+    .mobile-support-actions { display: block; margin-bottom: 24px; }
+    #contact-widget {
+        position: static;
+        inset: auto;
+        z-index: auto;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas: 'contact top' 'panel panel';
+        align-items: stretch;
+        gap: 12px;
+    }
+    #contact-toggle, #back-to-top {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding: 10px 8px;
+        border: 1px solid var(--line);
+        box-shadow: none;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    #contact-toggle { grid-area: contact; background: var(--brand); color: var(--brand-contrast); border-color: var(--brand); }
+    #contact-toggle:hover { background: var(--brand-hover); }
+    #back-to-top { grid-area: top; background: var(--surface-muted); color: var(--text); }
+    #back-to-top:hover { background: var(--brand-soft); }
+    .contact-action-label { display: inline; }
+    #contact-panel {
+        grid-area: panel;
+        position: static;
+        display: none;
+        width: 100%;
+        min-width: 0;
+        background: var(--surface);
+        box-shadow: none;
+        transform: none;
+        transition: none;
+    }
+    #contact-widget.is-open #contact-panel { display: block; transform: none; }
+    #contact-panel::after { content: none; }
+    #contact-panel a:hover { background: var(--surface-muted); transform: none; }
+    #contact-toggle:focus-visible, #back-to-top:focus-visible, #contact-panel a:focus-visible { outline-color: var(--brand); }
+}
+@media (max-width: 360px) {
+    #contact-widget { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'contact' 'top' 'panel'; }
+}
 @media (max-width: 767px) {
-    .contact-widget { right: 14px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
-    .back-to-top { min-height: 48px; }
-    body.mobile-purchase-visible .contact-widget { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
     body.mobile-purchase-visible .toasts { bottom: calc(166px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -7927,4 +7955,91 @@ body.auth-page-open #auth-submit:hover { background: linear-gradient(105deg,#1d4
 }
 @media (max-width: 350px) {
     .shop-header .shop-brand .stockflow-logo { width: 142px; height: 34px; }
+}
+/* Hallmark · macrostructure: existing retail catalog · scope: storefront only
+   Hallmark · pre-emit critique: P4 H4 E4 S5 R5 V3
+   Reuse StockFlow theme tokens; auth artwork and the portal keep their own backgrounds. */
+:root body:not(.portal-open):not(.auth-page-open) {
+    --storefront-motion-duration: 180ms;
+    --storefront-motion-easing: cubic-bezier(0.16, 1, 0.3, 1);
+    background: var(--background);
+}
+:root body:not(.portal-open):not(.auth-page-open) > .aura-bg {
+    display: none;
+}
+
+#storefront-view .shop-discovery > .tech-hero {
+    color: var(--text);
+    background: var(--surface);
+    border-color: var(--line);
+    box-shadow: none;
+}
+#storefront-view .tech-hero .hero-copy h1 {
+    margin-top: 0;
+    color: var(--text);
+}
+#storefront-view .tech-hero .hero-copy h1 em {
+    color: inherit;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+}
+#storefront-view .tech-hero .hero-copy p,
+#storefront-view .tech-hero .hero-details,
+#storefront-view .tech-hero .hero-details > span {
+    color: var(--muted);
+}
+#storefront-view .tech-hero .hero-details > span {
+    font-size: 12px;
+    letter-spacing: normal;
+}
+#storefront-view .hero-showcase::before {
+    content: none;
+}
+#storefront-view .hero-device,
+#storefront-view .hero-device:hover,
+#storefront-view .hero-device:focus-visible {
+    border-color: var(--line);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+#storefront-view a.hero-device {
+    animation: none;
+}
+#storefront-view .tech-hero .hero-shop-button {
+    background: var(--brand);
+    color: var(--brand-contrast);
+    border-color: var(--brand);
+    box-shadow: none;
+}
+#storefront-view .tech-hero .hero-shop-button:hover {
+    background: var(--brand-hover);
+}
+
+/* Loaded cards never participate in entrance/re-entry animations. Also cover old reveal classes. */
+#storefront-view .product-card.scroll-reveal {
+    opacity: 1;
+    translate: none;
+    scale: 1;
+    pointer-events: auto;
+    will-change: auto;
+}
+#storefront-view .product-card {
+    transition: transform var(--storefront-motion-duration) var(--storefront-motion-easing);
+}
+#storefront-view .product-card:hover,
+#storefront-view .product-card:focus-within {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+#storefront-view .product-card:hover .product-card-img,
+#storefront-view .product-card:focus-within .product-card-img {
+    transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    #storefront-view .product-card {
+        transition: none;
+    }
+    #storefront-view .product-card:hover,
+    #storefront-view .product-card:focus-within {
+        transform: none;
+    }
 }

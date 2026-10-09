@@ -163,17 +163,9 @@
                                 hidden
                             ></section>
                         </aside>
-                        <!-- Khu trưng bày lấy ảnh, giá và liên kết từ catalog thật; các lớp sáng chỉ là trang trí CSS. -->
+                        <!-- Khu trưng bày lấy ảnh, giá và liên kết từ catalog thật. -->
                         <section class="shop-hero tech-hero" aria-labelledby="hero-title">
-                            <div class="hero-atmosphere" aria-hidden="true">
-                                <span class="hero-orbit hero-orbit-one"></span>
-                                <span class="hero-orbit hero-orbit-two"></span>
-                                <span class="hero-light-point"></span>
-                            </div>
                             <div class="hero-copy">
-                                <span class="hero-label"
-                                    ><span aria-hidden="true"></span>THẾ GIỚI CÔNG NGHỆ CỦA BẠN</span
-                                >
                                 <h1 id="hero-title">Công nghệ bạn thích.<br /><em>Phong cách của bạn.</em></h1>
                                 <p>
                                     Từ điện thoại đến laptop và phụ kiện. Khám phá, chọn phiên bản và tìm màu sắc dành
@@ -183,7 +175,6 @@
                                     Khám phá sản phẩm <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
                                 </a>
                                 <div class="hero-details">
-                                    <span>CỬA HÀNG CÔNG NGHỆ STOCKFLOW TECH</span>
                                     <span
                                         ><svg class="icon" aria-hidden="true"><use href="#i-warehouse" /></svg>Chọn chi
                                         nhánh. Mua sắm theo cách của bạn.</span
@@ -235,7 +226,6 @@
                     <section class="discovery-section category-discovery" aria-labelledby="category-discovery-title">
                         <div class="discovery-heading">
                             <div>
-                                <span class="eyebrow">CHỌN ĐÚNG THIẾT BỊ</span>
                                 <h2 id="category-discovery-title">Bạn đang tìm gì?</h2>
                             </div>
                             <a href="/#shop/catalog" data-catalog-link
@@ -248,7 +238,6 @@
                     <section class="discovery-section bestseller-section" aria-labelledby="bestseller-title">
                         <div class="discovery-heading">
                             <div>
-                                <span class="eyebrow">TỪ LỰA CHỌN CỦA KHÁCH HÀNG</span>
                                 <h2 id="bestseller-title">Sản phẩm bán chạy</h2>
                                 <p>Xếp theo số lượng từ các đơn đã thanh toán còn hiệu lực.</p>
                             </div>
@@ -266,7 +255,6 @@
                     <!-- Tiêu đề, số kết quả thật và sắp xếp cùng hàng để khách duyệt kệ gọn hơn. -->
                     <div id="product-shelf" class="shelf-heading catalog-shelf-heading">
                         <div class="catalog-heading-copy">
-                            <span class="eyebrow">KHÁM PHÁ CÔNG NGHỆ</span>
                             <div class="catalog-title-line">
                                 <h2 id="catalog-title">Sản phẩm & đặt hàng</h2>
                                 <span id="catalog-count" class="subtle" role="status">—</span>
@@ -504,7 +492,6 @@
                 <section id="shop-orders" class="shop-panel" aria-labelledby="orders-title" hidden>
                     <div class="section-heading">
                         <div>
-                            <span class="eyebrow">HÀNH TRÌNH MUA SẮM</span>
                             <h1 id="orders-title">Đơn hàng của tôi</h1>
                             <p>Theo dõi thanh toán, đóng gói và giao hàng tại một nơi.</p>
                         </div>
@@ -546,7 +533,6 @@
                 <section id="shop-account" class="shop-panel" aria-labelledby="account-title" hidden>
                     <div class="section-heading">
                         <div>
-                            <span class="eyebrow">THÔNG TIN CÁ NHÂN</span>
                             <h1 id="account-title">Tài khoản của tôi</h1>
                             <p>Cập nhật liên hệ để đặt hàng thuận tiện hơn.</p>
                         </div>
@@ -632,7 +618,6 @@
                   <!-- Hướng dẫn là một trang riêng, mô tả đúng MVP và không đưa ra chính sách bảo hành chưa chốt. -->
                 <section id="shop-help" class="shop-panel purchase-help" hidden aria-labelledby="purchase-help-title">
                     <button class="text-button" type="button" data-shop-tab="catalog">← Tiếp tục mua sắm</button>
-                    <span class="eyebrow">MUA SẮM TẠI STOCKFLOW TECH</span>
                     <h1 id="purchase-help-title" tabindex="-1">Hướng dẫn mua hàng</h1>
                     <p class="help-intro">
                         Chọn thiết bị, chọn chi nhánh phục vụ và theo dõi đơn trong cùng một tài khoản.
@@ -719,10 +704,11 @@
                     </section>
                 </section>
                 <section id="recently-viewed" class="recently-viewed" aria-labelledby="recently-viewed-title" hidden>
-                    <div class="recently-viewed-heading"><div><span class="eyebrow">TIẾP TỤC KHÁM PHÁ</span><h2 id="recently-viewed-title">Sản phẩm đã xem</h2></div><button id="clear-recently-viewed" class="text-button" type="button">Xóa lịch sử xem</button></div>
+                    <div class="recently-viewed-heading"><div><h2 id="recently-viewed-title">Sản phẩm đã xem</h2></div><button id="clear-recently-viewed" class="text-button" type="button">Xóa lịch sử xem</button></div>
                     <div id="recently-viewed-products" class="recently-viewed-products"></div>
                 </section>
                 <footer class="shop-footer shop-footer-expanded">
+                    <section id="mobile-support-actions" class="mobile-support-actions" aria-label="Hỗ trợ nhanh"></section>
                     <div class="shop-footer-grid">
                         <div class="footer-about"><a class="footer-brand" href="/" data-shop-tab="home"><span class="stockflow-logo" role="img" aria-label="StockFlow Tech"><img class="brand-logo-light" src="/assets/stockflow-logo-light.svg" width="500" height="110" alt="" loading="lazy" /><img class="brand-logo-dark" src="/assets/stockflow-logo-dark.svg" width="500" height="110" alt="" loading="lazy" /></span></a><p>Điện thoại, laptop và phụ kiện công nghệ. Khám phá sản phẩm, chọn phiên bản phù hợp và đặt hàng từ chi nhánh bạn chọn.</p><a class="footer-hotline" href="tel:0968935896">☎ 0968 935 896</a><span>Liên hệ tư vấn sản phẩm và hỗ trợ đơn hàng</span></div>
                         <nav aria-label="Khám phá cửa hàng"><h3>Khám phá</h3><button type="button" data-shop-tab="home">Trang chủ</button><button type="button" data-shop-tab="catalog">Tất cả sản phẩm</button><button type="button" data-action="my-orders">Đơn hàng của tôi</button><button type="button" data-action="my-account">Thông tin cá nhân</button></nav>
@@ -735,6 +721,7 @@
             <div id="contact-widget" class="contact-widget">
                 <button id="back-to-top" class="back-to-top" type="button" hidden aria-label="Lên đầu trang">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 11 5-5 5 5M7 18l5-5 5 5" /></svg>
+                    <span class="contact-action-label">Lên đầu trang</span>
                 </button>
                 <div id="contact-panel" class="contact-panel" aria-label="Các phương thức liên hệ" aria-hidden="true" inert>
                     <strong>Liên hệ StockFlow</strong>
@@ -754,6 +741,7 @@
                 </div>
                 <button id="contact-toggle" class="contact-toggle" type="button" aria-label="Liên hệ cửa hàng" aria-expanded="false" aria-controls="contact-panel">
                     <svg class="contact-headset" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-3a8 8 0 0 1 16 0v3M4 12H3v6h4v-6H4Zm16 0h1v6h-4v-6h3Zm0 6v1a2 2 0 0 1-2 2h-5m-3-1h3v2h-3Z" /></svg>
+                    <span class="contact-action-label">Liên hệ</span>
                 </button>
             </div>
         </div>

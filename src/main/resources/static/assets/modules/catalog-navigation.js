@@ -362,7 +362,6 @@ function categoryMenuContent(categoryId) {
             <div class="menu-category-feature">
                 <span class="menu-category-symbol" aria-hidden="true">${__stockflowApp.icon(__stockflowApp.shopCategoryIcon(category))}</span>
                 <div>
-                    <span class="eyebrow">KHÁM PHÁ CỬA HÀNG</span>
                     <h2>${__stockflowApp.escapeHtml(category?.name || 'Tất cả sản phẩm')}</h2>
                     <p>Chọn loại sản phẩm, thương hiệu và khoảng giá phù hợp.</p>
                 </div>

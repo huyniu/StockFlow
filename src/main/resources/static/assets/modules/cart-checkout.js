@@ -126,7 +126,7 @@ function addCart(id, quantity = 1) {
         __stockflowApp.saveCart();
         __stockflowApp.renderCart();
         __stockflowApp.bounceCart();
-        __stockflowApp.notify('success', 'Đã thêm ' + product.name + ' vào giỏ hàng.');
+        __stockflowApp.notify('success', 'Đã thêm ' + product.name + ' vào giỏ hàng.', '', '', { banner: false });
     }
 
 function setCartQuantity(id, quantity) {

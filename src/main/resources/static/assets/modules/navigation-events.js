@@ -226,6 +226,26 @@ function initializeContactWidget() {
         const toggle = __stockflowApp.$('#contact-toggle');
         const panel = __stockflowApp.$('#contact-panel');
         const backToTop = __stockflowApp.$('#back-to-top');
+        const supportSlot = __stockflowApp.$('#mobile-support-actions');
+        const desktopParent = widget.parentNode;
+        const desktopNextSibling = widget.nextSibling;
+        // Below 1440px the fixed controls intersect the catalog, including 1366px desktops.
+        const inlineSupport = window.matchMedia('(max-width: 1439px)');
+        function placeSupportActions() {
+            const focused = document.activeElement;
+            const hadFocus = widget.contains(focused);
+            setOpen(false);
+            if (inlineSupport.matches) {
+                supportSlot.append(widget);
+                widget.append(toggle, backToTop, panel);
+            } else {
+                desktopParent.insertBefore(widget, desktopNextSibling);
+                widget.append(backToTop, panel, toggle);
+            }
+            if (hadFocus) (focused.closest('[inert]') ? toggle : focused).focus({ preventScroll: true });
+        }
+        placeSupportActions();
+        inlineSupport.addEventListener('change', placeSupportActions);
         backToTop.hidden = false;
         function updateBackToTop() {
             const visible = window.scrollY >= 300;
@@ -238,6 +258,7 @@ function initializeContactWidget() {
         backToTop.addEventListener('click', () => {
             setOpen(false);
             window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+            if (inlineSupport.matches) __stockflowApp.$('.shop-brand')?.focus({ preventScroll: true });
         });
         function setOpen(open) {
             widget.classList.toggle('is-open', open);
@@ -247,7 +268,7 @@ function initializeContactWidget() {
         }
         toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
         toggle.addEventListener('mouseenter', () => {
-            if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setOpen(true);
+            if (!inlineSupport.matches && window.matchMedia('(hover: hover) and (pointer: fine)').matches) setOpen(true);
         });
         widget.addEventListener('mouseleave', () => {
             if (!widget.contains(document.activeElement)) setOpen(false);
