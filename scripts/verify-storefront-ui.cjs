@@ -10,6 +10,8 @@ const tablet={...product,id:2,sku:'TABLET-01',name:'Máy tính bảng kiểm tra
 const samsungPhone={...product,id:3,sku:'SAMSUNG-01',name:'Điện thoại Samsung kiểm tra hãng',brand_id:2,brand_name:'Samsung'};
 const page=content=>({content,total_elements:content.length,total_pages:1,number:0,size:20,first:true,last:true});
 let resetRequests=0;
+let catalogRequests=0, catalogFailure=false, catalogDelay=0, catalogEmpty=false;
+const catalogQueries=[];
 let savedAddresses=[], returnRequests=[], deliveredVisible=false;
 const variantRequests=[];
 const deliveredOrder={id:1,order_code:'ORDER-TEST-1',customer_id:1,warehouse_id:1,status:'DELIVERED',total_amount:430000,shipping_fee:30000,created_at:new Date().toISOString(),updated_at:new Date().toISOString(),items:[{product_id:1,quantity:2,unit_price:200000,line_total:400000}],delivery_details:{recipient_name:'Khách',recipient_phone:'0901234567',address:'12 Mễ Trì'},shipment:{status:'DELIVERED',tracking_code:'GHN_HAN_1_1234',carrier_mode:'SIMULATED'}};
@@ -65,7 +67,15 @@ function fixture(url,method='GET',body={}) {
 const server=http.createServer(async(req,res)=>{
  const url=new URL(req.url,'http://localhost');
  if(url.pathname==='/api/v1/diagnostics/rejected'){res.writeHead(409,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'CONFLICT',message:'SKU đã tồn tại.'}));return;}
- if(url.pathname.startsWith('/api/')){let text='';for await(const chunk of req)text+=chunk;const body=text?JSON.parse(text):{};res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(fixture(url,req.method,body)));return;}
+ if(url.pathname.startsWith('/api/')){
+  let text='';for await(const chunk of req)text+=chunk;const body=text?JSON.parse(text):{};
+  if(url.pathname==='/api/v1/products' && url.searchParams.get('grouped')==='true'){
+   catalogRequests++;catalogQueries.push(Object.fromEntries(url.searchParams));
+   if(catalogDelay)await new Promise(resolve=>setTimeout(resolve,catalogDelay));
+   if(catalogFailure){res.writeHead(503,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'UNAVAILABLE',message:'Catalog đang tạm thời gián đoạn.'}));return;}
+  }
+  res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(catalogEmpty&&url.pathname==='/api/v1/products'?page([]):fixture(url,req.method,body)));return;
+ }
  const relative=(['/','/login','/register'].includes(url.pathname)||/^\/san-pham\/\d+$/.test(url.pathname))?'/index.html':url.pathname;
  const file=path.resolve(assets,'.'+relative);
  if(!file.startsWith(assets+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}
@@ -75,10 +85,160 @@ const server=http.createServer(async(req,res)=>{
 let browser,socket,id=0,session;const pending=new Map(),exceptions=[];
 function send(method,params={},scoped=true){return new Promise((resolve,reject)=>{const request=++id;const timeout=setTimeout(()=>{pending.delete(request);reject(Error('CDP timeout: '+method));},15000);pending.set(request,{resolve:value=>{clearTimeout(timeout);resolve(value);},reject:error=>{clearTimeout(timeout);reject(error);}});socket.send(JSON.stringify({id:request,method,params,...(scoped&&session?{sessionId:session}:{})}));});}
 async function evaluate(expression){const result=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw Error(JSON.stringify(result.exceptionDetails));return result.result.value;}
-async function until(expression){const end=Date.now()+10000;while(Date.now()<end){if(await evaluate(`document.readyState !== 'loading' && document.body && (${expression})`))return;await new Promise(r=>setTimeout(r,80));}throw Error('UI timeout: '+expression+' '+JSON.stringify(await evaluate(`({ready:document.readyState,text:document.body?.innerText.slice(-500)})`))+' '+JSON.stringify(exceptions));}
+async function until(expression,timeout=10000){const end=Date.now()+timeout;while(Date.now()<end){if(await evaluate(`document.readyState !== 'loading' && document.body && (${expression})`))return;await new Promise(r=>setTimeout(r,80));}throw Error('UI timeout: '+expression+' '+JSON.stringify(await evaluate(`({ready:document.readyState,text:document.body?.innerText.slice(-500)})`))+' '+JSON.stringify(exceptions));}
 async function screenshot(name){const value=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(evidence,name+'.png'),Buffer.from(value.data,'base64'));}
 async function viewport(width,height=850){await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<768});}
 async function noOverflow(label){const dimensions=await evaluate(`({viewport:innerWidth,width:document.documentElement.scrollWidth,body:document.body.scrollWidth})`);assert.ok(dimensions.width<=dimensions.viewport+1,label+' '+JSON.stringify(dimensions));}
+async function verifyShelfRoutes(base){
+ const failures=[];
+ const check=async(label,operation)=>{try{await operation();console.log('PASS: '+label);}catch(error){failures.push(label+': '+error.message);console.error('FAIL: '+label+': '+error.message);}};
+ const navigate=async url=>{
+  const stamp=await evaluate('performance.timeOrigin');
+  const current=new URL(await evaluate('location.href')),next=new URL(url);
+  if(current.href===next.href)await send('Page.reload',{ignoreCache:true});else{
+   // A fragment-only Page.navigate is an SPA event, not a cold entry/new tab.
+   if(current.origin===next.origin && current.pathname===next.pathname && current.search===next.search)
+    await send('Page.navigate',{url:'about:blank'});
+   await send('Page.navigate',{url});
+  }
+  await until(`performance.timeOrigin!==${stamp} && document.querySelector('#catalog-category option[value="1"]')`);
+ };
+ const ready=async()=>{
+  for(let i=0;i<30;i++){if(await evaluate(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready'`))return;await new Promise(resolve=>setTimeout(resolve,80));}
+  throw Error('Catalog chưa tải: '+JSON.stringify(await evaluate(`({url:location.href,status:document.querySelector('#catalog-grid')?.dataset.catalogStatus,cards:document.querySelectorAll('#catalog-grid .product-card').length})`)));
+ };
+ const shelfVisible=()=>until(`(()=>{const shelf=document.querySelector('#product-shelf').getBoundingClientRect();const header=document.querySelector('.shop-header').getBoundingClientRect();return shelf.top>=header.bottom && shelf.top<innerHeight-100;})()`);
+ const reload=async()=>{const stamp=await evaluate('performance.timeOrigin');await send('Page.reload',{ignoreCache:true});await until(`performance.timeOrigin!==${stamp} && document.querySelector('#catalog-category option[value="1"]')`);};
+ for(const width of [375,1366]){
+  await viewport(width);await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+  await check('mở trực tiếp #product-shelf '+width,async()=>{
+   const requests=catalogRequests;await navigate(base+'/#product-shelf');await ready();await shelfVisible();
+   assert.equal(catalogRequests-requests,1);assert.equal(await evaluate('location.hash'),'#product-shelf');
+   await screenshot('shelf-direct-'+width);
+  });
+  await check('Khám phá sản phẩm rồi F5 '+width,async()=>{
+   await navigate(base+'/');await ready();const requests=catalogRequests;
+   await evaluate(`document.querySelector('.hero-shop-button').click()`);await until(`location.hash==='#product-shelf'`);
+   await shelfVisible();assert.equal(catalogRequests,requests,'Anchor không tải catalog dư thừa');
+   await reload();await ready();await shelfVisible();assert.equal(catalogRequests,requests+1);
+   assert.equal(await evaluate('location.hash'),'#product-shelf');
+  });
+ }
+ if(failures.length)throw Error('Hồi quy #product-shelf: '+failures.join('\n'));
+ for(const width of [375,1366]){
+  await viewport(width);
+  await navigate(base+'/?categoryId=1&brandId=1&q=S%E1%BA%A3n+ph%E1%BA%A9m&minPrice=100000&maxPrice=300000&sort=unitPrice%2Casc#product-shelf');await ready();await shelfVisible();
+  const filters=await evaluate('location.search');const query=catalogQueries.at(-1);
+  assert.equal(query.categoryId,'1');assert.equal(query.brandId,'1');assert.equal(query.q,'Sản phẩm');assert.equal(query.minPrice,'100000');assert.equal(query.maxPrice,'300000');assert.equal(query.sort,'unitPrice,asc');
+  const before=await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');return app.state.cart.get(1)?.quantity||0;})()`);
+  await evaluate(`document.querySelector('#catalog-grid [data-action="add-cart"][data-id="1"]').click()`);
+  await until(`(async()=>{const {app}=await import('/assets/modules/context.js');return app.state.cart.get(1)?.quantity===${before+1};})()`);
+  await evaluate(`document.querySelector('#catalog-grid [data-product-link][data-product-id="1"]').click()`);
+  await until(`location.pathname==='/san-pham/1' && document.querySelector('#shop-product-detail-body').dataset.productId==='1'`);
+  await evaluate('history.back()');await until(`location.hash==='#product-shelf' && location.pathname==='/'`);await ready();await shelfVisible();assert.equal(await evaluate('location.search'),filters);
+  await evaluate('history.forward()');await until(`location.pathname==='/san-pham/1' && document.querySelector('#shop-product-detail-body').dataset.productId==='1'`);
+  await evaluate('history.back()');await until(`location.hash==='#product-shelf'`);await ready();
+  await reload();await ready();await shelfVisible();assert.equal(await evaluate('location.search'),filters);
+  assert.equal(await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');return app.state.cart.get(1)?.quantity;})()`),before+1);
+  console.log('PASS: shelf URL filters + Back/Forward + chi tiết + thêm giỏ/F5 '+width);
+ }
+ await viewport(375);catalogDelay=600;
+ await navigate(base+'/');await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='loading'`);
+ const requests=catalogRequests;await evaluate(`document.querySelector('.hero-shop-button').click()`);await ready();await shelfVisible();
+ assert.equal(catalogRequests,requests,'Dùng lại request catalog đang chạy');catalogDelay=0;
+ catalogFailure=true;await navigate(base+'/#product-shelf');await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='error'`);
+ assert.equal(await evaluate(`document.querySelectorAll('#catalog-grid .product-skeleton').length`),0);
+ assert.ok(await evaluate(`document.querySelector('#catalog-grid [data-action="retry-catalog"]')!==null`),'Có nút thử lại');
+ catalogFailure=false;await evaluate(`document.querySelector('#catalog-grid [data-action="retry-catalog"]').click()`);await ready();await shelfVisible();
+ assert.equal(await evaluate('location.hash'),'#product-shelf');console.log('PASS: shelf request đang chạy + API 503/thử lại');
+ catalogDelay=20000;await navigate(base+'/#product-shelf');
+ await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='error'`,19000);
+ assert.equal(await evaluate(`document.querySelectorAll('#catalog-grid .product-skeleton').length`),0);
+ await until(`document.querySelector('#toasts').textContent.includes('quá lâu')`);
+ catalogDelay=0;await evaluate(`document.querySelector('#catalog-grid [data-action="retry-catalog"]').click()`);await ready();await shelfVisible();
+ catalogEmpty=true;await navigate(base+'/#product-shelf');await ready();await shelfVisible();
+ assert.equal(await evaluate(`document.querySelectorAll('#catalog-grid .product-card').length`),0);
+ const emptyRequests=catalogRequests;await evaluate(`document.querySelector('.hero-shop-button').click()`);
+ await new Promise(resolve=>setTimeout(resolve,150));assert.equal(catalogRequests,emptyRequests,'Kết quả rỗng cũng là catalog đã tải');catalogEmpty=false;
+ console.log('PASS: shelf timeout/thử lại + kết quả rỗng');
+ // The shelf branch must leave VNPay callback routing and authentication intact.
+ await evaluate(`sessionStorage.setItem('stockflow.web.session',JSON.stringify({token:'layout-token'}))`);
+ for(const width of [375,1366]){
+  await viewport(width);
+  for(const status of ['success','failed']){
+   await navigate(base+'/#orders?payment_status='+status+'&order_id=1');
+   await until(`location.hash==='#shop/orders' && document.querySelector('#toasts').textContent.includes('${status==='success'?'Thanh toán qua VNPay thành công!':'Thanh toán VNPay chưa thành công.'}')`);
+   assert.equal(await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');return app.state.order.id;})()`),1);
+  }
+  console.log('PASS: VNPay success/failed return route '+width);
+ }
+ await evaluate(`sessionStorage.removeItem('stockflow.web.session')`);
+ await navigate(base+'/');await ready();
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+}
+async function verifyScrolledCategoryMenu(base){
+ const failures=[];
+ await send('Page.navigate',{url:base+'/#shop'});
+ await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready'`);
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+ const close=()=>evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');app.setShopCategoryMenu(false);app.closeHomeCategoryMenu();})()`);
+ for(const width of [320,375,414,768,1050,1366,1920])for(const theme of ['light','dark']){
+  const label='danh mục sau cuộn '+width+' '+theme;
+  try{
+   await viewport(width,width>=1000?600:850);await close();
+   await evaluate(`document.documentElement.dataset.theme='${theme}';window.scrollTo({top:document.documentElement.scrollHeight-innerHeight-80,behavior:'instant'})`);
+   await until(`scrollY>200`);
+   const before=await evaluate(`({scroll:scrollY,url:location.href,category:document.querySelector('#catalog-category').value})`);
+   await evaluate(`document.querySelector('#category-menu-toggle').click()`);
+   await until(`document.querySelector('#category-menu-toggle').getAttribute('aria-expanded')==='true'`);
+   const metrics=await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');const panel=document.querySelector(app.state.categoryMenuInline?'#home-categories':'#category-menu-panel');const r=panel.getBoundingClientRect();return {inline:app.state.categoryMenuInline,top:r.top,bottom:r.bottom,left:r.left,right:r.right,header:document.querySelector('.shop-header').getBoundingClientRect().bottom,viewport:innerHeight,scroll:scrollY};})()`);
+   assert.equal(metrics.inline,false,'Không dùng ô cạnh banner đã cuộn khỏi màn hình');
+   assert.ok(metrics.top>=metrics.header,'Menu phải dưới header: '+JSON.stringify(metrics));
+   assert.ok(metrics.bottom<=metrics.viewport-8,'Menu phải nằm trong màn hình: '+JSON.stringify(metrics));
+   assert.ok(metrics.left>=0 && metrics.right<=width,'Menu không tràn ngang');
+   assert.equal(metrics.scroll,before.scroll,'Không kéo người dùng lên đầu trang');
+   assert.equal(await evaluate(`(()=>{const button=document.querySelector('#category-menu-list [data-menu-category="1"]');const r=button.getBoundingClientRect();return button.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));})()`),true,'Danh mục nhận được thao tác');
+   await screenshot('category-scroll-'+width+'-'+theme+'-passed');
+   await evaluate(`document.querySelector('#category-menu-list [data-menu-category="1"]').click()`);
+   await until(`document.querySelector('#category-menu-detail h2')?.textContent==='Điện thoại'`);
+   assert.deepEqual(await evaluate(`({scroll:scrollY,url:location.href,category:document.querySelector('#catalog-category').value})`),before,'Chỉ xem trước, chưa đổi trang/bộ lọc');
+   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+   await until(`document.querySelector('#category-menu-toggle').getAttribute('aria-expanded')==='false'`);
+   assert.equal(await evaluate(`document.activeElement.id`),'category-menu-toggle');
+   assert.equal(await evaluate(`document.querySelector('.shop-main').inert`),false);
+   await evaluate(`document.querySelector('#category-menu-toggle').click();document.querySelector('#category-menu-backdrop').click()`);
+   assert.equal(await evaluate(`document.body.classList.contains('category-menu-open')`),false);
+   console.log('PASS: '+label+' + preview/Escape/backdrop');
+  }catch(error){await screenshot('category-scroll-'+width+'-'+theme+'-failed');failures.push(label+': '+error.message);console.error('FAIL: '+label+': '+error.message);}
+  finally{await close();}
+ }
+ if(failures.length)throw Error('Hồi quy danh mục sau cuộn: '+failures.join('\n'));
+ // At the banner, keep the existing inline desktop menu; a resize releases the overlay.
+ await viewport(1366,850);await evaluate(`window.scrollTo({top:0,behavior:'instant'})`);
+ await evaluate(`document.querySelector('#category-menu-toggle').click()`);
+ assert.equal(await evaluate(`document.body.classList.contains('category-menu-inline')`),true);
+ await viewport(375);await until(`!document.body.classList.contains('category-menu-open')`);
+ assert.equal(await evaluate(`document.querySelector('.shop-main').inert`),false);
+ // A partially hidden banner also needs the header panel; keyboard focus must not scroll the page.
+ await viewport(1366,420);await evaluate(`window.scrollTo({top:0,behavior:'instant'})`);
+ await evaluate(`window.scrollBy({top:document.querySelector('#home-categories').getBoundingClientRect().top-document.querySelector('.shop-header').getBoundingClientRect().bottom+40,behavior:'instant'})`);
+ const position=await evaluate('scrollY');
+ await evaluate(`document.querySelector('#category-menu-toggle').focus({preventScroll:true})`);
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40});
+ await until(`!document.querySelector('#category-menu-panel').hidden && document.querySelector('#category-menu-panel').contains(document.activeElement)`);
+ assert.equal(await evaluate('scrollY'),position);
+ await evaluate(`document.querySelector('#category-menu-list [data-menu-category="1"]').click()`);
+ const point=await evaluate(`(()=>{const r=document.querySelector('#category-menu-detail').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+ await send('Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:0,deltaY:500});
+ await until(`document.querySelector('#category-menu-detail').scrollTop>0`);
+ assert.equal(await evaluate('scrollY'),position,'Con lăn chỉ cuộn trong menu');
+ await evaluate(`document.querySelector('#category-menu-detail [data-action="browse-brand"][data-brand-id="1"]').click()`);
+ await until(`new URLSearchParams(location.search).get('brandId')==='1' && document.querySelector('#catalog-grid').dataset.catalogStatus==='ready'`);
+ assert.equal(await evaluate(`document.querySelector('#catalog-category').value`),'1');
+ assert.equal(await evaluate(`document.body.classList.contains('category-menu-open')`),false);
+ console.log('PASS: banner che một phần + ArrowDown + con lăn trong menu + chọn hãng');
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+}
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
  browser=spawn(chrome,['--headless=new','--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-component-update','--remote-debugging-port=0','--user-data-dir='+path.join(evidence,'chrome-profile'),'about:blank'],{windowsHide:true,stdio:['ignore','ignore','pipe']});
@@ -87,7 +247,11 @@ async function noOverflow(label){const dimensions=await evaluate(`({viewport:inn
  socket.addEventListener('message',event=>{const value=JSON.parse(event.data);if(value.id){const handlers=pending.get(value.id);pending.delete(value.id);if(value.error)handlers?.reject(Error(value.error.message));else handlers?.resolve(value.result);}if(value.method==='Runtime.exceptionThrown')exceptions.push(value.params.exceptionDetails);if(value.method==='Runtime.consoleAPICalled'&&value.params.type==='error')console.error('Browser:',value.params.args.map(arg=>arg.description||arg.value).join(' '));});
  const target=await send('Target.createTarget',{url:'about:blank'},false);session=(await send('Target.attachToTarget',{targetId:target.targetId,flatten:true},false)).sessionId;
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBlockedURLs',{urls:['https://*']});
- console.log('Browser connected');for(const width of [320,375,768,1366]) {
+ console.log('Browser connected');
+ if(process.argv.includes('--category-menu-only')){await verifyScrolledCategoryMenu(base);return;}
+ await verifyShelfRoutes(base);if(process.argv.includes('--shelf-only'))return;
+ await verifyScrolledCategoryMenu(base);
+ for(const width of [320,375,768,1366]) {
   await viewport(width);await send('Page.navigate',{url:base+'/login'});await until(`document.body.classList.contains('auth-page-open') && document.querySelector('#auth-dialog').open`);console.log('Login viewport '+width);
   for(const theme of ['light','dark']) {
    await evaluate(`document.documentElement.dataset.theme='${theme}'`);await noOverflow('Login '+width+' '+theme);

@@ -568,16 +568,17 @@ body.category-menu-open {
 .category-menu-panel {
     /* Menu has its own text color instead of inheriting white from the blue header. */
     color: var(--text);
-    position: absolute;
+    position: fixed;
     z-index: 85;
-    top: calc(100% - 8px);
+    --category-menu-top: calc(var(--demo-height) + var(--shop-header-height, 80px) + 8px);
+    top: var(--category-menu-top);
     left: max(24px, calc((100vw - 1280px) / 2));
     width: min(1200px, calc(100vw - 48px));
     display: grid;
     grid-template-columns: 260px minmax(0, 1fr);
     /* Keep the frame stable when switching between short and long categories. */
-    height: min(680px, calc(100dvh - var(--demo-height) - 130px));
-    max-height: calc(100dvh - var(--demo-height) - 130px);
+    height: min(680px, calc(100dvh - var(--category-menu-top) - 16px));
+    max-height: calc(100dvh - var(--category-menu-top) - 16px);
     border: 1px solid #e0e3e8;
     border-radius: 18px;
     background: #fff;
@@ -621,6 +622,21 @@ body.category-menu-open {
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 3px;
+}
+/* Màn hình thấp vẫn thấy nút đóng và cuộn được danh mục trong phần còn lại. */
+@media (min-width: 761px) {
+    .category-menu-rail {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    .category-menu-heading {
+        flex-shrink: 0;
+    }
+    .category-menu-list {
+        flex: 1;
+        min-height: 0;
+    }
 }
 .category-menu-item {
     display: flex;

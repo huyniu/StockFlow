@@ -130,3 +130,40 @@ V28 lưu tối đa 20 địa chỉ/tài khoản, đồng bộ địa chỉ mặc
 V29 lưu email xác nhận/đang giao/đã giao trong outbox cùng transaction đơn hàng. Dispatcher gửi SMTP mỗi 10 giây, thử tối đa 5 lần, cách lần lỗi 5 phút. Cần `MAIL_USERNAME`, `MAIL_PASSWORD`; có thể tắt bằng `app.mail.order-notifications-enabled=false`. Không gửi thông báo ngược cho đơn cũ. Nếu tiến trình dừng sau gửi SMTP nhưng trước ghi `sent_at`, retry có thể gửi trùng (at-least-once).
 
 V30 lưu yêu cầu đổi/trả toàn bộ đơn đã giao, lý do và tối đa 5 ảnh PNG/JPEG × 2 MB. Ảnh được xử lý lại, chỉ chủ yêu cầu hoặc MANAGER/ADMIN đọc được. Duyệt chưa hoàn kho; xác nhận đã nhận lại hàng mới ghi `RETURN_RESTOCK` qua fulfillment hiện có. Gửi sản phẩm thay thế và hoàn tiền thực tế qua ngân hàng/VNPay cần cửa hàng xử lý riêng.
+
+## Mở trực tiếp và tải lại kệ sản phẩm
+
+`navigation-events.js:routeFromLocation()` không được bỏ qua tải catalog chỉ vì `state.view/shopTab` mặc định là `shop/catalog`. Khi khởi động, `initialize()` đã tạo skeleton nhưng chưa tải sản phẩm. Nhánh cũ return ngay với `#product-shelf` khiến không có GET catalog sau khi mở URL trực tiếp hoặc F5.
+
+Nhánh mới chỉ dùng lại kệ khi `#catalog-grid.dataset.catalogStatus` là `ready` và bộ lọc trong URL khớp trạng thái hiện tại. Trường hợp khác phục hồi bộ lọc, kích hoạt catalog, giữ nguyên `#product-shelf`, rồi gọi `scrollToCatalogResults()` sau khi tải xong. Hàm cuộn hiện có đặt focus vào tiêu đề và dùng khoảng cách header cố định trong CSS; không thay bố cục thẻ, nền, nút liên hệ hoặc bộ lọc thương hiệu.
+
+`product-detail.js:loadCatalog()` dùng lại promise đang chạy cho cùng phiên/bộ lọc/trang thay vì hủy rồi tải lại khi khách bấm liên kết kệ. GET catalog có thời hạn 15 giây; lỗi HTTP, mạng hoặc hết thời hạn dừng skeleton và hiện **Thử lại**. Handler `retry-catalog` tải lại và đưa khách về kệ. Kết quả rỗng vẫn được coi là đã tải xong.
+
+Kiểm thử hồi quy trong `scripts/verify-storefront-ui.cjs:verifyShelfRoutes()` chạy trước các luồng cũ:
+
+```powershell
+node scripts/verify-storefront-ui.cjs --shelf-only
+node scripts/verify-storefront-ui.cjs
+node scripts/verify-product-cards.cjs
+node scripts/build-storefront.cjs
+node scripts/build-storefront.cjs --check
+.\mvnw.cmd "-Dmaven.repo.local=C:/Users/Admin/.m2/repository" test
+```
+
+Kiểm chứng ngày 09/10/2026: trước sửa, bốn trường hợp mở trực tiếp/F5 sau bấm “Khám phá sản phẩm” tại 375/1366 px đều FAIL vì không có thẻ catalog (`target/product-shelf-before.log`). Sau sửa, bộ Chrome đầy đủ PASS: bốn trường hợp trên; giữ bộ lọc, Back/Forward, chi tiết, thêm giỏ và F5 giữ giỏ; không GET dư khi kệ sẵn sàng/đang tải; lỗi 503 và timeout/thử lại; kết quả rỗng; callback VNPay success/failed tại 375/1366 px. Log cuối: `target/product-shelf-ui-tests.log`; ảnh kệ mẫu: `target/ui-verification/shelf-direct-375.png` và `shelf-direct-1366.png`.
+
+Bộ thẻ Chrome tại 320/375/414/768/1366 px sáng/tối, cuộn, bàn phím, phiên bản/màu/thêm giỏ PASS (`target/product-shelf-card-tests.log`). Đây là trình duyệt headless với API giả lập tách biệt, chưa kiểm tra trên điện thoại thật hoặc trình duyệt Render sau deploy. CSS đã build lại và `--check` PASS; bundle không có thay đổi nội dung. Maven **793/793 PASS, 0 failures/errors/skipped** (`target/product-shelf-maven-tests.log`); không sửa Java/API/nghiệp vụ.
+
+Mô tả là dữ liệu database riêng cho từng môi trường. Nội dung đã rà soát, bản thay thế và phạm vi cập nhật local/Render được ghi tại [product-description-review.md](product-description-review.md). Deploy bản sửa định tuyến không tự cập nhật các mô tả này.
+
+## Danh mục khi đã cuộn khỏi banner
+
+`catalog-navigation.js:canUseHomeCategoryMenu()` kiểm tra vị trí thật của ô danh mục cạnh banner: mép trên phải nằm dưới header và còn đủ chỗ hiển thị. Ở đầu catalog trên desktop, giữ menu cạnh banner như trước. Nếu banner đã cuộn khỏi màn hình hoặc bị header che một phần, `setShopCategoryMenu()` dùng `#category-menu-panel` trong header, giữ nguyên vị trí cuộn và URL khi khách chỉ xem trước danh mục.
+
+CSS nguồn `frontend/css/product-interactions.css` đặt panel theo viewport, ngay dưới thanh demo/header, giới hạn chiều cao theo màn hình và cho từng cột cuộn riêng. Cột danh mục trên desktop giữ nút đóng trong tầm nhìn kể cả cửa sổ thấp. `frontend/css/compact-header.css` dùng cùng tọa độ cho tablet; giữ bố cục mobile hiện có. Fragment `storefront.html` chỉ cập nhật chú thích về hai cách mở, không đổi cấu trúc HTML.
+
+Kiểm tra riêng: `node scripts/verify-storefront-ui.cjs --category-menu-only`. Kiểm thử đo khung menu, hit-test nút, giữ scroll/URL/bộ lọc khi xem trước, Escape/focus, bấm nền để đóng, ô cạnh banner ở đầu trang, resize, bàn phím ArrowDown, con lăn trong menu và chọn hãng. Chrome dùng dữ liệu giả lập, không thay đổi database.
+
+Kiểm chứng 10/10/2026: trước sửa, cả sáng/tối ở 1050/1366/1920 px đều mở ô cạnh banner đã nằm ngoài màn hình (`target/category-scroll-before.log`). Sau sửa, 320/375/414/768/1050/1366/1920 px sáng/tối PASS; các cửa sổ desktop cao 600 px và trường hợp banner che một phần cao 420 px đều dùng được menu. Ảnh trước lỗi/sau sửa lưu tại `target/ui-verification/category-scroll-*-failed.png` và `category-scroll-*-passed.png`; ảnh dùng sản phẩm mẫu. CSS build/`--check`, `git diff --check` và Maven `FrontendBundleConsistencyTest` (1 test) PASS. Không sửa backend, dữ liệu sản phẩm hoặc nghiệp vụ mua hàng trong bản sửa danh mục này.
+
+Bộ Chrome đầy đủ cũng PASS: hồi quy `#product-shelf`, Back/Forward/giỏ, callback VNPay, đăng nhập, danh mục từ chi tiết/hồ sơ, gallery, checkout/GHN, sổ địa chỉ và đổi trả (`target/category-scroll-ui-tests.log`). Không chạy lại toàn bộ Maven trong lượt sửa giao diện danh mục; kết quả 793/793 ở mục trước là lần chạy cho bản sửa kệ.

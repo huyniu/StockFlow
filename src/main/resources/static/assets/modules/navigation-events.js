@@ -194,7 +194,33 @@ async function routeFromLocation() {
             return;
         }
         const hash = window.location.hash.slice(1).split('/');
-        if (hash[0] === 'product-shelf' && __stockflowApp.state.view === 'shop' && __stockflowApp.state.shopTab === 'catalog') return;
+        if (hash[0] === 'product-shelf') {
+            const queryKey = (url) => {
+                const query = new URL(url, window.location.origin).searchParams;
+                query.sort();
+                return query.toString();
+            };
+            const grid = __stockflowApp.$('#catalog-grid');
+            // View/tab mặc định không chứng minh catalog đã tải, hoặc khớp bộ lọc trong URL.
+            if (__stockflowApp.state.view === 'shop' && __stockflowApp.state.shopTab === 'catalog' &&
+                grid.dataset.catalogStatus === 'ready' &&
+                queryKey(__stockflowApp.currentPagePath()) === queryKey(window.location.href)) {
+                __stockflowApp.routedLocation = window.location.href;
+                __stockflowApp.scrollToCatalogResults();
+                return;
+            }
+            __stockflowApp.restoreCatalogLocation();
+            const location = window.location.href;
+            try {
+                await __stockflowApp.activateView('shop', 'catalog', { navigation: 'none' });
+            } finally {
+                if (window.location.href === location && __stockflowApp.state.view === 'shop' &&
+                    __stockflowApp.state.shopTab === 'catalog' && grid.dataset.catalogStatus !== 'loading') {
+                    __stockflowApp.scrollToCatalogResults();
+                }
+            }
+            return;
+        }
         if (hash[0] === 'portal' && __stockflowApp.isOperator()) {
             await __stockflowApp.activateView('portal', hash[1] === 'orders' ? 'queue' : hash[1] || 'queue', {
                 navigation: 'replace',
@@ -671,6 +697,10 @@ document.addEventListener('click', (event) => {
         // Đọc catalog có cơ chế hủy request cũ; giữ nút hãng có focus và cho phép đổi lựa chọn ngay.
         else if (action === 'quick-brand') __stockflowApp.execute(() => __stockflowApp.applyCatalogBrand(button.dataset.brandChip));
         else if (action === 'refresh-bestsellers') __stockflowApp.execute(() => __stockflowApp.busy(button, __stockflowApp.loadBestsellers));
+        else if (action === 'retry-catalog') __stockflowApp.execute(() => __stockflowApp.busy(button, async () => {
+            await __stockflowApp.loadCatalog();
+            if (__stockflowApp.state.view === 'shop' && __stockflowApp.state.shopTab === 'catalog') __stockflowApp.scrollToCatalogResults();
+        }));
         else if (action === 'queue-status')
             __stockflowApp.execute(() => __stockflowApp.busy(button, () => __stockflowApp.applyQueueStatus(button.dataset.queueStatus)));
         else if (action === 'sticky-add-cart') {

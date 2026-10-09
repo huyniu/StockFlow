@@ -4844,16 +4844,17 @@ body.category-menu-open {
 .category-menu-panel {
     /* Menu has its own text color instead of inheriting white from the blue header. */
     color: var(--text);
-    position: absolute;
+    position: fixed;
     z-index: 85;
-    top: calc(100% - 8px);
+    --category-menu-top: calc(var(--demo-height) + var(--shop-header-height, 80px) + 8px);
+    top: var(--category-menu-top);
     left: max(24px, calc((100vw - 1280px) / 2));
     width: min(1200px, calc(100vw - 48px));
     display: grid;
     grid-template-columns: 260px minmax(0, 1fr);
     /* Keep the frame stable when switching between short and long categories. */
-    height: min(680px, calc(100dvh - var(--demo-height) - 130px));
-    max-height: calc(100dvh - var(--demo-height) - 130px);
+    height: min(680px, calc(100dvh - var(--category-menu-top) - 16px));
+    max-height: calc(100dvh - var(--category-menu-top) - 16px);
     border: 1px solid #e0e3e8;
     border-radius: 18px;
     background: #fff;
@@ -4897,6 +4898,21 @@ body.category-menu-open {
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 3px;
+}
+/* Màn hình thấp vẫn thấy nút đóng và cuộn được danh mục trong phần còn lại. */
+@media (min-width: 761px) {
+    .category-menu-rail {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    .category-menu-heading {
+        flex-shrink: 0;
+    }
+    .category-menu-list {
+        flex: 1;
+        min-height: 0;
+    }
 }
 .category-menu-item {
     display: flex;
@@ -7909,7 +7925,7 @@ body.auth-page-open #auth-submit:hover { background: linear-gradient(105deg,#1d4
     .shop-header .shop-header-search-row .branch-picker { grid-column: 3; grid-row: 1; order: 0; display: block; min-width: 0; margin: 0; }
     .shop-header .branch-picker-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .shop-header .shop-header-search-row .branch-picker select { width: 100%; max-width: none; min-width: 0; height: 44px; margin: 0; padding: 6px 4px; font-size: 12px; border: 1px solid rgb(255 255 255 / 28%); border-radius: 9px; background: rgb(255 255 255 / 12%); }
-    .shop-header .category-menu-panel { top: calc(100% + 6px); }
+    .shop-header .category-menu-panel { top: var(--category-menu-top); }
 }
 @media (max-width: 760px) {
     :root { --demo-height: 36px; }

@@ -483,7 +483,12 @@ function renderMenuBrands(category, compact = false) {
     }
 
 function canUseHomeCategoryMenu() {
-        return __stockflowApp.homeCategoryDesktop.matches && __stockflowApp.state.view === 'shop' && __stockflowApp.state.shopTab === 'catalog';
+        if (!__stockflowApp.homeCategoryDesktop.matches || __stockflowApp.state.view !== 'shop' ||
+            __stockflowApp.state.shopTab !== 'catalog') return false;
+        const sidebar = __stockflowApp.$('#home-categories').getBoundingClientRect();
+        const header = __stockflowApp.$('.shop-header').getBoundingClientRect();
+        // Khi cuộn khỏi banner, dùng panel dưới header thay vì mở một menu ngoài màn hình.
+        return sidebar.top >= header.bottom && sidebar.top + Math.min(180, sidebar.height) <= window.innerHeight - 16;
     }
 
 function isShopCategoryTarget(target) {

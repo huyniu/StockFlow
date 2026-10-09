@@ -491,7 +491,25 @@ function renderCatalogLoading() {
             ).join('') + '<span class="sr-only" role="status">Đang tải sản phẩm…</span>';
     }
 
-async function loadCatalog() {
+let catalogRequest;
+
+function loadCatalog() {
+        const key = JSON.stringify([__stockflowApp.state.epoch, __stockflowApp.state.pages.catalog,
+            __stockflowApp.state.catalogSort, __stockflowApp.$('#catalog-category').value,
+            __stockflowApp.state.catalogBrandId, __stockflowApp.$('#catalog-query').value.trim(),
+            __stockflowApp.state.catalogMinPrice, __stockflowApp.state.catalogMaxPrice,
+            __stockflowApp.state.catalogSpecName, __stockflowApp.state.catalogSpecValue]);
+        if (catalogRequest?.key === key) return catalogRequest.promise;
+        const request = { key };
+        catalogRequest = request;
+        request.promise = loadCatalogPage().finally(() => {
+            if (catalogRequest === request) catalogRequest = null;
+        });
+        return request.promise;
+    }
+
+async function loadCatalogPage() {
+        let timeout, timedOut = false;
         __stockflowApp.$('#catalog-grid').dataset.catalogStatus = 'loading';
         __stockflowApp.renderCatalogLoading();
         __stockflowApp.$('#catalog-pagination').replaceChildren();
@@ -500,7 +518,7 @@ async function loadCatalog() {
         __stockflowApp.renderCatalogActiveFilters();
         __stockflowApp.syncQuickPriceChips();
         try {
-            const result = await __stockflowApp.api('/products', {
+            const response = __stockflowApp.api('/products', {
                 anonymous: true,
                 channel: 'catalog',
                 query: {
@@ -518,6 +536,9 @@ async function loadCatalog() {
                     specificationValue: __stockflowApp.state.catalogSpecValue,
                 },
             });
+            const controller = __stockflowApp.channels.get('catalog');
+            timeout = window.setTimeout(() => { timedOut = true; controller?.abort(); }, __stockflowApp.READ_TIMEOUT_MS);
+            const result = await response;
             result.content.forEach((product) => __stockflowApp.state.products.set(product.id, product));
             __stockflowApp.renderProducts(result.content);
             __stockflowApp.renderHeroShowcase(result.content);
@@ -526,16 +547,22 @@ async function loadCatalog() {
                 'Hiển thị ' + __stockflowApp.integer(result.content.length) + ' / ' + __stockflowApp.integer(result.total_elements) + ' sản phẩm';
             __stockflowApp.renderPager('catalog', result);
             __stockflowApp.renderCart();
-            if (__stockflowApp.state.view === 'shop' && __stockflowApp.state.shopTab === 'catalog') __stockflowApp.replaceHash();
+            if (__stockflowApp.state.view === 'shop' && __stockflowApp.state.shopTab === 'catalog' &&
+                window.location.hash !== '#product-shelf') __stockflowApp.replaceHash();
         } catch (error) {
+            if (timedOut) error = new __stockflowApp.ApiError(0, 'TIMEOUT',
+                { message: 'Tải sản phẩm quá lâu. Vui lòng thử lại.' }, '/api/v1/products');
             if (error.name !== 'AbortError') {
                 __stockflowApp.$('#catalog-grid').dataset.catalogStatus = 'error';
                 __stockflowApp.renderHeroShowcase([], { failed: true });
                 __stockflowApp.$('#catalog-grid').innerHTML =
-                    '<div class="grid-message">Chưa tải được sản phẩm. Vui lòng làm mới.</div>';
+                    '<div class="grid-message"><p role="alert">Chưa tải được sản phẩm. Vui lòng thử lại.</p>' +
+                    '<button class="button secondary" type="button" data-action="retry-catalog">Thử lại</button></div>';
                 __stockflowApp.$('#catalog-count').textContent = 'Chưa tải được sản phẩm';
             }
             throw error;
+        } finally {
+            window.clearTimeout(timeout);
         }
     }
 
