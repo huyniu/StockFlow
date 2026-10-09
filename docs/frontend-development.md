@@ -39,6 +39,28 @@ node scripts/verify-storefront-ui.cjs
 
 Script chạy server localhost riêng với API giả lập, không chạm dữ liệu thật hoặc gửi email. Kiểm tra 320/375/768/1366 px, sáng/tối, phục hồi mật khẩu, giỏ hàng/cước GHN, sổ địa chỉ/checkout, đổi mật khẩu, khách gửi yêu cầu đổi trả và quản trị duyệt. Ảnh lưu trong `target/ui-verification/`. Đặt `CHROME_PATH` nếu Chrome ở vị trí khác. Đây là kiểm chứng trình duyệt ở kích thước mobile, không thay thế thử trên điện thoại thật.
 
+## Thẻ sản phẩm trên mobile
+
+`productCards()` trong `src/main/resources/static/assets/modules/catalog-navigation.js` tạo thẻ catalog/bán chạy/yêu thích; `configurationPreview()` trong `product-detail.js` cung cấp phần phiên bản/màu. `index.html` chỉ là shell; nút đăng nhập nằm trong fragment `assets/fragments/storefront.html`.
+
+Sửa CSS tên thẻ tại `frontend/css/storefront.css`, liên kết/nút và phần responsive của thẻ tại `frontend/css/product-interactions.css`. File này được ghép sau `responsive.css` theo manifest, nên các rule mobile có thể ghi đè cỡ nút cũ mà không ảnh hưởng nút chi tiết/admin. Sau sửa, chạy build và `--check` như trên; không sửa trực tiếp bundle `styles.css`.
+
+Thẻ giới hạn tên hai dòng, bỏ SKU khỏi kệ khách hàng và dùng nhãn **Chọn phiên bản**. Handler cũ vẫn mở trang chi tiết để chọn phiên bản/màu trước khi thêm SKU vào giỏ. Trang chi tiết và quản trị giữ nguyên tên đầy đủ/mã SKU. Mobile/tablet dưới hoặc bằng 900 px dùng nút 14 px, cao 44 px; màn hình 320 px ẩn dấu cộng trang trí để nhãn không xuống dòng. Desktop giữ kích thước ảnh, số cột, cỡ chữ giá/nút và màu nhận diện. Nút đăng nhập icon có tên truy cập **Đăng nhập hoặc đăng ký**.
+
+Kiểm tra riêng cho thẻ:
+
+```powershell
+# Chạy trước sửa khi các file giao diện còn sạch; --before phục vụ phiên bản HEAD của ba file liên quan.
+node scripts/verify-product-cards.cjs --before
+node scripts/verify-product-cards.cjs
+```
+
+Script kiểm tra Chrome tại **320/375/414/768/1366 px**, sáng/tối: tràn ngang, tên hai dòng, giá/nhãn nút, chiều cao/vị trí nút cùng hàng, tên trong cây accessibility, mở chi tiết, giữ tên/SKU đầy đủ, chọn 512GB/màu đen rồi thêm đúng SKU/giá vào giỏ. API giả lập chỉ nhận GET; không tạo đơn hay thay đổi tồn kho thật. Ảnh trước/sau và dữ liệu kích thước nằm trong `target/product-card-verification/`. `--before` dùng bản HEAD tại thời điểm chạy, không tự tìm lại bản trước nếu thay đổi đã được commit.
+
+Ảnh dùng sản phẩm mẫu và ảnh logo cục bộ; tài nguyên mạng ngoài bị chặn. Chế độ giảm chuyển động được bật riêng trong script này để đo bố cục ổn định, không lấy kích thước giữa hiệu ứng xuất hiện thẻ. Bộ `verify-storefront-ui.cjs` vẫn kiểm tra giao diện ở chế độ chuyển động thông thường. Đây là kiểm tra kích thước bằng Chrome headless, chưa thay thế Safari hoặc thiết bị thật.
+
+Kiểm chứng ngày 09/10/2026: kiểm tra thẻ tại cả năm kích thước, sáng/tối và luồng chọn phiên bản/màu/thêm giỏ PASS; bộ kiểm tra Chrome cũ PASS; CSS bundle `--check` PASS; Maven **791 test PASS, 0 failures/errors/skipped**. Không thay đổi backend/API, thương hiệu hoặc nghiệp vụ kho/đặt hàng trong thay đổi thẻ này.
+
 V26 lưu hash OTP đặt lại mật khẩu, hạn 15 phút, tối đa 5 lần nhập sai, chống gửi lại trước 60 giây/5 email mỗi giờ. Đổi hoặc đặt lại mật khẩu vô hiệu hóa JWT cũ. Rate limit IP phục hồi hiện nằm trong tiến trình; triển khai nhiều instance cần kho giới hạn dùng chung.
 
 V27 lưu loại vận đơn: `SIMULATED`, `GHN_SANDBOX`, `GHN_PRODUCTION`, `MANUAL`. Chỉ GHN production có link tra cứu; không suy đoán vận đơn cũ là đơn GHN thật.

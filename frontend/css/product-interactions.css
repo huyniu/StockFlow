@@ -29,6 +29,55 @@
     width: 100%;
 }
 
+/* Keep shopping actions aligned without changing detail-page or admin buttons. */
+@media (max-width: 900px) {
+    .product-card-actions .add-button {
+        height: 44px;
+        min-height: 44px;
+        font-size: 14px;
+        line-height: 20px;
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+    .product-card .product-color-preview {
+        flex-wrap: wrap;
+        row-gap: 4px;
+        min-width: 0;
+    }
+    .product-card .product-color-preview .color-dot {
+        flex-shrink: 0;
+    }
+    .product-card .product-color-preview > span:last-child {
+        min-width: 0;
+        overflow-wrap: break-word;
+    }
+}
+@media (max-width: 760px) {
+    .product-card-body {
+        padding: 10px 10px 12px;
+    }
+    .product-card .product-category {
+        display: none;
+    }
+    .product-card-actions {
+        padding: 0 10px 12px;
+    }
+    .product-card-footer {
+        gap: 8px;
+    }
+    .product-card .product-price {
+        font-size: clamp(17px, 4.6vw, 19px);
+        line-height: 1.4;
+        overflow-wrap: normal;
+    }
+}
+/* At 320px, give the complete action label room instead of shrinking its text. */
+@media (max-width: 360px) {
+    .product-card-actions .add-button .icon {
+        display: none;
+    }
+}
+
 /* Mô tả là văn bản đã escape; giữ xuống dòng và chống tràn khi nhập chuỗi dài. */
 .product-description {
     margin-top: 24px;

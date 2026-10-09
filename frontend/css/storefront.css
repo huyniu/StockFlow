@@ -1304,6 +1304,10 @@
     color: #2563eb;
 }
 .product-card h3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
     font-size: 14px;
     margin: 8px 0 5px;
     min-height: 42px;
@@ -1664,4 +1668,3 @@
     color: #99a0ab;
     margin-top: 5px;
 }
-

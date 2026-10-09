@@ -32,6 +32,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-stockflow-demo-secret-for-local-use-only-2026}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-1047952604572-ohm0aaqei4kbcae8t7d9gjgtdhg7he43.apps.googleusercontent.com}
 
+      MAIL_PROVIDER: ${MAIL_PROVIDER:-smtp}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      MAIL_SENDER_NAME: ${MAIL_SENDER_NAME:-StockFlow}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       APP_MAIL_FROM: ${APP_MAIL_FROM:-${MAIL_USERNAME:-}}

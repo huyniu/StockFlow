@@ -11,6 +11,6 @@ Storefront mở modal OTP sau đăng ký hoặc lỗi login chưa xác thực; s
 
 Mail được gửi sau commit qua executor `mailTaskExecutor` (core 2, max 5). `application.yml` cấu hình Gmail SMTP `smtp.gmail.com:587`, SMTP auth và STARTTLS. Cung cấp `MAIL_USERNAME` và `MAIL_PASSWORD` trong môi trường chạy ứng dụng; địa chỉ gửi mặc định là `MAIL_USERNAME`, có thể đổi qua `APP_MAIL_FROM`. Không lưu mật khẩu SMTP vào Git.
 
-Service hiện tại tên là `EmailService` (không có `EmailServiceImpl`). `sendVerificationOtp()` lấy bean `JavaMailSender`, tạo `SimpleMailMessage` và gọi `sender.send(message)` để gửi email thật. Console luôn in `[EMAIL_OTP]` theo yêu cầu. Profile `test`/`postgres-test` không bật cấu hình Gmail, không yêu cầu credential và dùng console OTP để tránh gửi email thật trong test.
+Service hiện tại tên là `EmailService` (không có `EmailServiceImpl`). `sendVerificationOtp()` gọi `MailDeliveryService`: `MAIL_PROVIDER=smtp` sử dụng `JavaMailSender` như trước, `MAIL_PROVIDER=brevo` gọi API HTTPS để dùng trên Render Free. Console luôn in `[EMAIL_OTP]` theo yêu cầu. Profile `test`/`postgres-test` không bật cấu hình Gmail hoặc sử dụng khóa Brevo thật. Xem [cấu hình email trên Render](email-delivery-render.md).
 
 Kiểm tra: `.\mvnw.cmd "-Dmaven.repo.local=C:/Users/Admin/.m2/repository" test`. Test H2 có bản migration V18 riêng; PostgreSQL dùng migration main và profile `postgres-tests`.

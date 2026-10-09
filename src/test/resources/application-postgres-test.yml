@@ -13,6 +13,10 @@ spring:
     locations: filesystem:src/main/resources/db/migration
 
 app:
+  mail:
+    provider: smtp
+    brevo-api-key: ""
+    order-notifications-enabled: false
   # Không chạy scheduler nền hoặc seed demo để test kiểm soát dữ liệu và thời điểm chuyển trạng thái.
   orders:
     expiry:

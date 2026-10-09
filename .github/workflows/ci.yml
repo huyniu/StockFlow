@@ -1,11 +1,12 @@
-# Kiểm thử Java 17 khi push hoặc mở PR vào main; không cần secret hay database bên ngoài.
+# Kiểm thử Java 17 trên master/main; không cần secret hay database bên ngoài.
 name: Java CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
-    branches: [main]
+    branches: [master, main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -37,6 +38,15 @@ jobs:
       # Test H2 và PostgreSQL đã chạy; bước này tạo JAR có thể tải về từ trang Actions.
       - name: Package executable JAR
         run: ./mvnw --batch-mode -DskipTests package
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockflow-test-reports
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+          if-no-files-found: ignore
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:

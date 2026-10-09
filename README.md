@@ -5,6 +5,8 @@ A shopping website for **one technology retailer selling phones, laptops, audio 
 
 The backend and two Vietnamese interfaces are implemented: a **customer storefront** and an **operations dashboard**, served directly by Spring Boot using HTML, CSS, and vanilla JavaScript. Guests and customers use the shop; operational accounts enter the dashboard. This is a single-store system, with no seller/tenant marketplace model.
 
+Email delivery supports Gmail SMTP locally and the Brevo HTTPS API on Render Free. Set `MAIL_PROVIDER=brevo`, `BREVO_API_KEY`, and a verified sender in `APP_MAIL_FROM` on Render. Registration/password emails and the order notification outbox share this transport. See [email setup and CI-gated deployment](docs/email-delivery-render.md).
+
 <!-- Nhận diện xanh dương thống nhất hai giao diện; trạng thái kho/lỗi vẫn có màu riêng. -->
 StockFlow uses a blue visual identity: `#2563EB` for primary actions, `#1D4ED8` for hover, and `#EFF6FF` for soft accents. Dark mode uses `#60A5FA` on navy surfaces. Catalog navigation, product configuration choices, checkout, the dashboard sidebar and the SVG favicon share this palette. See [theme colors and verification](docs/blue-theme.md).
 
@@ -532,7 +534,7 @@ The catalog-discovery update adds **35 integration cases**, bringing the suite t
 <!-- Kết quả mới nhất của hãng/cây danh mục; các mốc phía trên là lịch sử, không phải tổng test hiện tại. -->
 The category/brand update brings the suite to **353 passing tests** with no failures, errors, or skips. Packaging succeeds after the full suite. Chrome passes **84 checks** (42 catalog/admin checks and 42 shopping/fulfillment regressions) on isolated PostgreSQL 13.2. Migration snapshots confirm that the local catalog's four existing products, photos, accounts, warehouse assignments, stock, ledger, and orders are preserved. See [verification, backup details, and changed files](docs/catalog-categories-and-brands.md).
 
-GitHub Actions runs `./mvnw test` and `./mvnw --batch-mode -Ppostgres-tests verify` on pushes and pull requests targeting `main`, using Ubuntu and Temurin Java 17. The PostgreSQL step checks Docker availability and starts its own test container; it does not skip the tests if Docker is unavailable. CI then packages and uploads the application JAR. Local PostgreSQL container tests require Docker:
+GitHub Actions runs `./mvnw test` and `./mvnw --batch-mode -Ppostgres-tests verify` on pushes and pull requests targeting `master` or `main`, using Ubuntu and Temurin Java 17. The PostgreSQL step checks Docker availability and starts its own test container; it does not skip the tests if Docker is unavailable. CI then packages and uploads the application JAR, and retains test reports even when a check fails. The workflow also supports manual runs. Enable **After CI Checks Pass** separately in Render's Auto-Deploy settings to gate automatic deployment. Local PostgreSQL container tests require Docker:
 
 ```powershell
 .\mvnw.cmd '-Dmaven.repo.local=C:/Users/Admin/.m2/repository' '-Ppostgres-tests' verify

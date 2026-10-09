@@ -60,12 +60,12 @@ class WebDemoIntegrationTest {
             assembled.append(partial.getBody());
         }
         assertThat(assembled.toString()).contains("StockFlow Tech", "Sản phẩm & đặt hàng", "Báo cáo quản trị",
-                "ĐIỆN THOẠI · LAPTOP · PHỤ KIỆN", "Tìm điện thoại, laptop, phụ kiện",
+                "class=\"shop-brand\"", "aria-label=\"StockFlow Tech\"", "Tìm sản phẩm, mã SKU…",
                 "id=\"discovery-categories\"", "id=\"bestseller-grid\"",
                 "src=\"/app.js\"", "href=\"/styles.css\"",
                 "id=\"storefront-view\"", "id=\"dashboard-view\" hidden",
                 "id=\"shop-product\"", "id=\"shop-product-detail-body\"", "Tiếp tục mua sắm",
-                "class=\"brand-shop\"", "Giỏ hàng của bạn");
+                "class=\"brand-logo-header\"", "src=\"/assets/stockflow-logo-header.svg\"", "Giỏ hàng của bạn");
     }
 
     /** CSS/JS/icon và bảng màu sáng/tối phải public để người chưa đăng nhập tải được giao diện đầy đủ. */

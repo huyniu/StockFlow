@@ -1352,7 +1352,6 @@ function productCards(products, { bestseller = false } = {}) {
                             <div class="product-card-body">
                                 <span class="product-category">${__stockflowApp.escapeHtml(product.category_name)}</span>
                                 <h3>${__stockflowApp.escapeHtml(product.name)}</h3>
-                                <span class="product-sku mono" title="${__stockflowApp.escapeHtml(product.sku)}">${__stockflowApp.escapeHtml(product.sku)}</span>
                                 ${bestseller ? '<span class="bestseller-label">Bán chạy</span>' : ''}
                                 ${__stockflowApp.configurationPreview(product)}
                                 <div class="product-card-footer">
@@ -1369,10 +1368,10 @@ function productCards(products, { bestseller = false } = {}) {
                                 class="button add-button"
                                 data-action="add-cart"
                                 data-id="${product.id}"
-                                aria-label="Thêm ${__stockflowApp.escapeHtml(product.name)} vào giỏ"
+                                aria-label="${product.variants?.length ? 'Chọn phiên bản và màu cho ' : 'Thêm vào giỏ: '}${__stockflowApp.escapeHtml(product.name)}"
                                 ${__stockflowApp.isOperator() ? 'disabled title="Dùng tài khoản khách hàng để mua sắm"' : ''}
                             >
-                                ${__stockflowApp.icon('plus')}${product.variants?.length ? 'Chọn phiên bản và màu' : 'Thêm vào giỏ'}
+                                ${__stockflowApp.icon('plus')}${product.variants?.length ? 'Chọn phiên bản' : 'Thêm vào giỏ'}
                             </button>
                         </div>
                     </article>
