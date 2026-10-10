@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 /** Nạp fixture khi khởi động với profile demo; không chạy trong cấu hình ứng dụng thông thường. */
 @Component
 @Profile("demo")
+@org.springframework.core.annotation.Order(0)
 public class DemoDataRunner implements ApplicationRunner {
 
     private final DemoDataSeeder seeder;

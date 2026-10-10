@@ -41,6 +41,10 @@ public class User {
 
     @Column(name = "auth_version", nullable = false)
     private long authVersion;
+    @Column(name = "operator_recovered_at")
+    private Instant operatorRecoveredAt;
+    public Instant getOperatorRecoveredAt() { return operatorRecoveredAt; }
+    public void markOperatorRecovered(Instant at) { operatorRecoveredAt = java.util.Objects.requireNonNull(at); }
     public long getAuthVersion() { return authVersion; }
     public void invalidateAccessTokens() { authVersion++; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }

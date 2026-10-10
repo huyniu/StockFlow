@@ -71,16 +71,16 @@ public class DemoDataSeeder {
      */
     @Transactional
     public void seed() {
-        User admin = account("admin@stockflow.com", "Admin@123", "Quản trị viên demo", "ADMIN");
-        account("manager@stockflow.com", "Manager@123", "Quản lý demo", "MANAGER");
-        User staff = account("staff.hn@stockflow.com", "Staff@123", "Nhân viên kho Hà Nội", "WAREHOUSE_STAFF");
+        User admin = account("admin@stockflow.com", UUID.randomUUID().toString(), "Quản trị viên demo", "ADMIN");
+        account("manager@stockflow.com", UUID.randomUUID().toString(), "Quản lý demo", "MANAGER");
+        User staff = account("staff.hn@stockflow.com", UUID.randomUUID().toString(), "Nhân viên kho Hà Nội", "WAREHOUSE_STAFF");
         account("customer@stockflow.com", "Customer@123", "Khách hàng demo", "CUSTOMER");
 
         List<Warehouse> demoWarehouses = List.of(
                 warehouse("WH-HAN-01", "Kho Tổng Hà Nội", "Long Biên, Hà Nội"),
                 warehouse("WH-DAD-01", "Kho Đà Nẵng", "Hải Châu, Đà Nẵng"),
                 warehouse("WH-SGN-01", "Kho TP.HCM", "Thành phố Thủ Đức, TP.HCM"));
-        assign(staff.getId(), demoWarehouses.get(0).getId());
+        if (staff.getOperatorRecoveredAt() == null) assign(staff.getId(), demoWarehouses.get(0).getId());
 
         if (!seedCatalog) {
             // Danh mục tham khảo đã có qua Flyway; giữ mọi quyết định thêm/sửa/xóa catalog của chủ cửa hàng.
@@ -186,6 +186,7 @@ public class DemoDataSeeder {
         if (!user.getRole().getName().equals(role)) {
             throw new IllegalStateException("Email demo đã tồn tại với role khác: " + email);
         }
+        if (user.getOperatorRecoveredAt() != null) return user;
         user.setEmailVerified(true);
         if (DemoAccountPolicy.isPublicOperator(user)) {
             if (user.getStatus() == UserStatus.ACTIVE) user.invalidateAccessTokens();

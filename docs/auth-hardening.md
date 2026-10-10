@@ -1,5 +1,7 @@
 # Đăng nhập từ giỏ, quyền demo và OTP — 10/10/2026
 
+> Bổ sung khôi phục do chủ hệ thống yêu cầu: [hướng dẫn localhost và Render](operator-account-recovery.md). Với bản sửa V33, ba định danh vận hành chỉ được mở sau khôi phục có ghi nhận; mô tả chặn tuyệt đối bên dưới là hành vi trước V33. V32 không sửa. Lượt khôi phục không đổi JWT_SECRET; các bước đổi khóa/commit/deploy bên dưới thuộc đợt hardening trước, không phải thao tác đã thực hiện trong lượt này.
+
 Đã đối chiếu bản rà soát `web-audit-20261010/REVIEW.md` với implementation hiện tại. Phạm vi chỉ sửa ba mục P1; không đổi giá, kho, reservation, thanh toán, idempotency, đơn hàng hoặc thiết kế checkout/bộ lọc. Kiểm thử dùng H2, PostgreSQL QA riêng và API giả lập; chưa cập nhật dữ liệu hoặc cấu hình Render.
 
 ## Đăng nhập từ giỏ

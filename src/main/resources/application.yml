@@ -41,6 +41,8 @@ spring:
     locations: classpath:db/migration
 
 app:
+  operator-recovery:
+    enabled: ${OPERATOR_RECOVERY_ENABLED:false}
   mail:
     provider: ${MAIL_PROVIDER:smtp}
     from: ${APP_MAIL_FROM:${MAIL_USERNAME:}}

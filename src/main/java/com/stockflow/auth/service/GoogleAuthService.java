@@ -31,7 +31,9 @@ public class GoogleAuthService {
         nonces.consume(nonce);
         String subject=identity.getSubject();
         String email=identity.getClaimAsString("email").trim().toLowerCase(Locale.ROOT);
-        if (DemoAccountPolicy.isPublicOperatorEmail(email)) throw new UnauthorizedException("Tài khoản không thể đăng nhập.");
+        if (DemoAccountPolicy.isPublicOperatorEmail(email)
+                && users.findByEmail(email).map(DemoAccountPolicy::isPublicOperator).orElse(true))
+            throw new UnauthorizedException("Tài khoản không thể đăng nhập.");
         User user=users.findByGoogleSubject(subject).orElse(null);
         if (user != null) user=users.findLockedById(user.getId()).orElseThrow();
         if (user == null) {

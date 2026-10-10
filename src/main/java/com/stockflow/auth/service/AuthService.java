@@ -101,7 +101,9 @@ public class AuthService {
         // Bước 2: Dùng PasswordEncoder so sánh mật khẩu khách vừa gõ với mật khẩu băm trong DB
         // matches(mật_khẩu_gốc, mật_khẩu_đã_băm)
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())
-                || user.getStatus() != UserStatus.ACTIVE || DemoAccountPolicy.isPublicOperator(user)) {
+                || user.getStatus() != UserStatus.ACTIVE || DemoAccountPolicy.isPublicOperator(user)
+                || (DemoAccountPolicy.isPublicOperatorEmail(normalizedEmail)
+                    && DemoAccountPolicy.isLegacyPassword(request.password()))) {
             throw new UnauthorizedException("Email hoặc mật khẩu không đúng.");
         }
         if (!user.isEmailVerified()) {

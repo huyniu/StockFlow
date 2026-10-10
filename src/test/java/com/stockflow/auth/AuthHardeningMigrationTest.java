@@ -21,7 +21,9 @@ class AuthHardeningMigrationTest {
         }
         var migration=Flyway.configure().dataSource(source).locations("filesystem:src/test/resources/db/migration").cleanDisabled(false).load();
         try{
-            assertThat(migration.migrate().migrationsExecuted).isEqualTo(2);
+            assertThat(migration.migrate().migrationsExecuted).isEqualTo(3);
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM users WHERE operator_recovered_at IS NOT NULL", Integer.class)).isZero();
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM operator_recovery_runs", Integer.class)).isZero();
             assertThat(db.queryForObject("SELECT COUNT(*) FROM information_schema.columns WHERE table_name='email_verification_tokens' AND column_name='otp_code'",Integer.class)).isZero();
             assertThat(db.queryForObject("SELECT COUNT(*) FROM email_verification_tokens WHERE otp_hash='legacy-invalidated' AND invalidated_at IS NOT NULL AND expires_at<=CURRENT_TIMESTAMP AND attempts=0",Integer.class)).isEqualTo(6);
             assertThat(db.queryForObject("SELECT email_verified FROM users WHERE email='pending@private.test'",Boolean.class)).isFalse();
@@ -34,7 +36,7 @@ class AuthHardeningMigrationTest {
     }
 
     @Test void newMigrationsMatchBetweenPostgresAndTestResources() throws Exception {
-        for(String name:new String[]{"V31__harden_email_verification.sql","V32__disable_public_operator_demo_accounts.sql"})
+        for(String name:new String[]{"V31__harden_email_verification.sql","V32__disable_public_operator_demo_accounts.sql","V33__add_operator_account_recovery.sql"})
             assertThat(Files.readString(Path.of("src/main/resources/db/migration",name)))
                     .isEqualTo(Files.readString(Path.of("src/test/resources/db/migration",name)));
     }

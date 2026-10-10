@@ -67,7 +67,7 @@ class DemoDataIntegrationTest {
     void publicOperatorDemoAccountsAreDisabled(String email, String password, String role) throws Exception {
         String hash = users.findByEmail(email).orElseThrow().getPasswordHash();
         assertThat(hash).isNotEqualTo(password);
-        assertThat(passwords.matches(password, hash)).isTrue();
+        assertThat(passwords.matches(password, hash)).isEqualTo(role.equals("CUSTOMER"));
         if (!role.equals("CUSTOMER")) {
             mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                     .content(json.writeValueAsString(Map.of("email",email,"password",password))))
