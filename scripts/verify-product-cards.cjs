@@ -137,6 +137,43 @@ async function surfaceMetrics() {
         document.body.classList.remove('auth-page-open');document.body.classList.add('portal-open');const portal=read();
         document.body.className=classes;return {storefront,auth,portal};})()`);
 }
+async function verifyScrollMotion(width, theme) {
+    await evaluate(`document.activeElement?.blur();window.scrollTo({top:0,behavior:'instant'})`);
+    const selector = '#catalog-grid .product-card';
+    assert.ok(await evaluate(`document.querySelector('${selector}').classList.contains('scroll-reveal')`),
+        'Cards have repeatable scroll motion at ' + width);
+    await until(`!document.querySelector('${selector}').classList.contains('is-revealed') &&
+        getComputedStyle(document.querySelector('${selector}')).opacity==='0'`);
+    assert.ok(await evaluate(`document.querySelector('${selector}').getBoundingClientRect().top>innerHeight`),
+        'Motion check starts with a real card below the viewport');
+    const scroll = await evaluate(`(()=>{const card=document.querySelector('${selector}');return scrollY+card.getBoundingClientRect().top-
+        document.querySelector('.shop-header').getBoundingClientRect().bottom-24;})()`);
+    await evaluate(`window.scrollTo({top:${scroll},behavior:'instant'})`);
+    await until(`document.querySelector('${selector}').classList.contains('is-revealed') &&
+        Number(getComputedStyle(document.querySelector('${selector}')).opacity)>0 &&
+        Number(getComputedStyle(document.querySelector('${selector}')).opacity)<1`);
+    await screenshot(`scroll-enter-${width}-${theme}`);
+    await until(`getComputedStyle(document.querySelector('${selector}')).opacity==='1'`);
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('${selector}')).pointerEvents`),'auto');
+    await screenshot(`scroll-visible-${width}-${theme}`);
+    await evaluate(`window.scrollTo({top:0,behavior:'instant'})`);
+    await until(`!document.querySelector('${selector}').classList.contains('is-revealed') &&
+        Number(getComputedStyle(document.querySelector('${selector}')).opacity)>0 &&
+        Number(getComputedStyle(document.querySelector('${selector}')).opacity)<1`);
+    await until(`getComputedStyle(document.querySelector('${selector}')).opacity==='0'`);
+    // Re-entering must animate again, rather than disconnecting after the first reveal.
+    await evaluate(`window.scrollTo({top:${scroll},behavior:'instant'})`);
+    await until(`document.querySelector('${selector}').classList.contains('is-revealed') &&
+        Number(getComputedStyle(document.querySelector('${selector}')).opacity)>0 &&
+        Number(getComputedStyle(document.querySelector('${selector}')).opacity)<1`);
+    await until(`getComputedStyle(document.querySelector('${selector}')).opacity==='1'`);
+    await evaluate(`window.scrollTo({top:0,behavior:'instant'})`);
+    await until(`getComputedStyle(document.querySelector('${selector}')).opacity==='0'`);
+    await evaluate(`document.querySelector('${selector} [data-product-link]').focus({preventScroll:true})`);
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('${selector}')).opacity`),'1','Keyboard focus reveals immediately');
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('${selector}')).pointerEvents`),'auto','Focus remains interactive');
+    await evaluate(`document.activeElement.blur()`);
+}
 (async () => {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const base = 'http://127.0.0.1:' + server.address().port;
@@ -199,12 +236,32 @@ async function surfaceMetrics() {
                     }
                 }
                 assert.equal(result.cards[0].buttonText, 'Chọn phiên bản');
-                assert.equal(result.surfaces.storefront.aura, 'none', 'No decorative aura behind the storefront');
-                assert.equal(result.surfaces.storefront.background, theme === 'dark' ? 'rgb(11, 18, 32)' : 'rgb(248, 250, 252)');
+                assert.equal(result.surfaces.storefront.aura, 'block', 'Page backdrop is visible');
+                assert.equal(result.surfaces.storefront.background, theme === 'dark' ? 'rgb(16, 14, 11)' : 'rgb(250, 248, 242)');
+                assert.deepEqual(result.surfaces.auth, result.surfaces.storefront, 'Login shares the selected page backdrop');
+                const decoration = await evaluate(`(()=>{const bg=document.querySelector('.aura-bg');return {
+                    color:getComputedStyle(bg).backgroundColor,pointerEvents:getComputedStyle(bg).pointerEvents,hidden:bg.getAttribute('aria-hidden'),
+                    layers:[...bg.children].map(layer=>{const s=getComputedStyle(layer);return {
+                        display:s.display,blend:s.mixBlendMode,blur:s.filter,pointerEvents:s.pointerEvents,animation:s.animationName,
+                        hidden:layer.getAttribute('aria-hidden'),background:s.backgroundImage};})};})()`);
+                assert.equal(decoration.color, 'rgba(0, 0, 0, 0)', 'Blend container stays transparent');
+                assert.equal(decoration.pointerEvents, 'none', 'Decoration cannot block shopping');
+                assert.equal(decoration.hidden, 'true');
+                assert.equal(decoration.layers.length, 3);
+                for (const layer of decoration.layers) {
+                    assert.equal(layer.pointerEvents, 'none');
+                    assert.equal(layer.animation, 'none', 'Backdrop adds no continuous animation');
+                    assert.equal(layer.hidden, 'true');
+                }
+                assert.deepEqual(decoration.layers.slice(0, theme === 'dark' ? 3 : 2).map(layer=>layer.blend),
+                    theme === 'dark' ? ['screen','screen','lighten'] : ['multiply','multiply']);
+                assert.equal(decoration.layers[2].display, theme === 'dark' ? 'block' : 'none');
+                assert.equal(decoration.layers[0].blur, `blur(${theme === 'dark' ? (width < 768 ? 50 : 72) : (width < 768 ? 90 : 130)}px)`);
+                assert.equal(decoration.layers[1].blur, `blur(${theme === 'dark' ? (width < 768 ? 175 : 252) : (width < 768 ? 90 : 130)}px)`);
+                assert.ok(decoration.layers[0].background.startsWith(theme === 'dark' ? 'radial-gradient' : 'linear-gradient'));
                 const surfaceBaselineFile = path.join(evidence, 'before-metrics.json');
                 if (fs.existsSync(surfaceBaselineFile)) {
                     const baseline = JSON.parse(fs.readFileSync(surfaceBaselineFile)).find(row => row.width === width && row.theme === theme);
-                    assert.deepEqual(result.surfaces.auth, baseline.surfaces.auth, 'Authentication background unchanged');
                     assert.deepEqual(result.surfaces.portal, baseline.surfaces.portal, 'Admin background unchanged');
                 }
                 for (const card of result.cards.slice(1)) assert.equal(card.buttonText, 'Thêm vào giỏ');
@@ -228,24 +285,14 @@ async function surfaceMetrics() {
         }
         if (!before) {
             await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
-            await send('Page.navigate', { url: base + '/?categoryId=1#shop' });
+            await send('Page.navigate', { url: base + '/' });
             await until(`document.querySelectorAll('#catalog-grid .product-card').length===4`);
             for (const theme of ['light', 'dark']) {
                 await evaluate(`if(document.documentElement.dataset.theme!=='${theme}')document.querySelector('#theme-toggle').click()`);
-                for (const position of ['0', 'document.documentElement.scrollHeight', '0']) {
-                    await evaluate(`window.scrollTo({top:${position},behavior:'instant'})`);
-                    await new Promise(resolve => setTimeout(resolve, 600));
-                    const visibility = await evaluate(`[...document.querySelectorAll('.product-card')].map(card=>({
-                        opacity:getComputedStyle(card).opacity,pointerEvents:getComputedStyle(card).pointerEvents,reveal:card.classList.contains('scroll-reveal')}))`);
-                    assert.ok(visibility.length >= 4);
-                    for (const card of visibility) {
-                        assert.equal(card.opacity, '1', 'Loaded cards always visible with normal motion at ' + width);
-                        assert.equal(card.pointerEvents, 'auto', 'Loaded cards remain interactive');
-                        assert.equal(card.reveal, false, 'Cards excluded from the reveal observer');
-                    }
-                }
+                await verifyScrollMotion(width,theme);
             }
             await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+            await until(`[...document.querySelectorAll('#catalog-grid .product-card')].every(card=>getComputedStyle(card).opacity==='1')`);
             const badge = Number(await evaluate(`document.querySelector('#cart-badge').textContent`));
             await evaluate(`document.querySelector('#catalog-grid [data-product-link][data-product-id="2"]').focus()`);
             assert.ok(await evaluate(`getComputedStyle(document.activeElement,'::after').outlineStyle!=='none'`), 'Keyboard focus stays visible');

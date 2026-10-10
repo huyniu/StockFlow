@@ -10,6 +10,7 @@ const tablet={...product,id:2,sku:'TABLET-01',name:'Máy tính bảng kiểm tra
 const samsungPhone={...product,id:3,sku:'SAMSUNG-01',name:'Điện thoại Samsung kiểm tra hãng',brand_id:2,brand_name:'Samsung'};
 const page=content=>({content,total_elements:content.length,total_pages:1,number:0,size:20,first:true,last:true});
 let resetRequests=0;
+let loginRequests=0, orderCreates=0;
 let catalogRequests=0, catalogFailure=false, catalogDelay=0, catalogEmpty=false;
 const catalogQueries=[];
 let savedAddresses=[], returnRequests=[], deliveredVisible=false;
@@ -17,6 +18,8 @@ const variantRequests=[];
 const deliveredOrder={id:1,order_code:'ORDER-TEST-1',customer_id:1,warehouse_id:1,status:'DELIVERED',total_amount:430000,shipping_fee:30000,created_at:new Date().toISOString(),updated_at:new Date().toISOString(),items:[{product_id:1,quantity:2,unit_price:200000,line_total:400000}],delivery_details:{recipient_name:'Khách',recipient_phone:'0901234567',address:'12 Mễ Trì'},shipment:{status:'DELIVERED',tracking_code:'GHN_HAN_1_1234',carrier_mode:'SIMULATED'}};
 function fixture(url,method='GET',body={}) {
  const p=url.pathname;
+ if(p.endsWith('/auth/login')){loginRequests++;return {access_token:'layout-token',token_type:'Bearer',user};}
+ if(p.endsWith('/orders')&&method==='POST'){orderCreates++;throw Error('Unexpected order creation in checkout login regression');}
  if(p.endsWith('/users/me/password'))return {message:'Đã đổi mật khẩu.'};
  if(p.endsWith('/users/me/addresses')){
   if(method==='POST'){
@@ -89,6 +92,36 @@ async function until(expression,timeout=10000){const end=Date.now()+timeout;whil
 async function screenshot(name){const value=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(evidence,name+'.png'),Buffer.from(value.data,'base64'));}
 async function viewport(width,height=850){await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<768});}
 async function noOverflow(label){const dimensions=await evaluate(`({viewport:innerWidth,width:document.documentElement.scrollWidth,body:document.body.scrollWidth})`);assert.ok(dimensions.width<=dimensions.viewport+1,label+' '+JSON.stringify(dimensions));}
+async function verifyGuestCheckoutLogin(base){
+ for(const width of [375,1366]){
+  await viewport(width);await send('Page.navigate',{url:base+'/'});
+  await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready'`);
+  await evaluate(`sessionStorage.removeItem('stockflow.web.session');sessionStorage.setItem('stockflow.web.cart.v1',JSON.stringify({version:1,owner:'guest',warehouse_id:1,items:[{product_id:1,quantity:2,selected:true},{product_id:2,quantity:3,selected:false}]}))`);
+  const stamp=await evaluate('performance.timeOrigin');await send('Page.reload',{ignoreCache:true});
+  await until(`performance.timeOrigin!==${stamp} && document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready' && !document.querySelector('#create-order').disabled`);
+  await evaluate(`document.querySelector('[data-action="open-cart"]').click()`);await until(`document.querySelector('#cart-dialog').open`);
+  await evaluate(`window.checkoutInvalidEvents=0;document.querySelector('#order-create').addEventListener('invalid',()=>window.checkoutInvalidEvents++,true);document.querySelector('#delivery-name').value='';document.querySelector('#delivery-phone').value='';document.querySelector('#checkoutStreetAddress').value='';document.querySelector('#create-order').click()`);
+  assert.equal(await evaluate('window.checkoutInvalidEvents'),0,'Guest login must bypass native delivery validation');
+  await until(`location.pathname==='/login' && new URLSearchParams(location.search).get('intent')==='checkout'`);
+  await screenshot('checkout-login-'+width);
+  const logins=loginRequests;
+  await evaluate(`document.querySelector('#auth-email').value='layout@example.test';document.querySelector('#auth-password').value='Secret@123';document.querySelector('#auth-form').requestSubmit()`);
+  await until(`!document.body.classList.contains('auth-page-open') && document.querySelector('#cart-dialog').open && !document.querySelector('#create-order').disabled`);
+  assert.equal(loginRequests,logins+1);
+  assert.deepEqual(await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');return [...app.state.cart].map(([id,item])=>({id,quantity:item.quantity,selected:item.selected!==false}));})()`),[{id:1,quantity:2,selected:true},{id:2,quantity:3,selected:false}]);
+  assert.equal(await evaluate(`document.querySelector('#create-order').type`),'submit');
+  await evaluate(`document.querySelector('#delivery-name').value='';document.querySelector('#create-order').click()`);
+  assert.ok(await evaluate('window.checkoutInvalidEvents>0'),'Authenticated checkout still validates recipient');
+  assert.equal(orderCreates,0);await screenshot('checkout-return-'+width);
+  // A dispatched submit also exercises the global reportValidity listener independently of native validation.
+  await evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');app.clearSession({preserveCart:true});app.renderContext();app.renderCart();window.checkoutInvalidEvents=0;document.querySelector('#order-create').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));})()`);
+  assert.equal(await evaluate('window.checkoutInvalidEvents'),0,'Guest submit listener must branch before reportValidity');
+  await until(`location.pathname==='/login'`);await noOverflow('Checkout login '+width);
+  console.log('PASS: guest checkout login, native/listener validation, cart quantities/selections preserved '+width);
+ }
+ await evaluate('sessionStorage.clear()');await send('Page.navigate',{url:base+'/'});
+ await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready'`);
+}
 async function verifyShelfRoutes(base){
  const failures=[];
  const check=async(label,operation)=>{try{await operation();console.log('PASS: '+label);}catch(error){failures.push(label+': '+error.message);console.error('FAIL: '+label+': '+error.message);}};
@@ -228,7 +261,11 @@ async function verifyScrolledCategoryMenu(base){
  await until(`!document.querySelector('#category-menu-panel').hidden && document.querySelector('#category-menu-panel').contains(document.activeElement)`);
  assert.equal(await evaluate('scrollY'),position);
  await evaluate(`document.querySelector('#category-menu-list [data-menu-category="1"]').click()`);
+ await until(`document.querySelector('#category-menu-detail h2')?.textContent==='Điện thoại' && Number(getComputedStyle(document.querySelector('#category-menu-panel')).opacity)>.99`);
+ // Let Chrome paint the opened panel before routing a wheel event through its compositor.
+ await evaluate(`new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);
  const point=await evaluate(`(()=>{const r=document.querySelector('#category-menu-detail').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+ await send('Input.dispatchMouseEvent',{type:'mouseMoved',...point});
  await send('Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:0,deltaY:500});
  await until(`document.querySelector('#category-menu-detail').scrollTop>0`);
  assert.equal(await evaluate('scrollY'),position,'Con lăn chỉ cuộn trong menu');
@@ -248,15 +285,17 @@ async function verifyScrolledCategoryMenu(base){
  const target=await send('Target.createTarget',{url:'about:blank'},false);session=(await send('Target.attachToTarget',{targetId:target.targetId,flatten:true},false)).sessionId;
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBlockedURLs',{urls:['https://*']});
  console.log('Browser connected');
+ await verifyGuestCheckoutLogin(base);if(process.argv.includes('--checkout-login-only'))return;
  if(process.argv.includes('--category-menu-only')){await verifyScrolledCategoryMenu(base);return;}
  await verifyShelfRoutes(base);if(process.argv.includes('--shelf-only'))return;
  await verifyScrolledCategoryMenu(base);
- for(const width of [320,375,768,1366]) {
+ for(const width of [320,375,414,768,1366]) {
   await viewport(width);await send('Page.navigate',{url:base+'/login'});await until(`document.body.classList.contains('auth-page-open') && document.querySelector('#auth-dialog').open`);console.log('Login viewport '+width);
   for(const theme of ['light','dark']) {
-   await evaluate(`document.documentElement.dataset.theme='${theme}'`);await noOverflow('Login '+width+' '+theme);
+   await evaluate(`if(document.documentElement.dataset.theme!=='${theme}')document.querySelector('#auth-theme-toggle').click()`);await noOverflow('Login '+width+' '+theme);
+   assert.equal(await evaluate(`document.querySelector('#auth-theme-toggle').getAttribute('aria-pressed')`),String(theme==='dark'));
    assert.equal(await evaluate(`getComputedStyle(document.querySelector('.auth-page-form-side')).backgroundColor`),'rgba(0, 0, 0, 0)');
-   assert.equal(await evaluate(`getComputedStyle(document.body).backgroundColor`),'rgb(250, 248, 242)');
+   assert.equal(await evaluate(`getComputedStyle(document.body).backgroundColor`),theme==='dark'?'rgb(16, 14, 11)':'rgb(250, 248, 242)');
    if(width<801)assert.equal(await evaluate(`getComputedStyle(document.querySelector('.auth-page-art')).display`),'none');
    await screenshot('login-'+width+'-'+theme);
   }

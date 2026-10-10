@@ -2,6 +2,7 @@ package com.stockflow.auth.service;
 
 import com.stockflow.auth.dto.AuthResponse;
 import com.stockflow.auth.security.JwtTokenProvider;
+import com.stockflow.auth.security.DemoAccountPolicy;
 import com.stockflow.common.exception.*;
 import com.stockflow.user.domain.*;
 import com.stockflow.user.dto.UserResponse;
@@ -30,6 +31,7 @@ public class GoogleAuthService {
         nonces.consume(nonce);
         String subject=identity.getSubject();
         String email=identity.getClaimAsString("email").trim().toLowerCase(Locale.ROOT);
+        if (DemoAccountPolicy.isPublicOperatorEmail(email)) throw new UnauthorizedException("Tài khoản không thể đăng nhập.");
         User user=users.findByGoogleSubject(subject).orElse(null);
         if (user != null) user=users.findLockedById(user.getId()).orElseThrow();
         if (user == null) {
@@ -54,7 +56,7 @@ public class GoogleAuthService {
             user.setGoogleSubject(subject);
             users.saveAndFlush(user);
         }
-        if (user.getStatus()!=UserStatus.ACTIVE || !user.isEmailVerified()) throw new UnauthorizedException("Tài khoản không thể đăng nhập.");
+        if (user.getStatus()!=UserStatus.ACTIVE || !user.isEmailVerified() || DemoAccountPolicy.isPublicOperator(user)) throw new UnauthorizedException("Tài khoản không thể đăng nhập.");
         return AuthResponse.bearer(jwt.generateToken(user),UserResponse.from(user));
     }
 }

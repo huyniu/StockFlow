@@ -6,6 +6,8 @@ import com.stockflow.inventory.dto.StockInRequest;
 import com.stockflow.inventory.repository.InventoryRepository;
 import com.stockflow.inventory.service.InventoryService;
 import com.stockflow.user.domain.User;
+import com.stockflow.user.domain.UserStatus;
+import com.stockflow.auth.security.DemoAccountPolicy;
 import com.stockflow.user.repository.*;
 import com.stockflow.warehouse.domain.*;
 import com.stockflow.warehouse.repository.WarehouseRepository;
@@ -185,6 +187,10 @@ public class DemoDataSeeder {
             throw new IllegalStateException("Email demo đã tồn tại với role khác: " + email);
         }
         user.setEmailVerified(true);
+        if (DemoAccountPolicy.isPublicOperator(user)) {
+            if (user.getStatus() == UserStatus.ACTIVE) user.invalidateAccessTokens();
+            user.setStatus(UserStatus.INACTIVE);
+        }
         return user;
     }
 

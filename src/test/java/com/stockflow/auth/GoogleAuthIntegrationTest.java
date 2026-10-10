@@ -95,6 +95,10 @@ class GoogleAuthIntegrationTest {
         email=UUID.randomUUID()+"@example.com"; User old=existing("ADMIN",true);
         login().andExpect(status().isConflict()); assertThat(users.findById(old.getId()).orElseThrow().getGoogleSubject()).isNull();
     }
+    @Test void googleCannotReenablePublicOperatorDemo() throws Exception {
+        email="admin@stockflow.com";User demo=existing("ADMIN",true);demo.setGoogleSubject(subject);users.saveAndFlush(demo);
+        login().andExpect(status().isUnauthorized()).andExpect(jsonPath("access_token").doesNotExist());
+    }
     @Test void nonceCannotBeReplayed() throws Exception {
         login().andExpect(status().isOk()); login().andExpect(status().isUnauthorized());
     }

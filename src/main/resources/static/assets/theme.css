@@ -653,7 +653,8 @@
     outline-offset: 4px;
 }
 
-/* Deep Lagoon: backdrop trên body, container trong suốt để các lớp hòa vào nền trang.
+/* Nền Deep Lagoon hiện có cho portal; storefront/auth được ghi đè ở
+   frontend/css/aura-background.css. Container trong suốt để các lớp hòa vào nền trang.
    Stacking context của body giữ lớp z-index âm trên backdrop và dưới nội dung,
    không bọc lại nội dung để tránh ảnh hưởng header sticky, dialog và nút nổi. */
 body {
@@ -700,22 +701,7 @@ body {
 @media (min-width: 768px) {
     .aura-layer { filter: blur(130px); }
 }
-/* Arctic Frost cho trang tài khoản: base trên body, hai lớp trong suốt hòa vào base.
-   Nút Sáng/Tối vẫn điều khiển form; phần nền Arctic luôn dùng backdrop sáng. */
-:root[data-theme] body.auth-page-open { background: #faf8f2; }
-:root[data-theme] body.auth-page-open .aura-layer {
-    inset: 0;
-    mix-blend-mode: multiply;
-    opacity: 1;
-    filter: blur(90px);
-    transform: translateZ(0);
-}
-:root[data-theme] body.auth-page-open .aura-layer-1 {
-    background: linear-gradient(rgba(0,0,0,0) 0%, rgba(200,230,255,.12) 28%, rgb(255,255,255) 18%, rgb(150,200,255) 68%, rgb(100,130,200) 100%);
-}
-:root[data-theme] body.auth-page-open .aura-layer-2 {
-    background: linear-gradient(rgba(0,0,0,0) 0%, rgba(200,230,255,.22) 34%, rgb(255,255,255) 66%, rgb(150,200,255) 82%, rgb(100,130,200) 100%);
-}
+/* Khung đăng nhập nằm trên nền Aura chung, đổi tương phản cùng chế độ sáng/tối. */
 #auth-page { position: relative; z-index: 1; overflow: hidden; }
 #auth-page .auth-page-form-side { background: transparent; }
 #auth-page-form-slot {
@@ -736,14 +722,19 @@ body {
 #auth-page .auth-page-tools > a,
 #auth-page .auth-page-home { color: #475569; }
 #auth-page .auth-page-tools > a:hover { color: #2563eb; }
+:root[data-theme='dark'] #auth-page .auth-page-tools > a,
+:root[data-theme='dark'] #auth-page .auth-page-home { color: var(--muted); }
+:root[data-theme='dark'] #auth-page .auth-page-tools > a:hover { color: var(--brand); }
 @media (max-width: 800px) {
     #auth-page-form-slot { padding: 24px 20px; border-radius: 20px; }
 }
 #auth-page .auth-page-intro {
-    --text: #0f172a; --muted: #475569; --surface: #ffffffd9;
-    --line: #b7cce3; --brand: #2563eb;
     color: var(--text);
     background: transparent;
+}
+:root[data-theme='light'] #auth-page .auth-page-intro {
+    --text: #0f172a; --muted: #475569; --surface: #ffffffd9;
+    --line: #b7cce3; --brand: #2563eb;
 }
 #auth-page .auth-page-intro h1 span { background-image: linear-gradient(100deg,#2563eb,#0891b2); }
 #auth-page .auth-page-intro .auth-page-art {
@@ -753,6 +744,11 @@ body {
     box-shadow: 0 14px 44px #2563eb16;
 }
 #auth-page .auth-page-intro .auth-cube-face { border-color: #0284c7; }
-@media (min-width: 768px) {
-    :root[data-theme] body.auth-page-open .aura-layer { filter: blur(130px); }
+:root[data-theme='dark'] #auth-page .auth-page-intro h1 span { background-image: linear-gradient(100deg,#93c5fd,#67e8f9); }
+:root[data-theme='dark'] #auth-page .auth-page-intro .auth-page-art {
+    background: linear-gradient(#38bdf909 1px,transparent 1px),linear-gradient(90deg,#38bdf909 1px,transparent 1px),var(--surface);
+    background-size: 24px 24px,24px 24px,auto;
+    border-color: var(--line);
+    box-shadow: 0 14px 44px #00000030;
 }
+:root[data-theme='dark'] #auth-page .auth-page-intro .auth-cube-face { border-color: #67e8f9; }

@@ -60,6 +60,9 @@ function renderPermissions() {
             __stockflowApp.state.cartRestoreFailed ||
             create.getAttribute('aria-busy') === 'true';
         create.textContent = __stockflowApp.state.user ? 'Tiến hành đặt hàng' : 'Đăng nhập để đặt hàng';
+        create.type = __stockflowApp.state.user ? 'submit' : 'button';
+        if (__stockflowApp.state.user) delete create.dataset.action;
+        else create.dataset.action = 'checkout-login';
         __stockflowApp.$('#cart-permission').textContent = __stockflowApp.isOperator()
             ? 'Dùng tài khoản khách hàng để mua sắm.'
             : __stockflowApp.state.cartLoading

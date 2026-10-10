@@ -29,6 +29,9 @@ public class JwtTokenProvider {
     public JwtTokenProvider(
             @Value("${app.security.jwt.secret}") String secret,
             @Value("${app.security.jwt.expiration-ms}") long expirationMs) {
+        if ("stockflow-demo-secret-for-local-use-only-2026".equals(secret.trim())) {
+            throw new IllegalArgumentException("Replace the published demo JWT secret with a private random JWT_SECRET.");
+        }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }

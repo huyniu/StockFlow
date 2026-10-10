@@ -12,6 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockflow.auth.security.JwtTokenProvider;
+import com.stockflow.auth.service.EmailService;
+import com.stockflow.auth.support.VerificationOtpMail;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.stockflow.user.domain.User;
 import com.stockflow.user.repository.RoleRepository;
 import com.stockflow.user.repository.UserRepository;
@@ -39,6 +42,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AuthIntegrationTest {
+    @MockitoBean private EmailService mail;
 
     @Autowired
     private MockMvc mockMvc;
@@ -60,6 +64,19 @@ class AuthIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    /** Dù không bật seeder, không tạo tài khoản mới bằng định danh demo dành riêng. */
+    @ParameterizedTest
+    @ValueSource(strings={"admin@stockflow.com","manager@stockflow.com","staff.hn@stockflow.com","customer@stockflow.com"})
+    void reservedDemoEmailsCannotRegisterWithoutDemoProfile(String email) throws Exception {
+        long before = users.count();
+        mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content(toJson(registerPayload(email.toUpperCase(java.util.Locale.ROOT),"Secret@123","Khách đăng ký"))))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.access_token").doesNotExist());
+        org.assertj.core.api.Assertions.assertThat(users.count()).isEqualTo(before);
+        org.mockito.Mockito.verify(mail, org.mockito.Mockito.never()).sendVerificationOtp(
+                org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString());
+    }
 
     /**
      * Đăng ký tạo CUSTOMER chưa xác thực, yêu cầu OTP và không phát JWT hay lộ password hash.
@@ -183,18 +200,14 @@ class AuthIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    /** Đăng ký rồi xác thực OTP từ database qua API thật trước khi lấy JWT. */
+    /** Đăng ký rồi xác thực OTP nhận từ mail mock qua API thật trước khi lấy JWT. */
     private String registerUser(String email, String password) throws Exception {
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(registerPayload(email, password, "Nguyen Van A"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.requires_verification").value(true));
-        String otp = jdbc.queryForObject("""
-                SELECT t.otp_code FROM email_verification_tokens t
-                JOIN users u ON u.id = t.user_id
-                WHERE u.email = ? ORDER BY t.created_at DESC, t.id DESC LIMIT 1
-                """, String.class, email);
+        String otp = VerificationOtpMail.latest(mail, email);
         MvcResult result = mockMvc.perform(post("/api/v1/auth/verify-email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(Map.of("email", email, "otp", otp))))

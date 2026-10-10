@@ -13,6 +13,8 @@ ghn:
 server:
   port: ${PORT:8080}
   address: 0.0.0.0
+  # Đọc IP socket gốc; chỉ tin X-Forwarded-For từ proxy nằm trong allowlist bên dưới.
+  forward-headers-strategy: none
 
 spring:
   servlet:
@@ -47,10 +49,11 @@ app:
     connect-timeout: 5s
     read-timeout: 10s
   security:
+    trusted-proxy-cidrs: ${AUTH_TRUSTED_PROXY_CIDRS:}
     google:
       client-id: ${GOOGLE_CLIENT_ID:}
     jwt:
-      # Môi trường thông thường phải cung cấp secret; profile demo có giá trị mẫu riêng.
+      # Mọi môi trường chạy ứng dụng phải cung cấp secret riêng, kể cả profile demo.
       secret: ${JWT_SECRET}
       expiration-ms: ${JWT_EXPIRATION_MS:3600000}
 
@@ -64,7 +67,7 @@ vnpay:
   command: pay
 
 ---
-# Test dùng console OTP, không kết nối Gmail hay yêu cầu credential SMTP.
+# Test dùng mail mock, không kết nối Gmail hay ghi OTP vào console.
 spring:
   config:
     activate:

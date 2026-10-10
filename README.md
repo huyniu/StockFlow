@@ -351,7 +351,7 @@ The local datasource defaults match the Compose database. Customize `DB_HOST`, `
 
 Compose reads an optional `.env` file; use [.env.example](.env.example) as its template. **Spring Boot launched directly does not automatically load `.env`.**
 
-The `demo` profile supplies a local JWT key and seeds demo data. When running without this profile, set `JWT_SECRET` to a private key of at least 32 bytes. Demo credentials and the demo JWT key are intended for local evaluation.
+Every runtime profile, including `demo`, requires a private random `JWT_SECRET` of at least 32 bytes. The previously published demo signing key is rejected. Compose requires this variable explicitly; `.env.example` leaves it blank. Tests use a separate test key. See [auth hardening and Render rollout](docs/auth-hardening.md).
 
 ## Storefront and operations dashboard
 
@@ -361,7 +361,7 @@ Run the `demo` profile and open **http://localhost:8080/**. Guests and CUSTOMER 
 
 <!-- Nút sáng/tối chỉ lưu sở thích giao diện, độc lập với JWT và dữ liệu nghiệp vụ. -->
 
-- The pinned demo bar performs a real JWT login and immediately switches context for Customer, Hanoi Staff, Manager, and Admin. Manual login and customer registration remain available.
+- The demo bar exposes only the CUSTOMER account. Public Admin/Manager/Hanoi Staff credentials and their JWT sessions are blocked at the backend. Operators use private accounts; manual login and customer registration remain available.
 - The top bar includes a light/dark toggle for both interfaces. It follows the operating system initially, remembers the visitor's choice in localStorage, and synchronizes that choice across tabs. See [appearance settings](docs/appearance-settings.md).
 - Browse/filter/paginate products, build a multi-product cart, select an active warehouse, and create a 15-minute reservation as Customer.
 - The separate dashboard opens the scoped order work queue and detail, with the next valid pack/ship/deliver/receive-return action. Shipping accepts an optional tracking code; leaving it blank uses the allocated code.
@@ -407,12 +407,7 @@ Flyway prepares the shared category/brand references. The `demo` profile adds th
 
 `DEMO_SEED_CATALOG=true` is the default: **24 products** with `TECH-` SKUs, **72 inventory rows**, and **72 GOODS_RECEIPT movements** on a fresh database. Each active product starts with **20–50 units per demo warehouse**, including existing active products without initial stock. Empty inventory rows without movement history are initialized once; sold-out stock with ledger history is preserved. Set the flag to `false` for manual catalog/stock entry. Docker Compose reads `.env`; local IDE runs use an environment variable. Prices and photos are demonstration data. Switching this flag does not delete existing products, orders, or audit records.
 
-| Email | Password | Role | Scope |
-| --- | --- | --- | --- |
-| admin@stockflow.com | Admin@123 | ADMIN | All warehouses; catalog administration |
-| manager@stockflow.com | Manager@123 | MANAGER | Orders, inventory, ledger, reports |
-| staff.hn@stockflow.com | Staff@123 | WAREHOUSE_STAFF | Assigned to WH-HAN-01 |
-| customer@stockflow.com | Customer@123 | CUSTOMER | Own orders |
+The public customer demo is `customer@stockflow.com` / `Customer@123`, restricted to its own data. Do not save personal addresses or real orders in a shared demo account. The three former public operator accounts remain as inactive historical ledger actors and cannot authenticate, even if reactivated or presented with an old JWT. Private operator accounts keep their existing roles and permissions.
 
 Passwords are stored as BCrypt hashes. The seed only adds missing records and inventory pairs; restarting preserves existing prices, passwords, orders, and stock quantities, including inventories that have sold out.
 

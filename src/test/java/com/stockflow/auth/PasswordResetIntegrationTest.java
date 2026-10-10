@@ -143,7 +143,7 @@ class PasswordResetIntegrationTest {
 
     @Test void registrationCodeCannotResetPassword() throws Exception {
         String code = issue();
-        jdbc.update("INSERT INTO email_verification_tokens(user_id,otp_code,expires_at) VALUES(?,?,DATEADD('MINUTE',15,CURRENT_TIMESTAMP))", user.getId(), code.equals("000000")?"000001":"000000");
+        jdbc.update("INSERT INTO email_verification_tokens(user_id,otp_hash,expires_at) VALUES(?,?,DATEADD('MINUTE',15,CURRENT_TIMESTAMP))", user.getId(), encoder.encode(code.equals("000000")?"000001":"000000"));
         reset(code.equals("000000")?"000001":"000000").andExpect(status().isBadRequest());
     }
 

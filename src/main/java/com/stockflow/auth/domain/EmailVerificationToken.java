@@ -15,8 +15,14 @@ public class EmailVerificationToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "otp_code", nullable = false, length = 6)
-    private String otpCode;
+    @Column(name = "otp_hash", nullable = false, length = 255)
+    private String otpHash;
+
+    @Column(nullable = false)
+    private int attempts;
+
+    @Column(name = "invalidated_at")
+    private Instant invalidatedAt;
 
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
@@ -29,16 +35,28 @@ public class EmailVerificationToken {
 
     protected EmailVerificationToken() {}
 
-    public EmailVerificationToken(User user, String otpCode, Instant now) {
+    public EmailVerificationToken(User user, String otpHash, Instant now) {
         this.user = user;
-        this.otpCode = otpCode;
+        this.otpHash = otpHash;
         this.createdAt = now;
         this.expiresAt = now.plusSeconds(15 * 60);
     }
 
-    public String getOtpCode() { return otpCode; }
+    public String getOtpHash() { return otpHash; }
+    public int getAttempts() { return attempts; }
+    public Instant getInvalidatedAt() { return invalidatedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getExpiresAt() { return expiresAt; }
     public Instant getVerifiedAt() { return verifiedAt; }
     public void markVerified(Instant now) { verifiedAt = now; }
+
+    public boolean isUsable(Instant now) {
+        return verifiedAt == null && invalidatedAt == null && attempts < 5 && expiresAt.isAfter(now);
+    }
+
+    /** Gọi trong transaction đã khóa user để verify/resend cùng tài khoản được tuần tự hóa. */
+    public void recordWrongAttempt(Instant now) {
+        if (attempts < 5) attempts++;
+        if (attempts >= 5) invalidatedAt = now;
+    }
 }

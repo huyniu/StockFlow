@@ -64,12 +64,19 @@ class DemoDataIntegrationTest {
         "staff.hn@stockflow.com, Staff@123, WAREHOUSE_STAFF",
         "customer@stockflow.com, Customer@123, CUSTOMER"
     })
-    void demoAccountsCanLogIn(String email, String password, String role) throws Exception {
-        JsonNode response = login(email, password);
-        assertThat(response.path("user").path("role").asText()).isEqualTo(role);
+    void publicOperatorDemoAccountsAreDisabled(String email, String password, String role) throws Exception {
         String hash = users.findByEmail(email).orElseThrow().getPasswordHash();
         assertThat(hash).isNotEqualTo(password);
         assertThat(passwords.matches(password, hash)).isTrue();
+        if (!role.equals("CUSTOMER")) {
+            mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                    .content(json.writeValueAsString(Map.of("email",email,"password",password))))
+                    .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.access_token").doesNotExist());
+            assertThat(users.findByEmail(email).orElseThrow().getStatus()).isEqualTo(com.stockflow.user.domain.UserStatus.INACTIVE);
+            return;
+        }
+        JsonNode response = login(email, password);
+        assertThat(response.path("user").path("role").asText()).isEqualTo(role);
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                 .get("/api/v1/users/me").header("Authorization", "Bearer " + response.path("access_token").asText()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.email").value(email));
@@ -194,7 +201,7 @@ class DemoDataIntegrationTest {
                 """, Long.class, order.id())).isEqualTo(1);
     }
 
-    /** JWT của nhân viên demo chỉ nhập được kho Hà Nội đã phân công, kho Đà Nẵng phải trả 403. */
+    /** Nhân viên có tài khoản riêng chỉ nhập được kho Hà Nội đã phân công, kho Đà Nẵng phải trả 403. */
     @Test
     void demoStaffIsRestrictedToHanoiWarehouse() throws Exception {
         Long productId = products.findBySku("TECH-KBD-01").orElseThrow().getId();
@@ -202,7 +209,12 @@ class DemoDataIntegrationTest {
         Long danangId = warehouses.findByCode("WH-DAD-01").orElseThrow().getId();
         int hanoiBefore = available(productId, hanoiId);
         int danangBefore = available(productId, danangId);
-        String bearer = "Bearer " + login("staff.hn@stockflow.com", "Staff@123").path("access_token").asText();
+        var demo = users.findByEmail("staff.hn@stockflow.com").orElseThrow();
+        var staff = new com.stockflow.user.domain.User("private-staff@example.test",passwords.encode("Staff@123"),"Nhân viên riêng",demo.getRole());
+        staff.setEmailVerified(true);
+        users.saveAndFlush(staff);
+        jdbc.update("INSERT INTO warehouse_staff_assignments(user_id,warehouse_id) VALUES (?,?)",staff.getId(),hanoiId);
+        String bearer = "Bearer " + login(staff.getEmail(), "Staff@123").path("access_token").asText();
 
         mvc.perform(post("/api/v1/inventories/stock-in").header("Authorization", bearer)
                 .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of(

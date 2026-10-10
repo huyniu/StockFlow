@@ -52,6 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Nạp lại trạng thái mỗi request: JWT đã phát cũng mất quyền khi tài khoản chuyển INACTIVE.
             userRepository.findByEmail(email)
                     .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+                    .filter(user -> user.isEmailVerified() && !DemoAccountPolicy.isPublicOperator(user))
                     .filter(user -> jwtTokenProvider.matchesAuthVersion(token, user))
                     .ifPresent(user -> authenticateRequest(request, user));
         }

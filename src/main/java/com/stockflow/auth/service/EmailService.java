@@ -18,7 +18,6 @@ public class EmailService {
 
     @Async("mailTaskExecutor")
     public void sendVerificationOtp(String toEmail, String otpCode) {
-        log.info("[EMAIL_OTP] >>> Email: {} | Mã OTP: {} (hết hạn sau 15 phút) <<<", toEmail, otpCode);
         send(toEmail, "StockFlow - Xác thực email", "Mã OTP của bạn: " + otpCode
                 + "\nMã có hiệu lực trong 15 phút.");
     }

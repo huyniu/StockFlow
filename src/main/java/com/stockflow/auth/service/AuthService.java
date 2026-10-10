@@ -15,6 +15,7 @@ import java.util.Locale;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import com.stockflow.auth.security.JwtTokenProvider;
+import com.stockflow.auth.security.DemoAccountPolicy;
 import com.stockflow.common.exception.ConflictException;
 import com.stockflow.common.exception.ResourceNotFoundException;
 import com.stockflow.common.exception.UnauthorizedException;
@@ -72,7 +73,7 @@ public class AuthService {
         // Bước 1: Xóa khoảng trắng thừa và đổi email về chữ thường
         String normalizedEmail = normalizeEmail(request.email());
         // Bước 2: Kiểm tra email này đã có ai dùng chưa
-        if (userRepository.existsByEmail(normalizedEmail)) {
+        if (DemoAccountPolicy.isReservedEmail(normalizedEmail) || userRepository.existsByEmail(normalizedEmail)) {
             throw new ConflictException("Email đã được sử dụng.");
         }
         // Bước 3: Lấy quyền mặc định là "CUSTOMER" trong database ra
@@ -100,7 +101,7 @@ public class AuthService {
         // Bước 2: Dùng PasswordEncoder so sánh mật khẩu khách vừa gõ với mật khẩu băm trong DB
         // matches(mật_khẩu_gốc, mật_khẩu_đã_băm)
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())
-                || user.getStatus() != UserStatus.ACTIVE) {
+                || user.getStatus() != UserStatus.ACTIVE || DemoAccountPolicy.isPublicOperator(user)) {
             throw new UnauthorizedException("Email hoặc mật khẩu không đúng.");
         }
         if (!user.isEmailVerified()) {
@@ -109,15 +110,19 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public AuthResponse verifyEmail(VerifyEmailRequest request) {
         User user = pendingUser(request.email());
         Instant now = Instant.now();
         EmailVerificationToken token = verificationTokens.findFirstByUserIdOrderByCreatedAtDescIdDesc(user.getId())
                 .orElseThrow(() -> new BadRequestException("Mã OTP không hợp lệ hoặc đã hết hạn."));
         // Chỉ mã mới nhất có hiệu lực; khóa user ngăn verify/resend đồng thời.
-        if (token.getVerifiedAt() != null || !token.getExpiresAt().isAfter(now)
-                || !token.getOtpCode().equals(request.otp())) {
+        if (!token.isUsable(now)) {
+            throw new BadRequestException("Mã OTP không hợp lệ hoặc đã hết hạn.");
+        }
+        if (!passwordEncoder.matches(request.otp(), token.getOtpHash())) {
+            token.recordWrongAttempt(now);
+            // noRollbackFor đảm bảo flush/commit bộ đếm trước khi controller trả HTTP 400.
             throw new BadRequestException("Mã OTP không hợp lệ hoặc đã hết hạn.");
         }
         token.markVerified(now);
@@ -136,6 +141,11 @@ public class AuthService {
                         "Vui lòng chờ 60 giây giữa hai lần gửi mã OTP.");
             }
         });
+        if (verificationTokens.countByUserIdAndCreatedAtAfter(user.getId(), now.minusSeconds(3600)) >= 5) {
+            throw new com.stockflow.common.exception.AppException(
+                    org.springframework.http.HttpStatus.TOO_MANY_REQUESTS,
+                    "Bạn đã yêu cầu quá nhiều mã OTP. Vui lòng thử lại sau.");
+        }
         issueOtp(user, now);
         return RegistrationResponse.pending(user.getEmail());
     }
@@ -143,7 +153,7 @@ public class AuthService {
     private User pendingUser(String email) {
         User user = userRepository.findByEmailForVerification(normalizeEmail(email))
                 .orElseThrow(() -> new BadRequestException("Không thể xác thực email này."));
-        if (user.isEmailVerified() || user.getStatus() != UserStatus.ACTIVE) {
+        if (user.isEmailVerified() || user.getStatus() != UserStatus.ACTIVE || DemoAccountPolicy.isPublicOperator(user)) {
             throw new BadRequestException("Không thể xác thực email này.");
         }
         return user;
@@ -151,13 +161,13 @@ public class AuthService {
 
     private void issueOtp(User user, Instant now) {
         String previous = verificationTokens.findFirstByUserIdOrderByCreatedAtDescIdDesc(user.getId())
-                .map(EmailVerificationToken::getOtpCode).orElse(null);
+                .map(EmailVerificationToken::getOtpHash).filter(hash -> hash.startsWith("$2")).orElse(null);
         String candidate;
         do {
             candidate = String.format(Locale.ROOT, "%06d", random.nextInt(1_000_000));
-        } while (candidate.equals(previous));
+        } while (previous != null && passwordEncoder.matches(candidate, previous));
         String otp = candidate;
-        verificationTokens.save(new EmailVerificationToken(user, otp, now));
+        verificationTokens.save(new EmailVerificationToken(user, passwordEncoder.encode(otp), now));
         String email = user.getEmail();
         // Không gửi OTP cho transaction đã rollback.
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

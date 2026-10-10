@@ -1,13 +1,9 @@
 /* Hallmark · macrostructure: existing retail catalog · scope: storefront only
    Hallmark · pre-emit critique: P4 H4 E4 S5 R5 V3
-   Reuse StockFlow theme tokens; auth artwork and the portal keep their own backgrounds. */
+   Reuse StockFlow theme tokens; aura-background.css owns the page backdrop. */
 :root body:not(.portal-open):not(.auth-page-open) {
     --storefront-motion-duration: 180ms;
     --storefront-motion-easing: cubic-bezier(0.16, 1, 0.3, 1);
-    background: var(--background);
-}
-:root body:not(.portal-open):not(.auth-page-open) > .aura-bg {
-    display: none;
 }
 
 #storefront-view .shop-discovery > .tech-hero {
@@ -56,13 +52,24 @@
     background: var(--brand-hover);
 }
 
-/* Loaded cards never participate in entrance/re-entry animations. Also cover old reveal classes. */
+/* Repeatable scroll fade, without moving the observer's geometry at viewport
+   edges. Hover keeps its separate transform; shopping controls stay usable. */
 #storefront-view .product-card.scroll-reveal {
-    opacity: 1;
+    opacity: 0;
     translate: none;
     scale: 1;
     pointer-events: auto;
     will-change: auto;
+    transition:
+        opacity 500ms ease,
+        transform var(--storefront-motion-duration) var(--storefront-motion-easing);
+}
+#storefront-view .product-card.scroll-reveal.is-revealed,
+#storefront-view .product-card.scroll-reveal:focus-within {
+    opacity: 1;
+}
+#storefront-view .product-card.scroll-reveal:focus-within {
+    transition: none;
 }
 #storefront-view .product-card {
     transition: transform var(--storefront-motion-duration) var(--storefront-motion-easing);
@@ -77,7 +84,9 @@
     transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
-    #storefront-view .product-card {
+    #storefront-view .product-card,
+    #storefront-view .product-card.scroll-reveal {
+        opacity: 1;
         transition: none;
     }
     #storefront-view .product-card:hover,

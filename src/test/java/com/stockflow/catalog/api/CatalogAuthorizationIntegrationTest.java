@@ -12,6 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockflow.auth.security.JwtTokenProvider;
+import com.stockflow.auth.service.EmailService;
+import com.stockflow.auth.support.VerificationOtpMail;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.stockflow.catalog.domain.Category;
 import com.stockflow.catalog.repository.CategoryRepository;
 import com.stockflow.user.domain.Role;
@@ -27,7 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -41,9 +43,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class CatalogAuthorizationIntegrationTest {
-
-    @Autowired
-    private JdbcTemplate jdbc;
+    @MockitoBean private EmailService mail;
 
     @Autowired
     private MockMvc mockMvc;
@@ -147,11 +147,7 @@ class CatalogAuthorizationIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.requires_verification").value(true));
         String email = payload.get("email");
-        String otp = jdbc.queryForObject("""
-                SELECT t.otp_code FROM email_verification_tokens t
-                JOIN users u ON u.id = t.user_id
-                WHERE u.email = ? ORDER BY t.created_at DESC, t.id DESC LIMIT 1
-                """, String.class, email);
+        String otp = VerificationOtpMail.latest(mail, email);
         MvcResult result = mockMvc.perform(post("/api/v1/auth/verify-email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(Map.of("email", email, "otp", otp))))

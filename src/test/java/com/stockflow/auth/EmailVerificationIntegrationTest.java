@@ -5,6 +5,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stockflow.auth.service.EmailService;
+import com.stockflow.auth.support.VerificationOtpMail;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -26,6 +29,7 @@ class EmailVerificationIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
+    @MockitoBean EmailService mail;
 
     @Test
     void registrationRequiresVerificationAndLoginReturns403() throws Exception {
@@ -71,12 +75,12 @@ class EmailVerificationIntegrationTest {
     void resendIsThrottledAndSupersedesOldToken() throws Exception {
         String email = register();
         request("resend-otp", Map.of("email", email)).andExpect(status().isTooManyRequests());
-        // Dùng mã cố định cho token cũ, tránh phụ thuộc xác suất trùng mã ngẫu nhiên.
-        jdbc.update("UPDATE email_verification_tokens SET otp_code='000000', created_at=DATEADD('SECOND', -61, CURRENT_TIMESTAMP) WHERE user_id=(SELECT id FROM users WHERE email=?)", email);
+        String oldCode = otp(email);
+        jdbc.update("UPDATE email_verification_tokens SET created_at=DATEADD('SECOND', -61, CURRENT_TIMESTAMP) WHERE user_id=(SELECT id FROM users WHERE email=?)", email);
         request("resend-otp", Map.of("email", email)).andExpect(status().isOk());
         request("resend-otp", Map.of("email", email)).andExpect(status().isTooManyRequests());
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM email_verification_tokens t JOIN users u ON u.id=t.user_id WHERE u.email=?", Integer.class, email)).isEqualTo(2);
-        request("verify-email", Map.of("email", email, "otp", "000000")).andExpect(status().isBadRequest());
+        request("verify-email", Map.of("email", email, "otp", oldCode)).andExpect(status().isBadRequest());
         request("verify-email", Map.of("email", email, "otp", otp(email))).andExpect(status().isOk());
     }
 
@@ -111,9 +115,14 @@ class EmailVerificationIntegrationTest {
     @ParameterizedTest
     @CsvSource({"admin@stockflow.com,Admin@123", "manager@stockflow.com,Manager@123",
             "staff.hn@stockflow.com,Staff@123", "customer@stockflow.com,Customer@123"})
-    void demoAccountsStillLogin(String email, String password) throws Exception {
-        request("login", Map.of("email", email, "password", password)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.access_token").isNotEmpty());
+    void onlyPublicCustomerDemoCanLogin(String email, String password) throws Exception {
+        if (email.equals("customer@stockflow.com")) {
+            request("login", Map.of("email", email, "password", password)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.access_token").isNotEmpty());
+        } else {
+            request("login", Map.of("email", email, "password", password)).andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.access_token").doesNotExist());
+        }
     }
 
     private String register() throws Exception {
@@ -126,7 +135,7 @@ class EmailVerificationIntegrationTest {
     }
 
     private String otp(String email) {
-        return jdbc.queryForObject("SELECT otp_code FROM email_verification_tokens t JOIN users u ON u.id=t.user_id WHERE u.email=? ORDER BY t.created_at DESC,t.id DESC LIMIT 1", String.class, email);
+        return VerificationOtpMail.latest(mail, email);
     }
 
     private ResultActions request(String endpoint, Map<String, String> body) throws Exception {

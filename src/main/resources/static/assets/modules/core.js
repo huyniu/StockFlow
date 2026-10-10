@@ -56,6 +56,8 @@ function bounceCart() {
 
 function revealStorefrontElement(element) {
         element.classList.add('is-revealed');
+        // Cards keep observing after entry so scrolling back can fade them out.
+        if (element.matches('.product-card') && !__stockflowApp.reducedStorefrontMotion.matches) return;
         __stockflowApp.storefrontRevealObserver?.unobserve(element);
         __stockflowApp.observedStorefrontReveals.delete(element);
     }
@@ -66,7 +68,12 @@ function prepareStorefrontReveals() {
             __stockflowApp.storefrontRevealObserver = new IntersectionObserver(
                 (entries) => {
                     entries.forEach((entry) => {
-                        if (entry.isIntersecting) __stockflowApp.revealStorefrontElement(entry.target);
+                        if (entry.target.matches('.product-card')) {
+                            entry.target.classList.toggle('is-revealed',
+                                entry.isIntersecting || entry.target.contains(document.activeElement));
+                        } else if (entry.isIntersecting) {
+                            __stockflowApp.revealStorefrontElement(entry.target);
+                        }
                     });
                 },
                 { rootMargin: '0px 0px -32px 0px', threshold: 0 },
@@ -90,7 +97,7 @@ function prepareStorefrontReveals() {
                     element.classList.add('scroll-reveal');
                 }
             }
-            if (!element.classList.contains('is-revealed')) {
+            if (element.matches('.product-card') || !element.classList.contains('is-revealed')) {
                 __stockflowApp.observedStorefrontReveals.add(element);
                 __stockflowApp.storefrontRevealObserver.observe(element);
             }
@@ -806,9 +813,6 @@ export function initializeFeature() {
         { key: 'audio-five-million', label: 'Đến 5 triệu', min: '', max: '5000000' },
     ]);
 (DEMO_ACCOUNTS = {
-        ADMIN: { email: 'admin@stockflow.com', password: 'Admin@123' },
-        MANAGER: { email: 'manager@stockflow.com', password: 'Manager@123' },
-        WAREHOUSE_STAFF: { email: 'staff.hn@stockflow.com', password: 'Staff@123' },
         CUSTOMER: { email: 'customer@stockflow.com', password: 'Customer@123' },
     });
 (STATUS_LABELS = {
@@ -999,6 +1003,7 @@ document.addEventListener('close', __stockflowApp.syncMobilePurchase, true);
 (storefrontRevealSelector = [
         '.shop-hero',
         '.shop-benefits > span',
+        '.product-card',
         '.shelf-heading',
         '.catalog-discovery-filters',
         '.product-description',
@@ -1028,6 +1033,14 @@ __stockflowApp.reducedStorefrontMotion.addEventListener('change', () => {
 document.addEventListener('focusin', (event) => {
         const element = event.target.closest('.scroll-reveal');
         if (element) __stockflowApp.revealStorefrontElement(element);
+    });
+document.addEventListener('focusout', (event) => {
+        const element = event.target.closest('.product-card.scroll-reveal');
+        if (!element || element.contains(event.relatedTarget) || __stockflowApp.reducedStorefrontMotion.matches) return;
+        // A focused card is pinned visible. Re-observe on release so an offscreen
+        // card resumes fading even when its intersection geometry did not change.
+        __stockflowApp.storefrontRevealObserver?.unobserve(element);
+        __stockflowApp.storefrontRevealObserver?.observe(element);
     });
 (escapeHtml = (value) =>
         String(value ?? '').replace(

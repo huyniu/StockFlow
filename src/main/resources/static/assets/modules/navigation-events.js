@@ -648,8 +648,13 @@ document.addEventListener('click', (event) => {
         }
         const button = event.target.closest('button');
         if (!button || button.disabled) return;
+        if (button.dataset.action === 'checkout-login') {
+            if (!__stockflowApp.state.user) __stockflowApp.openAuth('checkout');
+            return;
+        }
         if (button.dataset.demoRole) {
-            __stockflowApp.execute(() => __stockflowApp.authenticate(__stockflowApp.DEMO_ACCOUNTS[button.dataset.demoRole], false, true));
+            const account = __stockflowApp.DEMO_ACCOUNTS[button.dataset.demoRole];
+            if (account) __stockflowApp.execute(() => __stockflowApp.authenticate(account, false, true));
             return;
         }
         if (button.dataset.shopTab) {
@@ -964,6 +969,10 @@ document.addEventListener('change', (event) => {
 document.addEventListener('submit', (event) => {
         event.preventDefault();
         const form = event.target;
+        if (form.id === 'order-create' && !__stockflowApp.state.user) {
+            __stockflowApp.openAuth('checkout');
+            return;
+        }
         if (!form.reportValidity()) return;
         const button = __stockflowApp.$('button[type="submit"]', form);
         const handlers = {
