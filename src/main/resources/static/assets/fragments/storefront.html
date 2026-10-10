@@ -10,6 +10,22 @@
                 hidden
             ></button>
             <header class="shop-header">
+                <div class="storefront-announcement" role="region" aria-label="Thông tin mua sắm">
+                    <div class="announcement-viewport">
+                        <div class="announcement-track">
+                            <span class="announcement-copy">Kiểm tra hàng tại Hà Nội · Đà Nẵng · TP.HCM • Thanh toán khi nhận hàng (COD) • Theo dõi đơn hàng và mã vận đơn • Gửi yêu cầu đổi trả ngay trong tài khoản</span>
+                            <span class="announcement-copy" aria-hidden="true">Kiểm tra hàng tại Hà Nội · Đà Nẵng · TP.HCM • Thanh toán khi nhận hàng (COD) • Theo dõi đơn hàng và mã vận đơn • Gửi yêu cầu đổi trả ngay trong tài khoản</span>
+                        </div>
+                    </div>
+                    <div class="announcement-controls">
+                        <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Chế độ tối" aria-pressed="false" title="Chuyển sang giao diện tối" hidden>
+                            <svg class="icon" viewBox="0 0 24 24" data-theme-icon="light" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5l1.5 1.5 M5 19l1.5-1.5 M17.5 6.5l1.5-1.5" /></svg>
+                            <svg class="icon" viewBox="0 0 24 24" data-theme-icon="dark" aria-hidden="true"><path d="M20.8 14.1A9 9 0 0 1 9.9 3.2 9 9 0 1 0 20.8 14.1Z" /></svg>
+                            <span class="theme-toggle-label">Sáng</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="shop-header-main">
                 <a href="/#shop" class="shop-brand" data-shop-link>
                     <span class="stockflow-logo" role="img" aria-label="StockFlow Tech"><img class="brand-logo-header" src="/assets/stockflow-logo-header.svg" width="500" height="110" alt="" /></span>
                 </a>
@@ -128,6 +144,7 @@
                     <button type="button" class="cart-trigger" data-action="open-cart" aria-label="Mở giỏ hàng">
                         <svg class="icon"><use href="#i-cart" /></svg><span>Giỏ hàng</span><b id="cart-badge">0</b>
                     </button>
+                </div>
                 </div>
             </header>
 

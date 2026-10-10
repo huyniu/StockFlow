@@ -169,8 +169,7 @@ async function screenshot(name) {
                     assert.ok(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), 'No page overflow');
                     if (width===375 || width===1366) {
                         await evaluate(`(()=>{const panel=document.querySelector('#${body}-rows').closest('.panel');
-                            const bar=document.querySelector('.demo-bar');
-                            scrollTo({top:Math.max(0,panel.getBoundingClientRect().top+scrollY-(bar?.getBoundingClientRect().height||54)-12),behavior:'instant'});})()`);
+                            scrollTo({top:Math.max(0,panel.getBoundingClientRect().top+scrollY-12),behavior:'instant'});})()`);
                         await screenshot(body+'-'+width+'-'+theme);
                     }
                     results.push({width,theme,body,photos:measured});

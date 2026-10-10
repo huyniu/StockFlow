@@ -13,6 +13,7 @@
     "css/compact-header.css",
     "css/brand-logo.css",
     "css/storefront-polish.css",
-    "css/aura-background.css"
+    "css/aura-background.css",
+    "css/storefront-header.css"
   ]
 }

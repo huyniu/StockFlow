@@ -3,43 +3,6 @@
     <div class="aura-layer aura-layer-2" aria-hidden="true"></div>
     <div class="aura-layer aura-layer-3" aria-hidden="true"></div>
         </div>
-<div class="demo-bar">
-            <span class="demo-caption"><span class="live-dot"></span>TRẢI NGHIỆM DEMO</span>
-            <details id="demo-account-switcher" class="demo-account-switcher" open>
-            <summary aria-label="Mở danh sách tài khoản demo">Tài khoản demo <span class="menu-chevron" aria-hidden="true">⌄</span></summary>
-            <nav class="demo-accounts" aria-label="Chuyển tài khoản demo">
-                <button type="button" data-demo-role="CUSTOMER" aria-pressed="false">
-                    🛒 <span class="demo-full">Khách mua hàng</span><span class="demo-short">Khách mua</span>
-                </button>
-            </nav>
-            </details>
-            <div class="session-controls">
-                <!-- Nút dùng chung cho khách và nhân viên; aria-pressed cho biết chế độ tối đang bật hay tắt. -->
-                <button
-                    type="button"
-                    id="theme-toggle"
-                    class="theme-toggle"
-                    aria-label="Chế độ tối"
-                    aria-pressed="false"
-                    title="Chuyển sang giao diện tối"
-                    hidden
-                >
-                    <svg class="icon" viewBox="0 0 24 24" data-theme-icon="light" aria-hidden="true">
-                        <circle cx="12" cy="12" r="4" />
-                        <path
-                            d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5l1.5 1.5 M5 19l1.5-1.5 M17.5 6.5l1.5-1.5"
-                        />
-                    </svg>
-                    <svg class="icon" viewBox="0 0 24 24" data-theme-icon="dark" aria-hidden="true">
-                        <path d="M20.8 14.1A9 9 0 0 1 9.9 3.2 9 9 0 1 0 20.8 14.1Z" />
-                    </svg>
-                    <span class="theme-toggle-label">Sáng</span>
-                </button>
-                <span id="identity-email">Chưa đăng nhập</span>
-                <span id="identity-role" class="badge neutral">Khách</span>
-                <button type="button" class="text-button" id="logout" data-action="logout" hidden>Đăng xuất</button>
-            </div>
-        </div>
 <div id="api-notice" class="notice" role="status" hidden></div>
 <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
 <noscript><div class="noscript-message">Vui lòng bật JavaScript để mua sắm tại StockFlow Tech.</div></noscript>

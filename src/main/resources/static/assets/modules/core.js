@@ -1,6 +1,6 @@
 import { app as __stockflowApp } from './context.js';
 
-let SESSION_KEY, wishlistOwner, wishlistIds, wishlistLoadVersion, checkoutDifferentAddress, administeredUsers, CART_KEY, CHECKOUT_ATTEMPT_KEY, checkoutAttempt, MAX_CART_ITEMS, ORDER_REFRESH_MS, EXPIRED_ORDER_REFRESH_MS, READ_TIMEOUT_MS, MAX_QUANTITY, MAX_GALLERY_IMAGES, CATALOG_PRICE_RANGES, LAPTOP_PRICE_RANGES, AUDIO_PRICE_RANGES, DEMO_ACCOUNTS, STATUS_LABELS, MOVEMENT_LABELS, ROLE_CLASSES, ROLE_LABELS, PORTAL_TITLES, PRODUCT_IMAGES, PRODUCT_IMAGE_RULES, CATEGORY_IMAGES, state, requests, channels, searchSuggestions, SEARCH_SUGGESTION_DELAY_MS, SEARCH_SUGGESTION_LIMIT, routedLocation, imagePreviewTimers, numberFormat, moneyFormat, $, $$, mobilePurchaseMedia, purchaseObserver, purchaseScrollFrame, cartBounceTimer, orderRefreshTimer, orderRefreshRun, orderRefreshVersion, orderRefreshFailures, lastOrderRefreshAttempt, storefrontRevealSelector, reducedStorefrontMotion, observedStorefrontReveals, storefrontRevealObserver, homeCategoryDesktop, escapeHtml, amount, integer, hasRole, icon, isOperator;
+let SESSION_KEY, wishlistOwner, wishlistIds, wishlistLoadVersion, checkoutDifferentAddress, administeredUsers, CART_KEY, CHECKOUT_ATTEMPT_KEY, checkoutAttempt, MAX_CART_ITEMS, ORDER_REFRESH_MS, EXPIRED_ORDER_REFRESH_MS, READ_TIMEOUT_MS, MAX_QUANTITY, MAX_GALLERY_IMAGES, CATALOG_PRICE_RANGES, LAPTOP_PRICE_RANGES, AUDIO_PRICE_RANGES, STATUS_LABELS, MOVEMENT_LABELS, ROLE_CLASSES, ROLE_LABELS, PORTAL_TITLES, PRODUCT_IMAGES, PRODUCT_IMAGE_RULES, CATEGORY_IMAGES, state, requests, channels, searchSuggestions, SEARCH_SUGGESTION_DELAY_MS, SEARCH_SUGGESTION_LIMIT, routedLocation, imagePreviewTimers, numberFormat, moneyFormat, $, $$, mobilePurchaseMedia, purchaseObserver, purchaseScrollFrame, cartBounceTimer, orderRefreshTimer, orderRefreshRun, orderRefreshVersion, orderRefreshFailures, lastOrderRefreshAttempt, storefrontRevealSelector, reducedStorefrontMotion, observedStorefrontReveals, storefrontRevealObserver, homeCategoryDesktop, escapeHtml, amount, integer, hasRole, icon, isOperator;
 
 function syncMobilePurchase() {
         const bar = __stockflowApp.$('#mobile-purchase-bar');
@@ -697,7 +697,6 @@ Object.defineProperties(__stockflowApp, {
 "CATALOG_PRICE_RANGES": { get: () => CATALOG_PRICE_RANGES },
 "LAPTOP_PRICE_RANGES": { get: () => LAPTOP_PRICE_RANGES },
 "AUDIO_PRICE_RANGES": { get: () => AUDIO_PRICE_RANGES },
-"DEMO_ACCOUNTS": { get: () => DEMO_ACCOUNTS },
 "STATUS_LABELS": { get: () => STATUS_LABELS },
 "MOVEMENT_LABELS": { get: () => MOVEMENT_LABELS },
 "ROLE_CLASSES": { get: () => ROLE_CLASSES },
@@ -812,9 +811,6 @@ export function initializeFeature() {
         { key: 'audio-two-million', label: 'Đến 2 triệu', min: '', max: '2000000' },
         { key: 'audio-five-million', label: 'Đến 5 triệu', min: '', max: '5000000' },
     ]);
-(DEMO_ACCOUNTS = {
-        CUSTOMER: { email: 'customer@stockflow.com', password: 'Customer@123' },
-    });
 (STATUS_LABELS = {
         PENDING: 'Chờ thanh toán',
         CONFIRMED: 'Đã xác nhận',

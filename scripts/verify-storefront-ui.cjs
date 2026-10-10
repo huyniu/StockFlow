@@ -92,6 +92,104 @@ async function until(expression,timeout=10000){const end=Date.now()+timeout;whil
 async function screenshot(name){const value=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(evidence,name+'.png'),Buffer.from(value.data,'base64'));}
 async function viewport(width,height=850){await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<768});}
 async function noOverflow(label){const dimensions=await evaluate(`({viewport:innerWidth,width:document.documentElement.scrollWidth,body:document.body.scrollWidth})`);assert.ok(dimensions.width<=dimensions.viewport+1,label+' '+JSON.stringify(dimensions));}
+async function verifyStorefrontHeader(base){
+ const results=[];
+ const text='Kiểm tra hàng tại Hà Nội · Đà Nẵng · TP.HCM • Thanh toán khi nhận hàng (COD) • Theo dõi đơn hàng và mã vận đơn • Gửi yêu cầu đổi trả ngay trong tài khoản';
+ for(const width of [320,375,414,768,1366])for(const theme of ['light','dark'])for(const reduced of [false,true]){
+  await viewport(width,950);
+  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:reduced?'reduce':'no-preference'}]});
+  await send('Page.navigate',{url:base+'/'});await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready'`);
+  await evaluate(`sessionStorage.clear();localStorage.setItem('stockflow.web.theme',${JSON.stringify(theme)})`);
+  const stamp=await evaluate('performance.timeOrigin');await send('Page.reload',{ignoreCache:true});
+  await until(`performance.timeOrigin!==${stamp} && document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready' && document.documentElement.dataset.theme===${JSON.stringify(theme)}`);
+  await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:width-5,y:900});
+  assert.equal(await evaluate(`document.querySelectorAll('.demo-bar,#demo-account-switcher,[data-demo-role]').length`),0,'Demo controls removed');
+  assert.equal(await evaluate(`document.querySelector('#announcement-pause')`),null,'Pause button removed');
+  assert.equal(await evaluate(`document.querySelector('.announcement-copy').textContent`),text);
+  assert.equal(await evaluate(`document.querySelectorAll('.announcement-copy[aria-hidden="true"]').length`),1,'Loop copy hidden from screen readers');
+  assert.ok(await evaluate(`(()=>{const strip=getComputedStyle(document.querySelector('.storefront-announcement')).backgroundColor,header=getComputedStyle(document.querySelector('.shop-header')).backgroundColor;return strip==='rgba(0, 0, 0, 0)'||strip===header;})()`),'Announcement shares header background in both themes');
+  assert.equal(await evaluate(`getComputedStyle(document.querySelector('#theme-toggle')).backgroundColor`),'rgba(0, 0, 0, 0)','Theme control blends into header');
+  const visible=await send('Accessibility.getFullAXTree');
+  assert.equal(visible.nodes.filter(row=>row.role?.value==='StaticText'&&row.name?.value===text&&!row.ignored).length,1,'Announcement read once');
+  const metrics=await evaluate(`(()=>{const strip=document.querySelector('.storefront-announcement'),copy=document.querySelector('.announcement-copy'),track=document.querySelector('.announcement-track');const range=document.createRange();range.selectNodeContents(copy);const r=range.getBoundingClientRect(),v=copy.parentElement.parentElement.getBoundingClientRect();return {height:strip.getBoundingClientRect().height,animation:getComputedStyle(track).animationName,copyLeft:r.left,copyRight:r.right,copyTop:r.top,copyBottom:r.bottom,viewLeft:v.left,viewRight:v.right,viewTop:v.top,viewBottom:v.bottom,duplicate:getComputedStyle(document.querySelector('.announcement-copy[aria-hidden]')).display};})()`);
+  if(reduced){
+   assert.equal(metrics.animation,'none');assert.equal(metrics.duplicate,'none');
+   assert.ok(metrics.copyLeft>=metrics.viewLeft&&metrics.copyRight<=metrics.viewRight+1&&metrics.copyTop>=metrics.viewTop&&metrics.copyBottom<=metrics.viewBottom+1,'Reduced motion shows full text '+JSON.stringify(metrics));
+  }else{
+   assert.ok(metrics.height>=30&&metrics.height<=34,'Compact announcement height');
+   assert.equal(metrics.animation,'storefront-announcement-scroll');
+   const x=()=>evaluate(`new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.announcement-track')).transform).m41`);
+   const first=await x();await new Promise(r=>setTimeout(r,180));assert.ok(await x()<first,'Moves right to left');
+   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:20,y:15});
+   assert.equal(await evaluate(`getComputedStyle(document.querySelector('.announcement-track')).animationPlayState`),'running','Hover must not pause movement');
+   const hover=await x();await new Promise(r=>setTimeout(r,160));assert.ok(await x()<hover,'Keeps moving while hovered');
+   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:width-5,y:900});
+   await until(`getComputedStyle(document.querySelector('.announcement-track')).animationPlayState==='running'`);
+   await evaluate(`document.querySelector('#theme-toggle').focus()`);
+   assert.equal(await evaluate(`document.activeElement.id`),'theme-toggle','Theme control remains keyboard accessible');
+   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+   assert.equal(await evaluate(`document.documentElement.dataset.theme`),theme==='light'?'dark':'light','Enter toggles theme');
+   assert.equal(await evaluate(`getComputedStyle(document.querySelector('.announcement-track')).animationPlayState`),'running','Theme focus does not stop announcement');
+   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+   assert.equal(await evaluate(`document.documentElement.dataset.theme`),theme);
+   await evaluate(`document.activeElement.blur()`);
+   const seam=await evaluate(`(()=>{const t=document.querySelector('.announcement-track'),a=t.getAnimations()[0],duration=a.effect.getTiming().duration,copies=t.children;a.pause();a.currentTime=duration-0.01;const before=copies[1].getBoundingClientRect().left;a.currentTime=0;const after=copies[0].getBoundingClientRect().left;a.play();return {difference:Math.abs(before-after),gap:copies[1].getBoundingClientRect().left-copies[0].getBoundingClientRect().right};})()`);
+   assert.ok(seam.difference<1&&Math.abs(seam.gap)<1,'Continuous loop seam '+JSON.stringify(seam));
+  }
+  await noOverflow('Header '+width+' '+theme+' reduced='+reduced);
+  await evaluate(`scrollTo({top:600,behavior:'instant'})`);
+  assert.equal(await evaluate(`document.querySelector('.shop-header').getBoundingClientRect().top`),0,'Sticky starts at viewport top');
+  await evaluate(`document.querySelector('#category-menu-toggle').click()`);
+  await until(`!document.querySelector('#category-menu-panel').hidden && Number(getComputedStyle(document.querySelector('#category-menu-panel')).opacity)>.99`);
+  await evaluate(`new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);
+  assert.ok(await evaluate(`document.querySelector('#category-menu-panel').getBoundingClientRect().top>=document.querySelector('.shop-header').getBoundingClientRect().bottom`),'Menu below full header');
+  await evaluate(`document.querySelector('#category-menu-panel [data-action="close-category-menu"]').click();const q=document.querySelector('#catalog-query');q.focus();q.value='Sản phẩm';q.dispatchEvent(new Event('input',{bubbles:true}));`);
+  await until(`!document.querySelector('#search-suggestions').hidden && document.querySelector('.search-suggestion')`);
+  assert.ok(await evaluate(`document.querySelector('#search-suggestions').getBoundingClientRect().top>=document.querySelector('.shop-header-main').getBoundingClientRect().top`),'Suggestions do not cover announcement');
+  await evaluate(`document.querySelector('#catalog-query').value='';document.querySelector('#catalog-query').dispatchEvent(new Event('input',{bubbles:true}));document.activeElement.blur();scrollTo({top:0,behavior:'instant'})`);
+  if(width===375||width===1366)await screenshot('header-'+width+'-'+theme+(reduced?'-reduced':''));
+  // Both header theme controls use the same persisted preference.
+  await evaluate(`document.querySelector('#theme-toggle').click()`);
+  const other=theme==='light'?'dark':'light';
+  assert.equal(await evaluate(`document.documentElement.dataset.theme`),other);
+  assert.equal(await evaluate(`document.querySelector('#portal-theme-toggle').getAttribute('aria-pressed')`),String(other==='dark'));
+  await evaluate(`document.querySelector('#theme-toggle').click()`);
+  if(width===375||width===1366){
+   await evaluate(`document.querySelector('#open-login').click()`);await until(`location.pathname==='/login'`);
+   assert.equal(await evaluate(`document.querySelector('.storefront-announcement').getBoundingClientRect().height`),0,'No announcement on login page');
+   await evaluate(`document.querySelector('#auth-email').value='layout@example.test';document.querySelector('#auth-password').value='Secret@123';document.querySelector('#auth-form').requestSubmit()`);
+   await until(`!document.querySelector('#header-account').hidden && document.querySelector('#catalog-grid').dataset.catalogStatus==='ready' && (async()=>{const {app}=await import('/assets/modules/context.js');return !app.state.authBusy;})()`);
+   await evaluate(`document.querySelector('#header-account').open=true`);
+   assert.equal(await evaluate(`document.querySelector('#account-menu-email').textContent`),user.email);
+   await evaluate(`document.querySelector('#header-account [data-action="logout"]').click()`);
+   await until(`!document.querySelector('#open-login').hidden && document.querySelector('#header-account').hidden`);
+   // Wait for logout's reference/catalog refresh before starting another auth route.
+   await until(`document.querySelector('#catalog-grid').dataset.catalogStatus==='ready' && (async()=>{const {app}=await import('/assets/modules/context.js');return app.requests.size===0;})()`);
+   user.role='ADMIN';
+   await evaluate(`document.querySelector('#open-login').click()`);await until(`location.pathname==='/login'`);
+   await evaluate(`document.querySelector('#auth-email').value='layout@example.test';document.querySelector('#auth-password').value='Secret@123';document.querySelector('#auth-form').requestSubmit()`);
+   await until(`document.body.classList.contains('portal-open') && !document.querySelector('#logout').hidden && (async()=>{const {app}=await import('/assets/modules/context.js');return !app.state.authBusy;})()`);
+   assert.equal(await evaluate(`document.querySelector('.storefront-announcement').getBoundingClientRect().height`),0,'No announcement in admin');
+   assert.equal(await evaluate(`document.querySelector('#identity-email').textContent`),user.email);
+   assert.equal(await evaluate(`document.querySelector('#identity-role').textContent`),'Quản trị viên');
+   await evaluate(`document.querySelector('#portal-theme-toggle').click()`);assert.equal(await evaluate(`document.documentElement.dataset.theme`),other);
+   await evaluate(`document.querySelector('#portal-theme-toggle').click()`);
+   await noOverflow('Admin header '+width);await screenshot('header-admin-'+width+'-'+theme+(reduced?'-reduced':''));
+   await evaluate(`document.querySelector('.portal-header [data-action="open-shop"]').click()`);
+   await until(`!document.body.classList.contains('portal-open') && !document.querySelector('#header-account').hidden`);
+   await evaluate(`document.querySelector('#header-account').open=true;document.querySelector('#header-account [data-action="open-portal"]').click()`);
+   await until(`document.body.classList.contains('portal-open')`);
+   await evaluate(`document.querySelector('#logout').click()`);
+   await until(`!document.body.classList.contains('portal-open') && !document.querySelector('#open-login').hidden`);
+   assert.equal(await evaluate(`sessionStorage.getItem('stockflow.web.session')`),null,'Logout clears session');
+   user.role='CUSTOMER';
+  }
+  results.push({width,theme,reduced,...metrics});console.log('PASS: header '+width+' '+theme+' reduced='+reduced+'; loop/hover/keyboard, sticky, menu/search/theme'+([375,1366].includes(width)?', login/logout/admin':''));
+ }
+ fs.writeFileSync(path.join(evidence,'header-metrics.json'),JSON.stringify(results,null,2));
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+ assert.equal(exceptions.length,0,JSON.stringify(exceptions));
+}
 async function verifyGuestCheckoutLogin(base){
  for(const width of [375,1366]){
   await viewport(width);await send('Page.navigate',{url:base+'/'});
@@ -285,6 +383,8 @@ async function verifyScrolledCategoryMenu(base){
  const target=await send('Target.createTarget',{url:'about:blank'},false);session=(await send('Target.attachToTarget',{targetId:target.targetId,flatten:true},false)).sessionId;
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBlockedURLs',{urls:['https://*']});
  console.log('Browser connected');
+ if(process.argv.includes('--header-only')){await verifyStorefrontHeader(base);return;}
+ await verifyStorefrontHeader(base);
  await verifyGuestCheckoutLogin(base);if(process.argv.includes('--checkout-login-only'))return;
  if(process.argv.includes('--category-menu-only')){await verifyScrolledCategoryMenu(base);return;}
  await verifyShelfRoutes(base);if(process.argv.includes('--shelf-only'))return;

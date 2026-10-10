@@ -1,6 +1,6 @@
 /* Kết quả luôn nằm dưới header cố định, kể cả khi chiều cao header thay đổi theo màn hình. */
 #product-shelf {
-    scroll-margin-top: calc(var(--demo-height) + var(--shop-header-height,112px) + 16px);
+    scroll-margin-top: calc(var(--shop-header-height,144px) + 16px);
 }
 .catalog-filters-panel {
     min-width: 0;

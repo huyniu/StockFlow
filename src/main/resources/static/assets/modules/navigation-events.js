@@ -652,11 +652,6 @@ document.addEventListener('click', (event) => {
             if (!__stockflowApp.state.user) __stockflowApp.openAuth('checkout');
             return;
         }
-        if (button.dataset.demoRole) {
-            const account = __stockflowApp.DEMO_ACCOUNTS[button.dataset.demoRole];
-            if (account) __stockflowApp.execute(() => __stockflowApp.authenticate(account, false, true));
-            return;
-        }
         if (button.dataset.shopTab) {
             __stockflowApp.execute(() => __stockflowApp.activateView('shop', button.dataset.shopTab));
             return;
@@ -1044,7 +1039,7 @@ document.addEventListener('submit', (event) => {
             return;
         }
         if (form.id === 'otp-form') {
-            __stockflowApp.execute(() => __stockflowApp.authenticate({ email: __stockflowApp.otpEmail, otp: __stockflowApp.$('#otp-code').value.trim() }, false, false, true));
+            __stockflowApp.execute(() => __stockflowApp.authenticate({ email: __stockflowApp.otpEmail, otp: __stockflowApp.$('#otp-code').value.trim() }, false, true));
         } else if (form.id === 'auth-form') {
             const body = { email: __stockflowApp.$('#auth-email').value.trim(), password: __stockflowApp.$('#auth-password').value };
             if (__stockflowApp.state.authMode === 'register') body.full_name = __stockflowApp.$('#auth-name').value.trim();

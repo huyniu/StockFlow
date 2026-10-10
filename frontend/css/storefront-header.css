@@ -1,0 +1,61 @@
+/* Một header sticky đo cả dòng thông tin, không cần offset của thanh demo. */
+.shop-header { display: block; padding: 0; top: 0; }
+.shop-header-main {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 12px max(24px, calc((100vw - 1280px) / 2));
+}
+.storefront-announcement {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+    /* Dùng nền của header ở cả hai theme, không tạo một dải màu riêng. */
+    background: transparent;
+    color: #fff;
+    font-size: 13px;
+    line-height: 20px;
+}
+.announcement-viewport { flex: 1; min-width: 0; overflow: hidden; }
+.announcement-track {
+    display: flex;
+    width: max-content;
+    animation: storefront-announcement-scroll 48s linear infinite;
+}
+.announcement-copy { flex: none; padding-inline: 24px; white-space: nowrap; }
+@keyframes storefront-announcement-scroll { to { transform: translateX(-50%); } }
+.announcement-controls { display: flex; flex: none; padding-right: 4px; }
+.shop-header .storefront-announcement .announcement-controls button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 4px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #fff;
+}
+.storefront-announcement .theme-toggle-label { display: none; }
+.storefront-announcement .announcement-controls button:hover { background: rgb(255 255 255 / 15%); }
+.storefront-announcement .announcement-controls button:focus-visible { outline: 2px solid #fff; outline-offset: -3px; }
+.portal-header { flex-wrap: wrap; }
+.portal-user { margin-left: auto; }
+.portal-header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; }
+.portal-header-actions .theme-toggle { min-width: 36px; height: 36px; min-height: 36px; }
+.portal-header-actions .text-button { min-height: 36px; }
+@media (max-width: 1050px) {
+    .shop-header-main { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding: 8px 16px; }
+}
+@media (max-width: 760px) {
+    .shop-header-main { padding-inline: 12px; }
+    .portal-header-actions { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .announcement-track { width: auto; animation: none; transform: none; }
+    .announcement-copy { flex: 1; padding: 6px 12px; white-space: normal; overflow-wrap: anywhere; }
+    .announcement-copy[aria-hidden='true'] { display: none !important; }
+    .storefront-announcement { align-items: flex-start; }
+}

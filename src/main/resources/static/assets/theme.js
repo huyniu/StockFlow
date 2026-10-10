@@ -32,7 +32,7 @@
         if (meta) meta.content = theme === 'dark' ? '#0b1220' : '#2563eb';
 
         const dark = theme === 'dark';
-        document.querySelectorAll('#theme-toggle, #auth-theme-toggle').forEach(button => {
+        document.querySelectorAll('#theme-toggle, #portal-theme-toggle, #auth-theme-toggle').forEach(button => {
             button.setAttribute('aria-pressed', String(dark));
             button.title = dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối';
             const label = button.querySelector('.theme-toggle-label');
@@ -47,7 +47,7 @@
     /** Bấm nút chỉ đổi bảng màu và lưu sở thích, không tải lại trang hay gửi request nghiệp vụ. */
     function initializeToggle() {
         applyTheme(preferredTheme());
-        document.querySelectorAll('#theme-toggle, #auth-theme-toggle').forEach(button => {
+        document.querySelectorAll('#theme-toggle, #portal-theme-toggle, #auth-theme-toggle').forEach(button => {
             if (button.dataset.themeBound) return;
             button.dataset.themeBound = 'true';
             button.addEventListener('click', () => {

@@ -67,10 +67,6 @@
 :root[data-theme='dark'] body {
     background: var(--background);
 }
-:root[data-theme='dark'] .demo-bar {
-    background: var(--control-surface);
-    border-color: var(--line);
-}
 :root[data-theme='dark'] .theme-toggle {
     background: var(--surface-muted);
     color: var(--brand);
@@ -237,7 +233,6 @@
         .shop-product-purchase label,
         .shop-product-page .version-picker legend,
         .shop-product-page .color-picker legend,
-        .demo-caption,
         .brand-shop,
         .shop-brand small,
         .hero-copy p,
@@ -393,7 +388,7 @@
     background: var(--brand-hover);
 }
 :root[data-theme='dark']
-    :is(.secondary, .demo-accounts button, .catalog-action, .category-menu-toggle, .cart-trigger, .color-reset) {
+    :is(.secondary, .catalog-action, .category-menu-toggle, .cart-trigger, .color-reset) {
     background: var(--surface-muted);
     color: var(--text);
     border-color: var(--line);
@@ -401,8 +396,6 @@
 :root[data-theme='dark']
     :is(
         .secondary:hover,
-        .demo-accounts button.active,
-        .demo-accounts button:hover,
         .theme-toggle:hover,
         .icon-button:hover,
         .catalog-action:hover,

@@ -64,7 +64,16 @@
                     </div>
                     <div class="portal-user">
                         <span id="portal-name"></span><span id="portal-scope" class="subtle"></span>
+                        <span id="identity-email" class="subtle"></span><span id="identity-role" class="badge neutral"></span>
+                    </div>
+                    <div class="portal-header-actions">
+                        <button type="button" id="portal-theme-toggle" class="theme-toggle" aria-label="Chế độ tối" aria-pressed="false" title="Chuyển sang giao diện tối" hidden>
+                            <svg class="icon" viewBox="0 0 24 24" data-theme-icon="light" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5l1.5 1.5 M5 19l1.5-1.5 M17.5 6.5l1.5-1.5" /></svg>
+                            <svg class="icon" viewBox="0 0 24 24" data-theme-icon="dark" aria-hidden="true"><path d="M20.8 14.1A9 9 0 0 1 9.9 3.2 9 9 0 1 0 20.8 14.1Z" /></svg>
+                            <span class="theme-toggle-label">Sáng</span>
+                        </button>
                         <button type="button" class="text-button" data-action="open-shop">← Xem cửa hàng</button>
+                        <button type="button" class="text-button" id="logout" data-action="logout" hidden>Đăng xuất</button>
                     </div>
                 </header>
                 <main class="portal-main">

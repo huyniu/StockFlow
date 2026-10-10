@@ -6,6 +6,7 @@ const upstream = process.env.STOCKFLOW_LOCAL_URL || 'http://localhost:8080';
 const chrome = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const before = process.argv.includes('--before'), stage = before ? 'before' : 'after';
 const detailsOnly = process.argv.includes('--details-only');
+const headerOnly = process.argv.includes('--header-only');
 const evidence = path.join(root, 'target/mobile-support-verification'), baseline = path.join(evidence, 'before-assets');
 fs.mkdirSync(evidence, { recursive: true });
 const baselineRoutes = ['/styles.css', '/assets/fragments/storefront.html', '/assets/modules/navigation-events.js'];
@@ -205,6 +206,31 @@ async function detailCheck(base, width, value, productId) {
     await send('Page.enable'); await send('Runtime.enable'); await send('Network.enable');
     await send('Network.setBlockedURLs', { urls: ['https://accounts.google.com/*', 'https://fonts.googleapis.com/*', 'https://fonts.gstatic.com/*'] });
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    if (headerOnly) {
+        for (const width of [320,375,414,768,1366]) {
+            await send('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width < 768 });
+            await send('Page.navigate', { url: base + '/#product-shelf' });
+            await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready' && document.querySelectorAll('#catalog-grid .product-card').length>0`);
+            for (const value of ['light','dark']) for (const reduced of [false,true]) {
+                await theme(value);
+                await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: reduced ? 'reduce' : 'no-preference' }] });
+                await until(`Math.abs(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--shop-header-height'))-document.querySelector('.shop-header').getBoundingClientRect().height)<1`);
+                await evaluate(`(()=>{const r=document.querySelector('#catalog-grid .product-card').getBoundingClientRect();scrollTo({top:scrollY+r.top-document.querySelector('.shop-header').getBoundingClientRect().height-16,behavior:'instant'});})()`);
+                await until(`Number(getComputedStyle(document.querySelector('#catalog-grid .product-card')).opacity)>.999 && [...document.querySelectorAll('#catalog-grid .product-card img')].every(img=>img.complete&&img.naturalWidth>0)`);
+                assert.ok(await evaluate(`document.documentElement.scrollWidth<=innerWidth+1`),'Real catalog header overflow');
+                assert.equal(await evaluate(`document.querySelector('.shop-header').getBoundingClientRect().top`),0,'Real catalog sticky offset');
+                assert.equal(await evaluate(`document.querySelectorAll('.demo-bar,[data-demo-role]').length`),0);
+                const photos=await evaluate(`[...document.querySelectorAll('#catalog-grid .product-card')].map(card=>({name:card.querySelector('h3').textContent,image:card.querySelector('img').currentSrc}))`);
+                await screenshot(`header-real-${width}-${value}${reduced?'-reduced':''}`);
+                results.push({width,theme:value,reduced,photos});
+                console.log(`PASS real header ${width}px ${value} reduced=${reduced}: ${photos.length} real products, loaded images, sticky, no overflow`);
+            }
+        }
+        assert.equal(failures.length,0,JSON.stringify(failures));
+        assert.ok(requests.every(request=>request.method==='GET'),'Only GET requests reached the local API');
+        fs.writeFileSync(path.join(evidence,'header-real-metrics.json'),JSON.stringify({upstream,results,requests},null,2));
+        return;
+    }
     for (const width of detailsOnly ? [] : [320, 375, 414, 1366, 1920]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width < 768 });
         await send('Emulation.setTouchEmulationEnabled', { enabled: width < 768 });

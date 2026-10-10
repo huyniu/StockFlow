@@ -3,9 +3,6 @@
     :root {
         --sidebar-width: 210px;
     }
-    .demo-caption {
-        display: none;
-    }
     .shop-header {
         gap: 18px;
     }
@@ -40,9 +37,6 @@
     }
 }
 @media (max-width: 1050px) {
-    .session-controls #identity-email {
-        display: none;
-    }
     .shop-header {
         flex-wrap: wrap;
     }
@@ -79,39 +73,7 @@
 }
 @media (max-width: 760px) {
     :root {
-        --demo-height: 79px;
         --sidebar-width: 0px;
-    }
-    .demo-bar {
-        flex-wrap: wrap;
-        gap: 4px;
-        padding: 7px 12px;
-        align-content: center;
-    }
-    .demo-accounts {
-        flex-basis: 100%;
-        overflow-x: auto;
-        padding-bottom: 3px;
-        scrollbar-width: none;
-    }
-    .demo-accounts button {
-        font-size: 9px;
-        padding: 6px 8px;
-    }
-    .demo-full {
-        display: none;
-    }
-    .demo-short {
-        display: inline;
-    }
-    .session-controls {
-        width: 100%;
-        gap: 7px;
-        height: 25px;
-    }
-    .session-controls #identity-email {
-        display: inline;
-        max-width: 185px;
     }
     .shop-header {
         padding: 17px 16px;
@@ -389,4 +351,3 @@
     }
     /* Kết thúc responsive chung trước các thành phần catalog để desktop cũng được áp dụng. */
 }
-

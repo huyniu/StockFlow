@@ -24,12 +24,6 @@ function renderIdentity() {
         __stockflowApp.$('#portal-scope').textContent = __stockflowApp.hasRole('WAREHOUSE_STAFF')
             ? 'Chỉ các kho được phân công'
             : 'Vận hành tất cả kho';
-        __stockflowApp.$$('[data-demo-role]').forEach((button) => {
-            const active = __stockflowApp.state.user?.email === __stockflowApp.DEMO_ACCOUNTS[button.dataset.demoRole].email;
-            button.classList.toggle('active', active);
-            button.setAttribute('aria-pressed', String(active));
-            button.disabled = __stockflowApp.state.authBusy;
-        });
         __stockflowApp.$('#auth-submit').disabled = __stockflowApp.state.authBusy;
     }
 
@@ -151,9 +145,9 @@ function setActive(button, active) {
         else button.removeAttribute('aria-current');
     }
 
-async function authenticate(credentials, register = false, demo = false, verification = false, googleLogin = false) {
+async function authenticate(credentials, register = false, verification = false, googleLogin = false) {
         if (__stockflowApp.state.authBusy) return;
-        const intent = demo ? 'login' : __stockflowApp.state.authIntent;
+        const intent = __stockflowApp.state.authIntent;
         const returnPath = __stockflowApp.loginReturnPath;
         const guestCart = !__stockflowApp.state.user ? __stockflowApp.readSavedCart() : null;
         if (!verification) __stockflowApp.clearSession({ preserveCart: !__stockflowApp.state.user });
@@ -228,7 +222,7 @@ async function authenticate(credentials, register = false, demo = false, verific
                 __stockflowApp.$('#otp-error').hidden = false;
                 return;
             }
-            if (epoch === __stockflowApp.state.epoch && error.name !== 'AbortError' && !__stockflowApp.state.token && !demo) {
+            if (epoch === __stockflowApp.state.epoch && error.name !== 'AbortError' && !__stockflowApp.state.token) {
                 __stockflowApp.openDialog('auth-dialog');
                 __stockflowApp.$('#auth-error').textContent = error.message;
                 __stockflowApp.$('#auth-error').hidden = false;
@@ -364,7 +358,7 @@ async function initializeGoogleLogin() {
                 client_id: config.client_id, nonce: config.nonce, auto_select: false,
                 callback: response => {
                     if (version !== __stockflowApp.googleLoginVersion || !__stockflowApp.$('#auth-dialog').open || __stockflowApp.state.authBusy) return;
-                    __stockflowApp.execute(() => __stockflowApp.authenticate({ credential: response.credential }, false, false, false, true));
+                    __stockflowApp.execute(() => __stockflowApp.authenticate({ credential: response.credential }, false, false, true));
                 },
             });
             window.google.accounts.id.renderButton(host, { type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', locale: 'vi', width: Math.max(200, Math.min(320, Math.floor(host.parentElement.clientWidth))) });

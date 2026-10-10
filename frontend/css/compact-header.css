@@ -1,8 +1,7 @@
 /* Header giữ hai hàng trên màn hình nhỏ; các menu mở nổi để không đẩy nội dung xuống. */
 .shop-header { padding-block: 12px; gap: 18px; }
-.shop-header-search-row,.demo-account-switcher { display: contents; }
+.shop-header-search-row { display: contents; }
 .branch-picker-label { display: block; }
-.demo-account-switcher > summary { display: none; }
 
 @media (max-width: 1050px) {
     .shop-header {
@@ -45,28 +44,14 @@
     .shop-header .category-menu-panel { top: var(--category-menu-top); }
 }
 @media (max-width: 760px) {
-    :root { --demo-height: 36px; }
-    .demo-bar { flex-wrap: nowrap; gap: 8px; padding: 2px 12px; }
-    .demo-account-switcher { position: relative; display: block; flex-shrink: 0; }
-    .demo-account-switcher > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-size: 11px; cursor: pointer; list-style: none; }
-    .demo-account-switcher > summary::-webkit-details-marker { display: none; }
-    .demo-account-switcher > summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-    .demo-account-switcher[open] > summary .menu-chevron { transform: rotate(180deg); }
-    .demo-account-switcher .demo-accounts { position: absolute; left: 0; top: calc(100% + 6px); z-index: 91; display: grid; grid-template-columns: 1fr 1fr; width: min(280px,calc(100vw - 24px)); padding: 8px; gap: 6px; overflow: visible; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: 0 10px 30px #0f172a30; }
-    .demo-account-switcher .demo-accounts button { min-height: 40px; padding: 8px; font-size: 11px; }
-    .demo-bar .session-controls { width: auto; height: auto; gap: 6px; }
-    .demo-bar .session-controls #identity-email { display: none; }
-    .demo-bar .session-controls .badge { max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .demo-bar .theme-toggle { min-height: 28px; padding: 3px 7px; }
-    .demo-bar .theme-toggle-label { display: none; }
     .shop-header { padding-inline: 12px; }
     .shop-header .shop-brand > span:last-child { font-size: 17px; letter-spacing: -.6px; }
     .shop-header .shop-brand .brand-mark { width: 28px; height: 30px; border-radius: 8px; }
     .shop-header .brand-mark .icon { width: 21px; height: 21px; }
     .shop-header .brand-shop { padding-left: 3px; }
     .shop-header .shop-header-search-row { grid-template-columns: 44px minmax(0,1fr) 106px; }
-    .shop-header .category-menu-panel { top: calc(var(--demo-height) + var(--shop-header-height,112px) + 6px); height: min(680px,calc(100dvh - var(--demo-height) - var(--shop-header-height,112px) - 18px)); max-height: calc(100dvh - var(--demo-height) - var(--shop-header-height,112px) - 18px); }
-    .shop-header .search-suggestions { position: fixed; top: calc(var(--demo-height) + var(--shop-header-height,112px) + 6px); left: 12px; right: 12px; width: auto; }
+    .shop-header .category-menu-panel { top: calc(var(--shop-header-height,144px) + 6px); height: min(680px,calc(100dvh - var(--shop-header-height,144px) - 18px)); max-height: calc(100dvh - var(--shop-header-height,144px) - 18px); }
+    .shop-header .search-suggestions { position: fixed; top: calc(var(--shop-header-height,144px) + 6px); left: 12px; right: 12px; width: auto; }
 }
 @media (max-width: 350px) {
     .shop-header .shop-brand > span:last-child { font-size: 15px; }

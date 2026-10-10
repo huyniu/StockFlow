@@ -17,7 +17,7 @@ Giao diện dùng Native ES Modules: trình duyệt tải trực tiếp `app.js`
 
 `app.js` khởi tạo module `assets/login-artwork.js` sau khi tải fragment đăng nhập. Khối 3D dùng Three.js đã lưu trong dự án, tự xoay liên tục và nghiêng theo vị trí chuột. Bản CSS dự phòng cũng tự xoay khi WebGL không khả dụng. Chế độ giảm chuyển động của hệ điều hành giữ hình tĩnh; WebGL dừng khi trang đăng nhập bị ẩn.
 
-`compact-header.js` khởi tạo sau khi tải fragment: thu gọn tài khoản demo vào menu trên điện thoại và theo dõi chiều cao header để đặt gợi ý tìm kiếm đúng vị trí. `frontend/css/compact-header.css` gom header thành hai hàng dưới 1050 px, vẫn giữ chọn kho, tìm kiếm và các menu tài khoản/danh mục.
+`assets/modules/compact-header.js` khởi tạo sau khi tải fragment: theo dõi chiều cao toàn bộ header (gồm dòng thông tin) để đặt menu, gợi ý tìm kiếm và scroll offset đúng vị trí. `frontend/css/compact-header.css` gom phần logo/tìm kiếm thành hai hàng dưới 1050 px. `frontend/css/storefront-header.css` đặt hai hàng này trong `.shop-header-main`, phía dưới dòng thông tin; `.shop-header` vẫn là phần tử sticky duy nhất.
 
 Chạm danh mục mở các hãng và khoảng giá ngay trong menu; desktop vẫn mở phần này khi di chuột. Chọn hãng, khoảng giá hoặc nút “Xem sản phẩm” mới đưa khách đến tiêu đề và kết quả bên dưới header cố định. Bộ lọc thông số/hãng/giá nằm trong `catalog-filters-panel`, mặc định thu gọn dưới 900 px và vẫn mở sẵn trên desktop. Kiểm tra Chrome bao gồm chạm chọn hãng, chọn danh mục từ trang chủ/chi tiết/hồ sơ, mở lại URL đã lọc và danh mục trống.
 
@@ -31,7 +31,7 @@ node scripts/build-storefront.cjs --check
 
 `FrontendBundleConsistencyTest` kiểm tra CSS đồng bộ và entry ES Modules. Các helper `assets/password-reset.js`, `shipment-ui.js`, `login-artwork.js`, `theme.js` vẫn có API độc lập. `assets/ui-polish.css` xử lý responsive và màn hình tài khoản.
 
-Regression đăng nhập từ giỏ (10/10/2026): `#create-order` dùng `type=button`/`checkout-login` khi chưa đăng nhập; khi có user đổi thành submit. Listener submit phải rẽ nhánh guest **trước** `reportValidity()`, không dùng `novalidate` để bỏ validation giao hàng. Flow `intent=checkout` giữ giỏ và mở checkout sau login. `node scripts/verify-storefront-ui.cjs --checkout-login-only` kiểm tra ở 375/1366 px với hai SKU, số lượng/trạng thái chọn, form nhận hàng trống trước/sau login và không tạo đơn. Bộ Chrome đầy đủ cũng chạy regression này. Thanh demo chỉ còn CUSTOMER; quyền vận hành công khai bị chặn ở backend, xem [auth-hardening.md](auth-hardening.md).
+Regression đăng nhập từ giỏ (10/10/2026): `#create-order` dùng `type=button`/`checkout-login` khi chưa đăng nhập; khi có user đổi thành submit. Listener submit phải rẽ nhánh guest **trước** `reportValidity()`, không dùng `novalidate` để bỏ validation giao hàng. Flow `intent=checkout` giữ giỏ và mở checkout sau login. `node scripts/verify-storefront-ui.cjs --checkout-login-only` kiểm tra ở 375/1366 px với hai SKU, số lượng/trạng thái chọn, form nhận hàng trống trước/sau login và không tạo đơn. Bộ Chrome đầy đủ cũng chạy regression này. Frontend đã bỏ toàn bộ thanh/nút demo; quyền vận hành công khai vẫn bị chặn ở backend, xem [auth-hardening.md](auth-hardening.md).
 
 Kiểm tra Chrome headless với Node 22 trở lên và Chrome đã cài:
 
@@ -172,10 +172,51 @@ Mô tả là dữ liệu database riêng cho từng môi trường. Nội dung �
 
 `catalog-navigation.js:canUseHomeCategoryMenu()` kiểm tra vị trí thật của ô danh mục cạnh banner: mép trên phải nằm dưới header và còn đủ chỗ hiển thị. Ở đầu catalog trên desktop, giữ menu cạnh banner như trước. Nếu banner đã cuộn khỏi màn hình hoặc bị header che một phần, `setShopCategoryMenu()` dùng `#category-menu-panel` trong header, giữ nguyên vị trí cuộn và URL khi khách chỉ xem trước danh mục.
 
-CSS nguồn `frontend/css/product-interactions.css` đặt panel theo viewport, ngay dưới thanh demo/header, giới hạn chiều cao theo màn hình và cho từng cột cuộn riêng. Cột danh mục trên desktop giữ nút đóng trong tầm nhìn kể cả cửa sổ thấp. `frontend/css/compact-header.css` dùng cùng tọa độ cho tablet; giữ bố cục mobile hiện có. Fragment `storefront.html` chỉ cập nhật chú thích về hai cách mở, không đổi cấu trúc HTML.
+CSS nguồn `frontend/css/product-interactions.css` đặt panel theo viewport, ngay dưới header, giới hạn chiều cao theo màn hình và cho từng cột cuộn riêng. Cột danh mục trên desktop giữ nút đóng trong tầm nhìn kể cả cửa sổ thấp. `frontend/css/compact-header.css` dùng cùng tọa độ cho tablet; giữ bố cục mobile hiện có.
 
 Kiểm tra riêng: `node scripts/verify-storefront-ui.cjs --category-menu-only`. Kiểm thử đo khung menu, hit-test nút, giữ scroll/URL/bộ lọc khi xem trước, Escape/focus, bấm nền để đóng, ô cạnh banner ở đầu trang, resize, bàn phím ArrowDown, con lăn trong menu và chọn hãng. Chrome dùng dữ liệu giả lập, không thay đổi database.
 
 Kiểm chứng 10/10/2026: trước sửa, cả sáng/tối ở 1050/1366/1920 px đều mở ô cạnh banner đã nằm ngoài màn hình (`target/category-scroll-before.log`). Sau sửa, 320/375/414/768/1050/1366/1920 px sáng/tối PASS; các cửa sổ desktop cao 600 px và trường hợp banner che một phần cao 420 px đều dùng được menu. Ảnh trước lỗi/sau sửa lưu tại `target/ui-verification/category-scroll-*-failed.png` và `category-scroll-*-passed.png`; ảnh dùng sản phẩm mẫu. CSS build/`--check`, `git diff --check` và Maven `FrontendBundleConsistencyTest` (1 test) PASS. Không sửa backend, dữ liệu sản phẩm hoặc nghiệp vụ mua hàng trong bản sửa danh mục này.
 
 Bộ Chrome đầy đủ cũng PASS: hồi quy `#product-shelf`, Back/Forward/giỏ, callback VNPay, đăng nhập, danh mục từ chi tiết/hồ sơ, gallery, checkout/GHN, sổ địa chỉ và đổi trả (`target/category-scroll-ui-tests.log`). Không chạy lại toàn bộ Maven trong lượt sửa giao diện danh mục; kết quả 793/793 ở mục trước là lần chạy cho bản sửa kệ.
+
+## Bỏ thanh demo và thêm thông tin mua sắm (10/10/2026)
+
+Fragment `chrome.html` bỏ thanh demo; registry `core.js` bỏ credential/constant `DEMO_ACCOUNTS`. `auth-profile.js` và `navigation-events.js` bỏ trạng thái/handler chỉ phục vụ đăng nhập demo, giữ luồng đăng nhập, OTP và Google. Tài khoản, phân quyền, database và backend không thay đổi trong lượt này.
+
+`storefront.html` đặt dòng thông tin 32 px trên `.shop-header-main`. Nút sáng/tối nằm bên phải dòng này; tài khoản/đăng xuất vẫn ở menu tên khách. `dashboard.html` đặt thông tin email/vai trò, sáng/tối và đăng xuất trong header quản trị. `theme.js` đồng bộ cả ba nút cửa hàng/quản trị/đăng nhập và lưu sở thích như trước.
+
+Nội dung đã đối chiếu với code: `DemoDataSeeder` cấu hình ba kho Hà Nội/Đà Nẵng/TP.HCM, catalog có chọn chi nhánh để kiểm tra hàng; `orders-fulfillment.js` có COD, lịch sử/trạng thái/mã vận đơn; `after-sales.js` và `ReturnRequestController` có tạo/xem yêu cầu đổi trả trong tài khoản. GET `/api/v1/storefront/branches` trên local cũng trả đúng ba chi nhánh. Giữ đủ bốn ý đã yêu cầu; không quảng cáo đổi trả tự động hoặc cam kết tồn kho thực tế.
+
+CSS nguồn mới `frontend/css/storefront-header.css` được ghép cuối manifest. Header duy nhất sticky tại `top: 0`; `compact-header.js` dùng ResizeObserver đo cả dòng thông tin. Các offset menu/tìm kiếm/kệ dùng chiều cao header, đã bỏ `--demo-height`. Dòng chạy dùng nền trong suốt để liền mạch với header ở cả hai theme. Hai bản giống nhau chạy với chu kỳ 48 giây, bản sao `aria-hidden=true`, không có khe trống giữa hai bản. **Dòng thông tin chạy liên tục, không có nút tạm dừng và không dừng khi hover/focus**. Nút sáng/tối vẫn dùng được bằng bàn phím. `prefers-reduced-motion` bỏ animation, ẩn bản sao và cho dòng chính xuống hàng để đọc đầy đủ (chiều cao khi đó tăng theo nội dung).
+
+File thay đổi trong lượt này:
+
+- HTML: `src/main/resources/static/assets/fragments/{chrome,storefront,dashboard}.html`.
+- JS: `src/main/resources/static/assets/modules/{core,auth-profile,navigation-events,compact-header}.js`, `src/main/resources/static/assets/theme.js`.
+- CSS nguồn: `frontend/css/{base,responsive,compact-header,portal,catalog-filters,product-interactions,auth-artwork,storefront-header}.css`, `src/main/resources/static/assets/theme.css`.
+- Build: `frontend/manifest.json`, bundle sinh lại `src/main/resources/static/styles.css`.
+- Kiểm thử: `scripts/{verify-storefront-ui,verify-mobile-support,verify-portal-product-images}.cjs`; tài liệu này.
+
+Kiểm chứng đã chạy:
+
+```powershell
+node scripts/build-storefront.cjs
+node scripts/build-storefront.cjs --check
+node scripts/verify-storefront-ui.cjs --header-only
+node scripts/verify-storefront-ui.cjs
+node scripts/verify-product-cards.cjs
+node scripts/verify-mobile-support.cjs --header-only
+node scripts/verify-portal-product-images.cjs
+.\mvnw.cmd "-Dmaven.repo.local=C:/Users/Admin/.m2/repository" "-Dtest=FrontendBundleConsistencyTest" test
+```
+
+PASS Chrome **320/375/414/768/1366 px**, sáng/tối, chuyển động thường và reduced motion (20 trường hợp header): kiểm tra hướng chạy, hover, Enter tạm dừng, nối vòng không giật, accessibility đọc một lần, không tràn ngang, sticky, menu danh mục, gợi ý tìm kiếm và đổi theme. Đăng nhập/đăng xuất thực qua API fixture và điều hướng cửa hàng/quản trị kiểm tra tại 375/1366 px ở cả hai theme/media preference. Bộ storefront đầy đủ và thẻ sản phẩm PASS, giữ kiểm tra nghiệp vụ cũ (checkout/giỏ/địa chỉ/đổi trả/gallery/route/Back-Forward). Bộ ảnh quản trị PASS tại 320/375/768/1366/1920 px sáng/tối. Syntax JS, CSS đồng bộ và Maven **1/1 test PASS, 0 failures/errors/skipped**; không chạy lại toàn bộ Maven trong lượt chỉ sửa frontend này.
+
+Ảnh fixture header/quản trị và metrics: `target/ui-verification/header-*.png`, `header-metrics.json`. Ảnh **sản phẩm thật của local** và số đo: `target/mobile-support-verification/header-real-*.png`, `header-real-metrics.json`. API local hiện trả 7 sản phẩm theo model; đã chụp đủ 20 trường hợp, ảnh sản phẩm tải thành công, header sticky và không tràn ngang. Chỉ chuyển tiếp GET tới API local; không tạo đơn/gửi mail hay thay dữ liệu. Log: `target/storefront-header-{regression,ui-final,cards,real,portal,maven}.log`.
+
+Chưa kiểm tra Safari/điện thoại thật hoặc bản Render; chưa commit, push hay deploy. Không cần migration hoặc biến môi trường mới cho thay đổi này.
+
+Điều chỉnh tiếp theo phản hồi: bỏ nền xanh đậm riêng của dòng thông tin, dùng nền header xuyên suốt ở cả sáng/tối; nút đổi theme cũng có nền trong suốt. Bỏ rule hover tạm dừng. Kiểm thử header cập nhật để xác nhận animation vẫn chạy khi rê chuột và đo màu nền tương thích với header; test đợi login/logout hoàn tất trước chuyển tài khoản fixture. Chạy lại `verify-storefront-ui.cjs --header-only` và `verify-mobile-support.cjs --header-only`: mỗi bộ đủ 20 trường hợp PASS. Build/`--check`, syntax, `git diff --check` và Maven `FrontendBundleConsistencyTest` 1/1 PASS. Log `target/header-seam-{regression,real,maven}.log`; ảnh `header-real-*.png` đã chụp lại với sản phẩm local. Chưa chạy lại toàn bộ storefront/Maven suite trong lượt điều chỉnh CSS nhỏ này.
+
+Theo yêu cầu tiếp theo, đã gỡ nút `#announcement-pause`, listener trong `compact-header.js` và CSS dừng khi focus/`is-paused`. Dòng chạy liên tục khi hover hoặc focus vào nút sáng/tối; reduced motion vẫn hiển thị tĩnh đầy đủ nội dung. Regression thay kiểm tra nút cũ bằng kiểm tra nút không còn và Enter đổi theme không dừng dòng chạy, giữ các kiểm tra luồng cũ. `verify-storefront-ui.cjs --header-only` đủ **20 trường hợp PASS**; CSS build/`--check`, syntax, `git diff --check` và Maven `FrontendBundleConsistencyTest` **1/1 PASS**. Log `target/header-no-pause-{regression,maven}.log`; ảnh fixture mới `target/ui-verification/header-*.png`. Không chạy lại bộ ảnh sản phẩm thật hoặc toàn bộ suite trong lượt bỏ nút này; chưa commit/push/deploy.

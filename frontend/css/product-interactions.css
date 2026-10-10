@@ -497,7 +497,7 @@
 /* Menu khám phá dùng danh mục thật; giá và thứ tự trên kệ có trạng thái áp dụng rõ ràng. */
 .shop-header {
     position: sticky;
-    top: var(--demo-height);
+    top: 0;
     z-index: 84;
 }
 /* Header và danh mục luôn sáng; chỉ nội dung bên dưới được phủ tối và làm mờ. */
@@ -570,7 +570,7 @@ body.category-menu-open {
     color: var(--text);
     position: fixed;
     z-index: 85;
-    --category-menu-top: calc(var(--demo-height) + var(--shop-header-height, 80px) + 8px);
+    --category-menu-top: calc(var(--shop-header-height, 112px) + 8px);
     top: var(--category-menu-top);
     left: max(24px, calc((100vw - 1280px) / 2));
     width: min(1200px, calc(100vw - 48px));
@@ -842,7 +842,7 @@ body.category-menu-open {
     background: #dfe5ee;
 }
 #product-shelf {
-    scroll-margin-top: calc(var(--demo-height) + 16px);
+    scroll-margin-top: calc(var(--shop-header-height,144px) + 16px);
 }
 .grid-message .button {
     margin-top: 12px;
@@ -855,7 +855,7 @@ body.category-menu-open {
         flex-wrap: wrap;
     }
 }
-/* Trên điện thoại menu nổi phía dưới thanh demo, tự cuộn và có nút đóng luôn trong tầm tay. */
+/* Trên điện thoại menu nổi phía dưới header, tự cuộn và có nút đóng luôn trong tầm tay. */
 @media (max-width: 760px) {
     .category-menu-anchor {
         order: 4;
@@ -870,11 +870,11 @@ body.category-menu-open {
     }
     .category-menu-panel {
         position: fixed;
-        top: calc(var(--demo-height) + 12px);
+        top: calc(var(--shop-header-height,144px) + 12px);
         left: 12px;
         right: 12px;
         width: auto;
-        max-height: calc(100dvh - var(--demo-height) - 24px);
+        max-height: calc(100dvh - var(--shop-header-height,144px) - 24px);
         grid-template-columns: minmax(0, 1fr);
         overflow-y: auto;
     }

@@ -1,7 +1,7 @@
 /* Trang đăng nhập riêng: bố cục hai cột, dùng màu và luồng tài khoản StockFlow. */
 .auth-page-shell { min-height: 100vh; display: grid; grid-template-columns: 1.05fr 1fr; }
-body.auth-page-open :is(.demo-bar,#storefront-view,#dashboard-view,#contact-widget,#back-to-top,.mobile-purchase-bar),
-:root[data-auth-route] :is(.demo-bar,#storefront-view,#dashboard-view,#contact-widget,#back-to-top) { display: none !important; }
+body.auth-page-open :is(#storefront-view,#dashboard-view,#contact-widget,#back-to-top,.mobile-purchase-bar),
+:root[data-auth-route] :is(#storefront-view,#dashboard-view,#contact-widget,#back-to-top) { display: none !important; }
 .auth-page-intro { padding: clamp(32px,5vw,80px); background: linear-gradient(145deg,var(--brand-soft),var(--surface-muted)); display: flex; flex-direction: column; justify-content: center; }
 .auth-page-brand { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 30px; font-weight: 800; text-decoration: none; color: var(--brand); }
 .auth-page-brand span { font-weight: 500; color: var(--text); }
