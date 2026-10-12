@@ -91,6 +91,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/payments/vnpay/ipn").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/locations/provinces", "/api/v1/locations/districts", "/api/v1/locations/wards", "/api/v1/locations/mode").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/locations/calculate-fee").permitAll()
+                        .requestMatchers("/api/v1/ai/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)

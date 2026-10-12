@@ -1,4 +1,4 @@
-import { app as __stockflowApp } from './context.js';
+import { app as __stockflowApp, registerFeature } from './context.js';
 
 let pendingVNPayReturn;
 
@@ -293,6 +293,9 @@ function initializeContactWidget() {
             panel.inert = !open;
         }
         toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
+        panel.addEventListener('click', (event) => {
+            if (event.target.closest('[data-contact-ai]')) setOpen(false);
+        });
         toggle.addEventListener('mouseenter', () => {
             if (!inlineSupport.matches && window.matchMedia('(hover: hover) and (pointer: fine)').matches) setOpen(true);
         });
@@ -305,7 +308,7 @@ function initializeContactWidget() {
         widget.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') { setOpen(false); toggle.focus(); }
             if (event.key === 'ArrowDown' && event.target === toggle) {
-                event.preventDefault(); setOpen(true); panel.querySelector('a:not([hidden])')?.focus();
+                event.preventDefault(); setOpen(true); panel.querySelector('button:not([hidden]), a:not([hidden])')?.focus();
             }
         });
         document.addEventListener('click', (event) => {
@@ -515,28 +518,28 @@ async function loadSpecificationOptions() {
     }
 
 export function register() {
-Object.defineProperties(__stockflowApp, {
-"currentPagePath": { get: () => currentPagePath },
-"replaceHash": { get: () => replaceHash },
-"pushPage": { get: () => pushPage },
-"activateView": { get: () => activateView },
-"refreshSection": { get: () => refreshSection },
-"changePage": { get: () => changePage },
-"restoreCatalogLocation": { get: () => restoreCatalogLocation },
+registerFeature({
+"currentPagePath": () => currentPagePath,
+"replaceHash": () => replaceHash,
+"pushPage": () => pushPage,
+"activateView": () => activateView,
+"refreshSection": () => refreshSection,
+"changePage": () => changePage,
+"restoreCatalogLocation": () => restoreCatalogLocation,
 "pendingVNPayReturn": { get: () => pendingVNPayReturn, set: value => { pendingVNPayReturn = value; } },
-"consumeVNPayReturn": { get: () => consumeVNPayReturn },
-"routeFromLocation": { get: () => routeFromLocation },
-"onLocationChange": { get: () => onLocationChange },
-"initializeContactWidget": { get: () => initializeContactWidget },
-"initializeAccountMenu": { get: () => initializeAccountMenu },
-"loadShopContact": { get: () => loadShopContact },
-"loadProductReviews": { get: () => loadProductReviews },
-"openProductReview": { get: () => openProductReview },
-"submitProductReview": { get: () => submitProductReview },
-"initializeAuthArtwork": { get: () => initializeAuthArtwork },
-"initialize": { get: () => initialize },
-"renderSpecificationValueOptions": { get: () => renderSpecificationValueOptions },
-"loadSpecificationOptions": { get: () => loadSpecificationOptions }
+"consumeVNPayReturn": () => consumeVNPayReturn,
+"routeFromLocation": () => routeFromLocation,
+"onLocationChange": () => onLocationChange,
+"initializeContactWidget": () => initializeContactWidget,
+"initializeAccountMenu": () => initializeAccountMenu,
+"loadShopContact": () => loadShopContact,
+"loadProductReviews": () => loadProductReviews,
+"openProductReview": () => openProductReview,
+"submitProductReview": () => submitProductReview,
+"initializeAuthArtwork": () => initializeAuthArtwork,
+"initialize": () => initialize,
+"renderSpecificationValueOptions": () => renderSpecificationValueOptions,
+"loadSpecificationOptions": () => loadSpecificationOptions
 });
 }
 

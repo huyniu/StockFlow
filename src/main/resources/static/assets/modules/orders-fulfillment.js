@@ -1,4 +1,4 @@
-import { app as __stockflowApp } from './context.js';
+import { app as __stockflowApp, registerFeature } from './context.js';
 
 function renderMyOrders(result) {
         __stockflowApp.state.myOrdersPage = result;
@@ -435,22 +435,22 @@ async function mutateOrder(id, action) {
     }
 
 export function register() {
-Object.defineProperties(__stockflowApp, {
-"renderMyOrders": { get: () => renderMyOrders },
-"loadOrders": { get: () => loadOrders },
-"syncQueueStatusTabs": { get: () => syncQueueStatusTabs },
-"applyQueueStatus": { get: () => applyQueueStatus },
-"loadQueue": { get: () => loadQueue },
-"fulfillmentButton": { get: () => fulfillmentButton },
-"hydrateOrderProducts": { get: () => hydrateOrderProducts },
-"lookupOrder": { get: () => lookupOrder },
-"orderTimeline": { get: () => orderTimeline },
-"renderDeliveryDetails": { get: () => renderDeliveryDetails },
-"renderOrder": { get: () => renderOrder },
-"updateCountdown": { get: () => updateCountdown },
-"confirmOrderAction": { get: () => confirmOrderAction },
-"payWithVNPay": { get: () => payWithVNPay },
-"mutateOrder": { get: () => mutateOrder }
+registerFeature({
+"renderMyOrders": () => renderMyOrders,
+"loadOrders": () => loadOrders,
+"syncQueueStatusTabs": () => syncQueueStatusTabs,
+"applyQueueStatus": () => applyQueueStatus,
+"loadQueue": () => loadQueue,
+"fulfillmentButton": () => fulfillmentButton,
+"hydrateOrderProducts": () => hydrateOrderProducts,
+"lookupOrder": () => lookupOrder,
+"orderTimeline": () => orderTimeline,
+"renderDeliveryDetails": () => renderDeliveryDetails,
+"renderOrder": () => renderOrder,
+"updateCountdown": () => updateCountdown,
+"confirmOrderAction": () => confirmOrderAction,
+"payWithVNPay": () => payWithVNPay,
+"mutateOrder": () => mutateOrder
 });
 }
 

@@ -69,3 +69,23 @@ Mật khẩu chỉ lưu trong `.idea/operator-new-accounts.json`, bị Git bỏ 
 Đã chạy ứng dụng kiểm chứng tạm trên loopback cổng 18081, tắt seeder, khôi phục, hết hạn đơn và gửi thông báo đơn; giữ JWT_SECRET hiện có. Flyway áp dụng V33 thành công trên PostgreSQL local 13.2. Cả ba tài khoản đăng nhập HTTP thành công, sai mật khẩu bị 401, quyền ADMIN/MANAGER/WAREHOUSE_STAFF đúng trên users/me, admin/users và reports/order-summary. Đã dừng tiến trình kiểm chứng; chủ hệ thống chạy lại ứng dụng trong IntelliJ để sử dụng. Render chưa tạo tài khoản, cập nhật hoặc deploy. Không commit/push/deploy.
 
 Theo yêu cầu tiếp theo của chủ hệ thống, đã đổi email/mật khẩu của chính ba bản ghi mới, giữ ID 8/9/10 lần lượt ADMIN/MANAGER/WAREHOUSE_STAFF. Email hiện tại được chuẩn hóa thành `adminh@stockflow.com`, `managerh@stockflow.com`, `warehousestaff@stockflow.com`; form đăng nhập chấp nhận cách viết hoa do chủ hệ thống cung cấp. Mật khẩu do chủ hệ thống chỉ định chỉ lưu trong file riêng đã nêu, không đưa vào tài liệu/source/log. Mỗi `auth_version` tăng một để vô hiệu hóa phiên cũ; kiểm tra BCrypt xác nhận mật khẩu mới và từ chối mật khẩu trước. Snapshot tài khoản cũ/đơn/tồn/ledger/phân công không đổi. Render vẫn chưa thay đổi.
+
+## Cập nhật Aiven theo yêu cầu tiếp theo của chủ hệ thống — 10/10/2026
+
+Đã xác định qua cấu hình Render: service dùng `stockflow_import` trên Aiven, port 21375, SSL bắt buộc; không dùng `defaultdb`. Lần kết nối đầu thất bại do chép nhầm chữ hoa trong mật khẩu từ ảnh, sau đối chiếu đã sửa và kết nối thành công. Không đổi mật khẩu database hoặc cấu hình Render.
+
+Đã tạo ba tài khoản mới trong một transaction trên `stockflow_import`, mật khẩu BCrypt từ đúng cấu hình riêng do chủ hệ thống chọn:
+
+- `adminh@stockflow.com`: ADMIN, ID 10, ACTIVE, email verified.
+- `managerh@stockflow.com`: MANAGER, ID 11, ACTIVE, email verified.
+- `warehousestaff@stockflow.com`: WAREHOUSE_STAFF, ID 12, ACTIVE, email verified; sao chép phân công hiện có của nhân viên cũ.
+
+ID của tài khoản local và online khác nhau vì là hai database độc lập. Ba tài khoản demo cũ ở Aiven vẫn INACTIVE, giữ ID và auth_version. Snapshot trong transaction xác nhận tài khoản cũ, đơn/order items, tồn/ledger và phân công cũ không đổi. Sau cập nhật vẫn có 14 đơn, 75 movements; tổng phân công tăng từ 1 lên 2 do thêm nhân viên mới.
+
+Đã kiểm tra trực tiếp `https://stockflow-tbsw.onrender.com`: cả ba đăng nhập HTTP thành công bằng mật khẩu đã chọn; mật khẩu sai bị 401; `/users/me` trả đúng role; `/admin/users` chỉ ADMIN được phép; `/reports/order-summary` cho ADMIN/MANAGER và từ chối WAREHOUSE_STAFF. Không in mật khẩu/hash/JWT ra log, không tạo đơn hoặc gửi email. Không commit/push/deploy và giữ JWT_SECRET hiện có.
+
+## Xóa tài khoản khóa theo yêu cầu tiếp theo — Aiven
+
+Đã kiểm tra tất cả khóa ngoại tới users trước khi xóa. Xóa `manager@stockflow.com` (ID 3) và `staff.hn@stockflow.com` (ID 4), cùng phân công cũ của họ; không có liên kết lịch sử kinh doanh tới hai tài khoản này. Snapshot trong transaction xác nhận các tài khoản khác, đơn/order items, tồn/movements và phân công của nhân viên mới không đổi. Bản sao lưu riêng trước xóa nằm ở `.idea/deleted-locked-accounts-backup.json`, bị Git bỏ qua và giới hạn ACL; chứa hash nên không đưa ra log hoặc source.
+
+Giữ `admin@stockflow.com` (ID 2) INACTIVE vì là người thực hiện của 43 movements, và `inventory-expiry@stockflow.invalid` (ID 1) INACTIVE vì có 12 movements và được OrderService dùng để nhả hàng khi đơn hết hạn. Không chuyển lịch sử sang tài khoản khác để ép xóa. Kiểm tra sau xóa chỉ còn hai tài khoản INACTIVE này. Local không bị xóa tài khoản. Nếu Render bật profile demo, seeder có thể tạo lại tài khoản demo còn thiếu ở lần khởi động; lượt này chưa đổi profile/seeder hoặc deploy.

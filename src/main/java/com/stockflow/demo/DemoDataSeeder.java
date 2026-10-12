@@ -11,7 +11,6 @@ import com.stockflow.auth.security.DemoAccountPolicy;
 import com.stockflow.user.repository.*;
 import com.stockflow.warehouse.domain.*;
 import com.stockflow.warehouse.repository.WarehouseRepository;
-import java.math.BigDecimal;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -22,20 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Dữ liệu StockFlow Tech chỉ được thêm khi chưa tồn tại, nhận diện theo email/slug/SKU/code.
- * Cửa hàng tập trung phụ kiện máy tính; dữ liệu cũ không bị đổi tên, xóa hay chuyển trạng thái ngầm.
+ * Catalog mẫu chỉ nạp khi được bật; không ghi đè sản phẩm hay mật khẩu hiện có.
  * Nhập tồn kho qua service nghiệp vụ để GOODS_RECEIPT luôn có actor và snapshot balance hợp lệ.
  */
 @Service
 @Profile("demo")
 public class DemoDataSeeder {
-
-    // Ảnh Unsplash minh họa fixture công nghệ; chủ cửa hàng có thể thay URL qua form ADMIN.
-    private static final String KEYBOARD_IMAGE =
-            "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80";
-    private static final String MOUSE_IMAGE =
-            "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600&auto=format&fit=crop&q=80";
-    private static final String HEADPHONE_IMAGE =
-            "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80";
 
     private final UserRepository users;
     private final RoleRepository roles;
@@ -87,75 +78,24 @@ public class DemoDataSeeder {
             return;
         }
 
+        seedProducts(DemoCatalog.load());
+        seedStock(admin.getId(), demoWarehouses);
+    }
+
+    private void seedProducts(DemoCatalog catalog) {
         Map<String, Category> demoCategories = new LinkedHashMap<>();
-        demoCategories.put("ban-phim-chuot", category("Bàn phím & Chuột", "ban-phim-chuot"));
-        demoCategories.put("tai-nghe-loa", category("Tai nghe & Loa", "tai-nghe-loa"));
-        demoCategories.put("webcam-micro", category("Webcam & Micro", "webcam-micro"));
-        demoCategories.put("hub-cap-sac", category("Hub, Cáp & Bộ sạc", "hub-cap-sac"));
-        demoCategories.put("man-hinh-ban-lam-viec",
-                category("Màn hình & Phụ kiện bàn làm việc", "man-hinh-ban-lam-viec"));
-
-        // Mỗi cấu hình bán là một SKU riêng; giá và ảnh dưới đây chỉ là dữ liệu trình diễn.
-        List<ProductSeed> catalog = List.of(
-                new ProductSeed("ban-phim-chuot", "TECH-KBD-01",
-                        "Bàn phím cơ 75%", "990000", KEYBOARD_IMAGE),
-                new ProductSeed("ban-phim-chuot", "TECH-KBD-02",
-                        "Bàn phím cơ full-size", "1290000", KEYBOARD_IMAGE),
-                new ProductSeed("ban-phim-chuot", "TECH-KBD-03",
-                        "Bàn phím không dây văn phòng", "590000", KEYBOARD_IMAGE),
-                new ProductSeed("ban-phim-chuot", "TECH-MOUSE-01",
-                        "Chuột không dây công thái học", "790000", MOUSE_IMAGE),
-                new ProductSeed("ban-phim-chuot", "TECH-MOUSE-02",
-                        "Chuột gaming có dây", "490000", MOUSE_IMAGE),
-                new ProductSeed("ban-phim-chuot", "TECH-MOUSE-03",
-                        "Chuột Bluetooth nhỏ gọn", "290000", MOUSE_IMAGE),
-                new ProductSeed("tai-nghe-loa", "TECH-AUDIO-01",
-                        "Tai nghe chụp tai không dây", "1290000", HEADPHONE_IMAGE),
-                new ProductSeed("tai-nghe-loa", "TECH-AUDIO-02",
-                        "Tai nghe gaming có micro", "790000", HEADPHONE_IMAGE),
-                new ProductSeed("tai-nghe-loa", "TECH-AUDIO-03",
-                        "Tai nghe chụp tai có dây", "490000", HEADPHONE_IMAGE),
-                new ProductSeed("tai-nghe-loa", "TECH-AUDIO-04",
-                        "Tai nghe kiểm âm", "1590000", HEADPHONE_IMAGE),
-                new ProductSeed("tai-nghe-loa", "TECH-SPEAKER-01",
-                        "Loa vi tính 2.0", "890000", null),
-                new ProductSeed("webcam-micro", "TECH-CAM-01",
-                        "Webcam Full HD", "690000", null),
-                new ProductSeed("webcam-micro", "TECH-CAM-02",
-                        "Webcam 2K", "1190000", null),
-                new ProductSeed("webcam-micro", "TECH-MIC-01",
-                        "Micro USB để bàn", "990000", null),
-                new ProductSeed("webcam-micro", "TECH-MIC-02",
-                        "Micro USB kèm chân đỡ", "1490000", null),
-                new ProductSeed("hub-cap-sac", "TECH-HUB-01",
-                        "Hub USB-C 6 trong 1", "790000", null),
-                new ProductSeed("hub-cap-sac", "TECH-HUB-02",
-                        "Hub USB 3.0 bốn cổng", "290000", null),
-                new ProductSeed("hub-cap-sac", "TECH-CABLE-01",
-                        "Cáp USB-C 100W một mét", "149000", null),
-                new ProductSeed("hub-cap-sac", "TECH-CABLE-02",
-                        "Cáp HDMI hai mét", "129000", null),
-                new ProductSeed("hub-cap-sac", "TECH-CHARGER-01",
-                        "Bộ sạc GaN 65W", "690000", null),
-                new ProductSeed("man-hinh-ban-lam-viec", "TECH-MONITOR-01",
-                        "Màn hình IPS 24 inch", "2990000", null),
-                new ProductSeed("man-hinh-ban-lam-viec", "TECH-MONITOR-02",
-                        "Màn hình 27 inch QHD", "4990000", null),
-                new ProductSeed("man-hinh-ban-lam-viec", "TECH-DESK-01",
-                        "Giá đỡ laptop nhôm", "390000", null),
-                new ProductSeed("man-hinh-ban-lam-viec", "TECH-DESK-02",
-                        "Tay đỡ màn hình đơn", "790000", null));
-
-        for (int index = 0; index < catalog.size(); index++) {
-            ProductSeed item = catalog.get(index);
-            Product product = products.findBySku(item.sku()).orElseGet(() -> products.save(new Product(
-                    demoCategories.get(item.categorySlug()),
-                    item.sku(),
-                    item.name(),
-                    new BigDecimal(item.price()),
-                    ProductStatus.ACTIVE,
-                    item.imageUrl())));
+        for (var item : catalog.categories()) {
+            demoCategories.put(item.slug(), category(item.name(), item.slug()));
         }
+        for (var item : catalog.products()) {
+            if (products.findBySku(item.sku()).isEmpty()) {
+                products.save(new Product(demoCategories.get(item.categorySlug()), item.sku(),
+                        item.name(), item.price(), ProductStatus.ACTIVE, item.imageUrl()));
+            }
+        }
+    }
+
+    private void seedStock(Long adminId, List<Warehouse> demoWarehouses) {
         // Nạp cả sản phẩm hiện có của cửa hàng, không chỉ 24 SKU TECH mẫu.
         for (Product product : products.findAll()) {
             if (product.getStatus() != ProductStatus.ACTIVE) continue;
@@ -173,7 +113,7 @@ public class DemoDataSeeder {
                 }
                 int quantity = 20 + Math.floorMod(Objects.hash(product.getSku(), warehouse.getCode()), 31);
                 inventoryService.stockIn(new StockInRequest(product.getId(), warehouse.getId(),
-                        quantity, "Nhập tồn ban đầu cho StockFlow Tech demo"), admin.getId());
+                        quantity, "Nhập tồn ban đầu cho StockFlow Tech demo"), adminId);
             }
         }
     }
@@ -228,12 +168,4 @@ public class DemoDataSeeder {
         }
     }
 
-    /** Fixture công nghệ có ảnh tùy chọn; bản ghi đã tồn tại giữ nguyên thông tin do ADMIN chỉnh sửa. */
-    private record ProductSeed(
-            String categorySlug,
-            String sku,
-            String name,
-            String price,
-            String imageUrl) {
-    }
 }

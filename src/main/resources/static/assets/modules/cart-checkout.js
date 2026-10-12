@@ -1,4 +1,4 @@
-import { app as __stockflowApp } from './context.js';
+import { app as __stockflowApp, registerFeature } from './context.js';
 
 let checkoutShippingQuote, shippingLocationVersion, shippingFeeVersion;
 
@@ -371,23 +371,23 @@ async function createOrder() {
     }
 
 export function register() {
-Object.defineProperties(__stockflowApp, {
-"renderCart": { get: () => renderCart },
-"cartThumbnail": { get: () => cartThumbnail },
-"addCart": { get: () => addCart },
-"setCartQuantity": { get: () => setCartQuantity },
+registerFeature({
+"renderCart": () => renderCart,
+"cartThumbnail": () => cartThumbnail,
+"addCart": () => addCart,
+"setCartQuantity": () => setCartQuantity,
 "checkoutShippingQuote": { get: () => checkoutShippingQuote, set: value => { checkoutShippingQuote = value; } },
 "shippingLocationVersion": { get: () => shippingLocationVersion, set: value => { shippingLocationVersion = value; } },
 "shippingFeeVersion": { get: () => shippingFeeVersion, set: value => { shippingFeeVersion = value; } },
-"resetLocationSelect": { get: () => resetLocationSelect },
-"renderShippingTotal": { get: () => renderShippingTotal },
-"loadCheckoutProvinces": { get: () => loadCheckoutProvinces },
-"changeCheckoutLocation": { get: () => changeCheckoutLocation },
-"refreshCheckoutFee": { get: () => refreshCheckoutFee },
-"resetCheckoutDetails": { get: () => resetCheckoutDetails },
-"forgetCheckoutAttempt": { get: () => forgetCheckoutAttempt },
-"checkoutKey": { get: () => checkoutKey },
-"createOrder": { get: () => createOrder }
+"resetLocationSelect": () => resetLocationSelect,
+"renderShippingTotal": () => renderShippingTotal,
+"loadCheckoutProvinces": () => loadCheckoutProvinces,
+"changeCheckoutLocation": () => changeCheckoutLocation,
+"refreshCheckoutFee": () => refreshCheckoutFee,
+"resetCheckoutDetails": () => resetCheckoutDetails,
+"forgetCheckoutAttempt": () => forgetCheckoutAttempt,
+"checkoutKey": () => checkoutKey,
+"createOrder": () => createOrder
 });
 }
 

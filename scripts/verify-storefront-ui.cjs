@@ -10,6 +10,8 @@ const tablet={...product,id:2,sku:'TABLET-01',name:'Máy tính bảng kiểm tra
 const samsungPhone={...product,id:3,sku:'SAMSUNG-01',name:'Điện thoại Samsung kiểm tra hãng',brand_id:2,brand_name:'Samsung'};
 const page=content=>({content,total_elements:content.length,total_pages:1,number:0,size:20,first:true,last:true});
 let resetRequests=0;
+const chatRequests=[];
+let chatFailure=false;
 let loginRequests=0, orderCreates=0;
 let catalogRequests=0, catalogFailure=false, catalogDelay=0, catalogEmpty=false;
 const catalogQueries=[];
@@ -72,6 +74,11 @@ const server=http.createServer(async(req,res)=>{
  if(url.pathname==='/api/v1/diagnostics/rejected'){res.writeHead(409,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'CONFLICT',message:'SKU đã tồn tại.'}));return;}
  if(url.pathname.startsWith('/api/')){
   let text='';for await(const chunk of req)text+=chunk;const body=text?JSON.parse(text):{};
+  if(url.pathname==='/api/v1/ai/chat' && req.method==='POST'){
+   chatRequests.push(body);
+   res.writeHead(chatFailure?503:200,{'Content-Type':'application/json'});
+   res.end(JSON.stringify({reply:'Mình có thể tư vấn sản phẩm phù hợp cho bạn. <b>StockFlow</b>',aiGenerated:true}));return;
+  }
   if(url.pathname==='/api/v1/products' && url.searchParams.get('grouped')==='true'){
    catalogRequests++;catalogQueries.push(Object.fromEntries(url.searchParams));
    if(catalogDelay)await new Promise(resolve=>setTimeout(resolve,catalogDelay));
@@ -92,6 +99,63 @@ async function until(expression,timeout=10000){const end=Date.now()+timeout;whil
 async function screenshot(name){const value=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(evidence,name+'.png'),Buffer.from(value.data,'base64'));}
 async function viewport(width,height=850){await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<768});}
 async function noOverflow(label){const dimensions=await evaluate(`({viewport:innerWidth,width:document.documentElement.scrollWidth,body:document.body.scrollWidth})`);assert.ok(dimensions.width<=dimensions.viewport+1,label+' '+JSON.stringify(dimensions));}
+async function verifyContactAi(base){
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+ for(const width of [320,375,768,1366,1920])for(const theme of ['light','dark']){
+  await viewport(width,850);
+  await send('Page.navigate',{url:base+'/'});
+  await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready' && document.querySelector('#ai-chat-modal')`);
+  await evaluate(`if(document.documentElement.dataset.theme!==${JSON.stringify(theme)})document.querySelector('#theme-toggle').click()`);
+  assert.equal(await evaluate(`document.querySelector('#contact-panel').contains(document.querySelector('#ai-chat-toggle')) && !document.querySelector('.ai-chat-btn')`),true);
+  await evaluate(`document.querySelector('#contact-toggle').scrollIntoView({block:'center',behavior:'instant'});document.querySelector('#contact-toggle').click()`);
+  await until(`!document.querySelector('#contact-panel').inert`);
+  await evaluate(`document.querySelector('#contact-toggle').focus()`);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40});
+  assert.equal(await evaluate(`document.activeElement.id`),'ai-chat-toggle','Keyboard starts with the first contact option');
+  assert.equal(await evaluate(`document.querySelectorAll('#contact-panel a').length`),3);
+  await evaluate(`document.querySelector('#ai-chat-toggle').focus()`);
+  await evaluate(`new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);
+  await screenshot(`contact-ai-menu-${width}-${theme}`);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  await until(`!document.querySelector('#ai-chat-modal').hidden && document.activeElement.id==='ai-input' && document.querySelector('#contact-panel').inert`);
+  assert.equal(await evaluate(`document.querySelector('#ai-chat-toggle').getAttribute('aria-expanded')`),'true');
+  assert.equal(await evaluate(`(()=>{const r=document.querySelector('#ai-chat-modal').getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;})()`),true);
+  await evaluate(`document.querySelector('#ai-input').value='Tư vấn laptop';`);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  await until(`document.querySelector('#ai-messages').textContent.includes('<b>StockFlow</b>') && !document.querySelector('.ai-typing')`);
+  assert.equal(chatRequests.at(-1).message,'Tư vấn laptop');
+  assert.equal(await evaluate(`document.querySelectorAll('#ai-messages b').length`),0,'Replies remain plain text');
+  await screenshot(`contact-ai-chat-${width}-${theme}`);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await until(`document.querySelector('#ai-chat-modal').hidden && document.activeElement.id==='contact-toggle'`);
+  await evaluate(`document.querySelector('#contact-toggle').click();document.querySelector('#ai-chat-toggle').click()`);
+  assert.equal(await evaluate(`document.querySelectorAll('#ai-chat-root').length===1 && document.querySelector('#ai-messages').textContent.includes('Tư vấn laptop')`),true);
+  if(width===320&&theme==='light'){
+   chatFailure=true;
+   await evaluate(`document.querySelector('.ai-chip').click()`);
+   await until(`document.querySelector('#ai-messages').textContent.includes('Trợ lý AI đang bận') && !document.querySelector('.ai-typing')`);
+   chatFailure=false;
+  }
+  await evaluate(`document.querySelector('#ai-close-btn').click()`);
+  assert.equal(await evaluate(`document.querySelector('#ai-chat-toggle').getAttribute('aria-expanded')`),'false');
+  await noOverflow('Contact AI '+width+' '+theme);
+  console.log(`PASS: shared contact menu + AI keyboard/open/send/close/history ${width} ${theme}`);
+ }
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+ await viewport(320,568);
+ await evaluate(`document.querySelector('#contact-toggle').click();document.querySelector('#ai-chat-toggle').click()`);
+ await until(`Number(getComputedStyle(document.querySelector('#ai-chat-modal')).opacity)>.99`);
+ assert.equal(await evaluate(`(()=>{const r=document.querySelector('#ai-chat-modal').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth;})()`),true,'Chat fits a short mobile viewport');
+ await viewport(1920,850);
+ await until(`!document.querySelector('#ai-chat-modal').hidden && document.activeElement.id==='ai-input' && document.querySelector('#contact-widget').parentElement.id==='storefront-view'`);
+ await evaluate(`document.querySelector('#ai-close-btn').click()`);
+ console.log('PASS: chat remains open/focused across mobile-to-desktop resize and fits 320×568 with normal motion');
+ await send('Page.navigate',{url:base+'/login'});
+ await until(`document.body.classList.contains('auth-page-open') && document.querySelector('#ai-chat-modal')`);
+ assert.equal(await evaluate(`document.querySelector('#ai-chat-toggle').getClientRects().length`),0,'AI entry follows storefront visibility');
+ assert.equal(exceptions.length,0,JSON.stringify(exceptions));
+}
 async function verifyStorefrontHeader(base){
  const results=[];
  const text='Kiểm tra hàng tại Hà Nội · Đà Nẵng · TP.HCM • Thanh toán khi nhận hàng (COD) • Theo dõi đơn hàng và mã vận đơn • Gửi yêu cầu đổi trả ngay trong tài khoản';
@@ -383,6 +447,7 @@ async function verifyScrolledCategoryMenu(base){
  const target=await send('Target.createTarget',{url:'about:blank'},false);session=(await send('Target.attachToTarget',{targetId:target.targetId,flatten:true},false)).sessionId;
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBlockedURLs',{urls:['https://*']});
  console.log('Browser connected');
+ if(process.argv.includes('--contact-ai-only')){await verifyContactAi(base);return;}
  if(process.argv.includes('--header-only')){await verifyStorefrontHeader(base);return;}
  await verifyStorefrontHeader(base);
  await verifyGuestCheckoutLogin(base);if(process.argv.includes('--checkout-login-only'))return;

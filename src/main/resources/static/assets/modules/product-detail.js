@@ -1,4 +1,4 @@
-import { app as __stockflowApp } from './context.js';
+import { app as __stockflowApp, registerFeature } from './context.js';
 import { rememberProduct } from './recently-viewed.js';
 
 function renderProducts(products) {
@@ -580,32 +580,32 @@ function consumePurchasedCartItems(items) {
     }
 
 export function register() {
-Object.defineProperties(__stockflowApp, {
-"renderProducts": { get: () => renderProducts },
-"productDescription": { get: () => productDescription },
-"productSpecifications": { get: () => productSpecifications },
-"colorHex": { get: () => colorHex },
-"swatchColor": { get: () => swatchColor },
-"colorSku": { get: () => colorSku },
-"saleSku": { get: () => saleSku },
-"versionLabel": { get: () => versionLabel },
-"cartProductName": { get: () => cartProductName },
-"configurationPreview": { get: () => configurationPreview },
-"renderShopProductDetail": { get: () => renderShopProductDetail },
-"colorOptionThumbnail": { get: () => colorOptionThumbnail },
-"selectProductSku": { get: () => selectProductSku },
-"selectProductVersion": { get: () => selectProductVersion },
-"productGallery": { get: () => productGallery },
-"renderShopProductGallery": { get: () => renderShopProductGallery },
-"selectGalleryImage": { get: () => selectGalleryImage },
-"productPagePath": { get: () => productPagePath },
-"isCurrentProductPage": { get: () => isCurrentProductPage },
-"loadShopProductDetail": { get: () => loadShopProductDetail },
-"addProductFromDetail": { get: () => addProductFromDetail },
-"renderCatalogLoading": { get: () => renderCatalogLoading },
-"loadCatalog": { get: () => loadCatalog },
-"selectedCartItems": { get: () => selectedCartItems },
-"consumePurchasedCartItems": { get: () => consumePurchasedCartItems }
+registerFeature({
+"renderProducts": () => renderProducts,
+"productDescription": () => productDescription,
+"productSpecifications": () => productSpecifications,
+"colorHex": () => colorHex,
+"swatchColor": () => swatchColor,
+"colorSku": () => colorSku,
+"saleSku": () => saleSku,
+"versionLabel": () => versionLabel,
+"cartProductName": () => cartProductName,
+"configurationPreview": () => configurationPreview,
+"renderShopProductDetail": () => renderShopProductDetail,
+"colorOptionThumbnail": () => colorOptionThumbnail,
+"selectProductSku": () => selectProductSku,
+"selectProductVersion": () => selectProductVersion,
+"productGallery": () => productGallery,
+"renderShopProductGallery": () => renderShopProductGallery,
+"selectGalleryImage": () => selectGalleryImage,
+"productPagePath": () => productPagePath,
+"isCurrentProductPage": () => isCurrentProductPage,
+"loadShopProductDetail": () => loadShopProductDetail,
+"addProductFromDetail": () => addProductFromDetail,
+"renderCatalogLoading": () => renderCatalogLoading,
+"loadCatalog": () => loadCatalog,
+"selectedCartItems": () => selectedCartItems,
+"consumePurchasedCartItems": () => consumePurchasedCartItems
 });
 }
 

@@ -1,0 +1,35 @@
+{
+  "categories": [
+    {"slug":"ban-phim-chuot","name":"Bàn phím \u0026 Chuột"},
+    {"slug":"tai-nghe-loa","name":"Tai nghe \u0026 Loa"},
+    {"slug":"webcam-micro","name":"Webcam \u0026 Micro"},
+    {"slug":"hub-cap-sac","name":"Hub, Cáp \u0026 Bộ sạc"},
+    {"slug":"man-hinh-ban-lam-viec","name":"Màn hình \u0026 Phụ kiện bàn làm việc"}
+  ],
+  "products": [
+    {"categorySlug":"ban-phim-chuot","sku":"TECH-KBD-01","name":"Bàn phím cơ 75%","price":"990000","imageUrl":"https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"ban-phim-chuot","sku":"TECH-KBD-02","name":"Bàn phím cơ full-size","price":"1290000","imageUrl":"https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"ban-phim-chuot","sku":"TECH-KBD-03","name":"Bàn phím không dây văn phòng","price":"590000","imageUrl":"https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"ban-phim-chuot","sku":"TECH-MOUSE-01","name":"Chuột không dây công thái học","price":"790000","imageUrl":"https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"ban-phim-chuot","sku":"TECH-MOUSE-02","name":"Chuột gaming có dây","price":"490000","imageUrl":"https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"ban-phim-chuot","sku":"TECH-MOUSE-03","name":"Chuột Bluetooth nhỏ gọn","price":"290000","imageUrl":"https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"tai-nghe-loa","sku":"TECH-AUDIO-01","name":"Tai nghe chụp tai không dây","price":"1290000","imageUrl":"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"tai-nghe-loa","sku":"TECH-AUDIO-02","name":"Tai nghe gaming có micro","price":"790000","imageUrl":"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"tai-nghe-loa","sku":"TECH-AUDIO-03","name":"Tai nghe chụp tai có dây","price":"490000","imageUrl":"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"tai-nghe-loa","sku":"TECH-AUDIO-04","name":"Tai nghe kiểm âm","price":"1590000","imageUrl":"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600\u0026auto=format\u0026fit=crop\u0026q=80"},
+    {"categorySlug":"tai-nghe-loa","sku":"TECH-SPEAKER-01","name":"Loa vi tính 2.0","price":"890000","imageUrl":null},
+    {"categorySlug":"webcam-micro","sku":"TECH-CAM-01","name":"Webcam Full HD","price":"690000","imageUrl":null},
+    {"categorySlug":"webcam-micro","sku":"TECH-CAM-02","name":"Webcam 2K","price":"1190000","imageUrl":null},
+    {"categorySlug":"webcam-micro","sku":"TECH-MIC-01","name":"Micro USB để bàn","price":"990000","imageUrl":null},
+    {"categorySlug":"webcam-micro","sku":"TECH-MIC-02","name":"Micro USB kèm chân đỡ","price":"1490000","imageUrl":null},
+    {"categorySlug":"hub-cap-sac","sku":"TECH-HUB-01","name":"Hub USB-C 6 trong 1","price":"790000","imageUrl":null},
+    {"categorySlug":"hub-cap-sac","sku":"TECH-HUB-02","name":"Hub USB 3.0 bốn cổng","price":"290000","imageUrl":null},
+    {"categorySlug":"hub-cap-sac","sku":"TECH-CABLE-01","name":"Cáp USB-C 100W một mét","price":"149000","imageUrl":null},
+    {"categorySlug":"hub-cap-sac","sku":"TECH-CABLE-02","name":"Cáp HDMI hai mét","price":"129000","imageUrl":null},
+    {"categorySlug":"hub-cap-sac","sku":"TECH-CHARGER-01","name":"Bộ sạc GaN 65W","price":"690000","imageUrl":null},
+    {"categorySlug":"man-hinh-ban-lam-viec","sku":"TECH-MONITOR-01","name":"Màn hình IPS 24 inch","price":"2990000","imageUrl":null},
+    {"categorySlug":"man-hinh-ban-lam-viec","sku":"TECH-MONITOR-02","name":"Màn hình 27 inch QHD","price":"4990000","imageUrl":null},
+    {"categorySlug":"man-hinh-ban-lam-viec","sku":"TECH-DESK-01","name":"Giá đỡ laptop nhôm","price":"390000","imageUrl":null},
+    {"categorySlug":"man-hinh-ban-lam-viec","sku":"TECH-DESK-02","name":"Tay đỡ màn hình đơn","price":"790000","imageUrl":null}
+  ]
+}

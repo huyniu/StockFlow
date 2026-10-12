@@ -1,4 +1,4 @@
-import { app as __stockflowApp } from './context.js';
+import { app as __stockflowApp, registerFeature } from './context.js';
 import { loadAddressBook, loadCheckoutAddresses } from './account-services.js';
 
 let otpEmail, otpResendAt, otpTimer, otpResendBusy, googleSdkPromise, googleLoginVersion, loginReturnPath, resetAuthArtwork, profileLocationVersion;
@@ -592,42 +592,42 @@ async function loadCategories() {
     }
 
 export function register() {
-Object.defineProperties(__stockflowApp, {
-"renderIdentity": { get: () => renderIdentity },
-"renderPermissions": { get: () => renderPermissions },
-"renderContext": { get: () => renderContext },
-"renderCatalogNavigation": { get: () => renderCatalogNavigation },
-"setActive": { get: () => setActive },
-"authenticate": { get: () => authenticate },
+registerFeature({
+"renderIdentity": () => renderIdentity,
+"renderPermissions": () => renderPermissions,
+"renderContext": () => renderContext,
+"renderCatalogNavigation": () => renderCatalogNavigation,
+"setActive": () => setActive,
+"authenticate": () => authenticate,
 "otpEmail": { get: () => otpEmail, set: value => { otpEmail = value; } },
 "otpResendAt": { get: () => otpResendAt, set: value => { otpResendAt = value; } },
 "otpTimer": { get: () => otpTimer, set: value => { otpTimer = value; } },
 "otpResendBusy": { get: () => otpResendBusy, set: value => { otpResendBusy = value; } },
-"updateOtpCountdown": { get: () => updateOtpCountdown },
-"openOtp": { get: () => openOtp },
-"resendOtp": { get: () => resendOtp },
-"openDialog": { get: () => openDialog },
-"setAuthMode": { get: () => setAuthMode },
+"updateOtpCountdown": () => updateOtpCountdown,
+"openOtp": () => openOtp,
+"resendOtp": () => resendOtp,
+"openDialog": () => openDialog,
+"setAuthMode": () => setAuthMode,
 "googleSdkPromise": { get: () => googleSdkPromise, set: value => { googleSdkPromise = value; } },
 "googleLoginVersion": { get: () => googleLoginVersion, set: value => { googleLoginVersion = value; } },
-"loadGoogleSdk": { get: () => loadGoogleSdk },
-"initializeGoogleLogin": { get: () => initializeGoogleLogin },
+"loadGoogleSdk": () => loadGoogleSdk,
+"initializeGoogleLogin": () => initializeGoogleLogin,
 "loginReturnPath": { get: () => loginReturnPath, set: value => { loginReturnPath = value; } },
 "resetAuthArtwork": { get: () => resetAuthArtwork, set: value => { resetAuthArtwork = value; } },
-"safeLoginReturn": { get: () => safeLoginReturn },
-"setLoginPage": { get: () => setLoginPage },
-"showLoginPage": { get: () => showLoginPage },
-"openAuth": { get: () => openAuth },
-"renderProfile": { get: () => renderProfile },
-"loadProfile": { get: () => loadProfile },
-"saveProfile": { get: () => saveProfile },
-"prefillCheckoutFromProfile": { get: () => prefillCheckoutFromProfile },
+"safeLoginReturn": () => safeLoginReturn,
+"setLoginPage": () => setLoginPage,
+"showLoginPage": () => showLoginPage,
+"openAuth": () => openAuth,
+"renderProfile": () => renderProfile,
+"loadProfile": () => loadProfile,
+"saveProfile": () => saveProfile,
+"prefillCheckoutFromProfile": () => prefillCheckoutFromProfile,
 "profileLocationVersion": { get: () => profileLocationVersion, set: value => { profileLocationVersion = value; } },
-"loadProfileAddress": { get: () => loadProfileAddress },
-"changeProfileLocation": { get: () => changeProfileLocation },
-"prepareDefaultCheckoutAddress": { get: () => prepareDefaultCheckoutAddress },
-"loadReferences": { get: () => loadReferences },
-"loadCategories": { get: () => loadCategories }
+"loadProfileAddress": () => loadProfileAddress,
+"changeProfileLocation": () => changeProfileLocation,
+"prepareDefaultCheckoutAddress": () => prepareDefaultCheckoutAddress,
+"loadReferences": () => loadReferences,
+"loadCategories": () => loadCategories
 });
 }
 

@@ -7464,15 +7464,16 @@ body.category-menu-open {
 .contact-panel::after { content: ''; position: absolute; top: 100%; right: 0; left: 0; height: 12px; }
 .contact-panel > strong { display: block; font-size: 16px; }
 .contact-description { display: block; color: var(--muted); font-size: 12px; margin: 5px 0 12px; }
-.contact-panel a { display: flex; align-items: center; gap: 11px; padding: 10px 8px; border-radius: 10px; color: var(--text); text-decoration: none; transition: background .15s ease, transform .15s ease; }
-.contact-panel a:hover { background: #eff6ff; transform: translateX(-3px); }
-.contact-panel a > span:nth-child(2) { flex: 1; font-size: 14px; font-weight: 600; }
-.contact-panel a small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 400; }
+.contact-panel :is(a, button) { display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px 8px; border: 0; border-radius: 10px; background: transparent; color: var(--text); font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: background .15s ease, transform .15s ease; }
+.contact-panel :is(a, button):hover { background: var(--brand-soft); transform: translateX(-3px); }
+.contact-panel :is(a, button) > span:nth-child(2) { flex: 1; font-size: 14px; font-weight: 600; }
+.contact-panel :is(a, button) small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 400; }
+.contact-ai svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .contact-channel-icon.contact-zalo { background: #0068ff; font-size: 12px; font-weight: 700; }
 .contact-facebook { background: #1877f2; font-family: Arial, sans-serif; font-weight: 700; }
 .contact-phone { background: #16a34a; }
 .contact-toggle:hover { background: #1d4ed8; }
-.contact-toggle:focus-visible, .back-to-top:focus-visible, .contact-panel a:focus-visible { outline: 3px solid #0068ff; outline-offset: 3px; }
+.contact-toggle:focus-visible, .back-to-top:focus-visible, .contact-panel :is(a, button):focus-visible { outline: 3px solid #0068ff; outline-offset: 3px; }
 body:has(dialog[open]) .contact-widget { display: none; }
 body:not(.portal-open) .toasts { bottom: 106px; }
 .mobile-support-actions, .contact-action-label { display: none; }
@@ -7517,8 +7518,8 @@ body:not(.portal-open) .toasts { bottom: 106px; }
     }
     #contact-widget.is-open #contact-panel { display: block; transform: none; }
     #contact-panel::after { content: none; }
-    #contact-panel a:hover { background: var(--surface-muted); transform: none; }
-    #contact-toggle:focus-visible, #back-to-top:focus-visible, #contact-panel a:focus-visible { outline-color: var(--brand); }
+    #contact-panel :is(a, button):hover { background: var(--surface-muted); transform: none; }
+    #contact-toggle:focus-visible, #back-to-top:focus-visible, #contact-panel :is(a, button):focus-visible { outline-color: var(--brand); }
 }
 @media (max-width: 360px) {
     #contact-widget { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'contact' 'top' 'panel'; }
@@ -7527,7 +7528,7 @@ body:not(.portal-open) .toasts { bottom: 106px; }
     body.mobile-purchase-visible .toasts { bottom: calc(166px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) {
-    .contact-panel, .contact-chevron, .contact-panel a, .back-to-top { transition: none; }
+    .contact-panel, .contact-chevron, .contact-panel :is(a, button), .back-to-top { transition: none; }
 }
 #otp-dialog > .icon-button {
     float: right;

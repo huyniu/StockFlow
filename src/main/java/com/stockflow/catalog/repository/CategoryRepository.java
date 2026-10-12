@@ -18,11 +18,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     /** Tìm theo slug ổn định để seed demo chỉ tạo danh mục còn thiếu. */
     Optional<Category> findBySlug(String slug);
 
-    /**
-     * Kiểm tra tên danh mục đã tồn tại hay chưa để trả lỗi 409 thân thiện trước khi database ném unique violation.
-     */
-    boolean existsByName(String name);
-
     /** Tên khác hoa/thường cũng là cùng danh mục khi ADMIN thêm hoặc sửa. */
     boolean existsByNameIgnoreCase(String name);
 

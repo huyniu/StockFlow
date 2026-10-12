@@ -140,6 +140,8 @@ async function supportActions(width, value) {
     assert.ok(await evaluate(`[...document.querySelectorAll('#contact-toggle,#back-to-top')].every(e=>e.scrollWidth<=e.clientWidth+1&&e.getBoundingClientRect().height>=44)`), 'Readable support buttons');
     if (width < 1440) assert.equal(await evaluate(`getComputedStyle(document.querySelector('#contact-panel')).position`), 'static', 'Contact panel also remains in document flow');
     await key('ArrowDown');
+    await until(`document.activeElement.id==='ai-chat-toggle'`);
+    await key('Tab');
     await until(`document.activeElement.id==='zalo-contact'`);
     const links = await evaluate(`[...document.querySelectorAll('#contact-panel a:not([hidden])')].map(e=>({text:e.textContent.trim(),href:e.href}))`);
     assert.ok(links.some(link=>link.href==='https://zalo.me/0968935896'));

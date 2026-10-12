@@ -12,6 +12,7 @@ Giao diện dùng Native ES Modules: trình duyệt tải trực tiếp `app.js`
 - `navigation-events.js`: điều hướng và sự kiện.
 - `account-services.js`: sổ địa chỉ, chọn địa chỉ khi checkout, đổi mật khẩu.
 - `after-sales.js`: yêu cầu đổi/trả, ảnh minh chứng và duyệt yêu cầu.
+- `assets/ai-chat.js`: khởi tạo chatbot sau khi tải fragments; mở từ mục **Chat với trợ lý AI** trong menu Liên hệ, dùng chung các kênh Zalo/Facebook/điện thoại. Đóng chat bằng nút đóng hoặc Escape trả focus về nút Liên hệ; lịch sử giữ trong trang đang mở.
 
 `index.html` là shell. Các vùng giao diện nằm trong `assets/fragments/`: `chrome`, `auth-page`, `icons`, `storefront`, `dashboard`, `dialogs`, `aftercare`. Fragment được thay vào DOM trước khi khởi tạo, không thêm wrapper làm thay đổi layout. Khi tải lỗi, shell hiển thị thông báo và nút tải lại.
 
@@ -37,6 +38,7 @@ Kiểm tra Chrome headless với Node 22 trở lên và Chrome đã cài:
 
 ```powershell
 node scripts/verify-storefront-ui.cjs
+node scripts/verify-storefront-ui.cjs --contact-ai-only
 ```
 
 Script chạy server localhost riêng với API giả lập, không chạm dữ liệu thật hoặc gửi email. Kiểm tra 320/375/768/1366 px, sáng/tối, phục hồi mật khẩu, giỏ hàng/cước GHN, sổ địa chỉ/checkout, đổi mật khẩu, khách gửi yêu cầu đổi trả và quản trị duyệt. Ảnh lưu trong `target/ui-verification/`. Đặt `CHROME_PATH` nếu Chrome ở vị trí khác. Đây là kiểm chứng trình duyệt ở kích thước mobile, không thay thế thử trên điện thoại thật.
