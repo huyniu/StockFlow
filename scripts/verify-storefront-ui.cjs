@@ -99,6 +99,18 @@ async function until(expression,timeout=10000){const end=Date.now()+timeout;whil
 async function screenshot(name){const value=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(evidence,name+'.png'),Buffer.from(value.data,'base64'));}
 async function viewport(width,height=850){await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<768});}
 async function noOverflow(label){const dimensions=await evaluate(`({viewport:innerWidth,width:document.documentElement.scrollWidth,body:document.body.scrollWidth})`);assert.ok(dimensions.width<=dimensions.viewport+1,label+' '+JSON.stringify(dimensions));}
+async function supportTextContrast(selectors,label){
+ const colors=await evaluate(`(()=>{
+  const rgba=value=>value.match(/[\\d.]+/g).map(Number);
+  const background=element=>{
+   const ancestors=[];for(let e=element;e;e=e.parentElement)ancestors.unshift(e);
+   return ancestors.reduce((base,e)=>{const c=rgba(getComputedStyle(e).backgroundColor),a=c[3]??1;return c.slice(0,3).map((v,i)=>v*a+base[i]*(1-a));},[255,255,255]);
+  };
+  return ${JSON.stringify(selectors)}.flatMap(selector=>[...document.querySelectorAll(selector)].map(e=>({selector,text:e.textContent.trim().slice(0,40),foreground:rgba(getComputedStyle(e).color).slice(0,3),background:background(e)})));
+ })()`);
+ const luminance=rgb=>rgb.map(v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);}).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+ for(const row of colors){const a=luminance(row.foreground),b=luminance(row.background),ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);assert.ok(ratio>=4.5,`${label} ${row.selector} contrast ${ratio.toFixed(2)}: ${row.text}`);}
+}
 async function verifyContactAi(base){
  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
  for(const width of [320,375,768,1366,1920])for(const theme of ['light','dark']){
@@ -115,6 +127,7 @@ async function verifyContactAi(base){
   assert.equal(await evaluate(`document.querySelectorAll('#contact-panel a').length`),3);
   await evaluate(`document.querySelector('#ai-chat-toggle').focus()`);
   await evaluate(`new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);
+  await supportTextContrast(['#contact-panel > strong','.contact-description','#contact-panel :is(a,button) > span:nth-child(2)','#contact-panel small'],`Contact ${width} ${theme}`);
   await screenshot(`contact-ai-menu-${width}-${theme}`);
   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
   await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
@@ -126,6 +139,13 @@ async function verifyContactAi(base){
   await until(`document.querySelector('#ai-messages').textContent.includes('<b>StockFlow</b>') && !document.querySelector('.ai-typing')`);
   assert.equal(chatRequests.at(-1).message,'Tư vấn laptop');
   assert.equal(await evaluate(`document.querySelectorAll('#ai-messages b').length`),0,'Replies remain plain text');
+  await supportTextContrast(['.ai-title','.ai-subtitle','.ai-msg','.ai-chip','#ai-input'],`Chat ${width} ${theme}`);
+  const palette=await evaluate(`[getComputedStyle(document.querySelector('#contact-panel')).backgroundColor,getComputedStyle(document.querySelector('#ai-chat-modal')).backgroundColor]`);
+  await evaluate(`document.querySelector('#theme-toggle').click()`);
+  const switched=await evaluate(`[getComputedStyle(document.querySelector('#contact-panel')).backgroundColor,getComputedStyle(document.querySelector('#ai-chat-modal')).backgroundColor]`);
+  assert.ok(palette.every((color,i)=>color!==switched[i]),'Contact and chat change surface immediately when toggling theme');
+  await supportTextContrast(['.ai-title','.ai-subtitle','.ai-msg','.ai-chip','#ai-input'],`Live theme switch ${width} ${theme}`);
+  await evaluate(`document.querySelector('#theme-toggle').click()`);
   await screenshot(`contact-ai-chat-${width}-${theme}`);
   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await until(`document.querySelector('#ai-chat-modal').hidden && document.activeElement.id==='contact-toggle'`);

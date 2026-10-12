@@ -141,13 +141,13 @@
 .contact-toggle, .back-to-top { display: flex; align-items: center; justify-content: center; gap: 7px; width: 116px; min-height: 42px; padding: 8px 10px; border: 0; border-radius: 12px; background: #df0020; color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgb(15 23 42 / 12%); cursor: pointer; }
 .back-to-top { width: 48px; min-height: 48px; background: #050505; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(10px); transition: opacity .4s ease, transform .4s ease, visibility 0s linear .4s; }
 .back-to-top.is-visible { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); transition-delay: 0s; }
-.contact-toggle { width: 48px; min-height: 48px; background: #2563eb; }
+.contact-toggle { width: 48px; min-height: 48px; background: var(--brand); color: var(--brand-contrast); }
 .back-to-top:hover { background: #252525; }
 .contact-headset, .back-to-top svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .contact-toggle-icon, .contact-channel-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: #fff; background: #2563eb; flex-shrink: 0; font-size: 22px; }
 .contact-chevron { transition: transform .2s ease; }
 .contact-widget.is-open .contact-chevron { transform: rotate(180deg); }
-.contact-panel { position: absolute; right: 0; bottom: 100%; width: min(292px, calc(100vw - 28px)); padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: #fff; color: var(--text); box-shadow: 0 12px 36px rgb(15 23 42 / 18%); opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(12px) scale(.97); transform-origin: bottom right; transition: opacity .4s ease, transform .4s ease, visibility 0s linear .4s; }
+.contact-panel { position: absolute; right: 0; bottom: 100%; width: min(292px, calc(100vw - 28px)); padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--text); box-shadow: 0 12px 36px rgb(15 23 42 / 18%); opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(12px) scale(.97); transform-origin: bottom right; transition: opacity .4s ease, transform .4s ease, visibility 0s linear .4s; }
 .contact-widget.is-open .contact-panel { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(-8px) scale(1); transition-delay: 0s; }
 .contact-panel::after { content: ''; position: absolute; top: 100%; right: 0; left: 0; height: 12px; }
 .contact-panel > strong { display: block; font-size: 16px; }
@@ -157,10 +157,11 @@
 .contact-panel :is(a, button) > span:nth-child(2) { flex: 1; font-size: 14px; font-weight: 600; }
 .contact-panel :is(a, button) small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 400; }
 .contact-ai svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.contact-ai { background: var(--brand); color: var(--brand-contrast); }
 .contact-channel-icon.contact-zalo { background: #0068ff; font-size: 12px; font-weight: 700; }
 .contact-facebook { background: #1877f2; font-family: Arial, sans-serif; font-weight: 700; }
 .contact-phone { background: #16a34a; }
-.contact-toggle:hover { background: #1d4ed8; }
+.contact-toggle:hover { background: var(--brand-hover); }
 .contact-toggle:focus-visible, .back-to-top:focus-visible, .contact-panel :is(a, button):focus-visible { outline: 3px solid #0068ff; outline-offset: 3px; }
 body:has(dialog[open]) .contact-widget { display: none; }
 body:not(.portal-open) .toasts { bottom: 106px; }
