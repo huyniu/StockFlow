@@ -31,3 +31,7 @@ app:
     jwt:
       secret: stockflow-test-secret-key-with-at-least-thirty-two-characters
       expiration-ms: 3600000
+
+# Secret riêng cho test; môi trường chạy thật phải cấp VNPAY_HASH_SECRET.
+vnpay:
+  hash-secret: stockflow-test-vnpay-hash-secret

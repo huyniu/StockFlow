@@ -4,7 +4,7 @@ Giữ nguyên API/nút mô phỏng thanh toán. CUSTOMER có thêm nút `Thanh t
 
 ## Cấu hình
 
-`application.yml` và `application-demo.yml` đọc `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, `VNPAY_RETURN_URL`. Giá trị DEMOVNPAY/DEMOHASHSECRETKEY2026 chỉ là placeholder cho local/test, cần thay bằng thông tin merchant do VNPay Sandbox cấp để thanh toán trên cổng thật. `VNPAY_STOREFRONT_URL` mặc định `http://localhost:8080/`; đổi cùng return URL khi dùng host/port khác. Không lưu secret thật vào Git.
+`application.yml` và `application-demo.yml` đọc `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, `VNPAY_RETURN_URL`. `VNPAY_HASH_SECRET` không có giá trị mặc định: thiếu biến này thì ứng dụng dừng ngay khi khởi động (Render cũng phải đặt biến này). Giá trị DEMOVNPAY/DEMOHASHSECRETKEY2026 trong `.env.example` chỉ là placeholder cho local, cần thay bằng thông tin merchant do VNPay Sandbox cấp để thanh toán trên cổng thật. `VNPAY_STOREFRONT_URL` mặc định `http://localhost:8080/`; đổi cùng return URL khi dùng host/port khác. Không lưu secret thật vào Git.
 
 ## API và dữ liệu
 

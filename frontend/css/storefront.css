@@ -1025,19 +1025,19 @@
 @media (max-width: 760px) {
     .shop-discovery > .tech-hero {
         grid-template-columns: minmax(0, 1fr);
-        gap: 24px;
+        gap: 16px;
         min-height: 0;
-        padding: 25px 22px 22px;
+        padding: 20px 18px 18px;
         border-radius: 18px;
     }
     .tech-hero .hero-copy h1 {
-        font-size: clamp(27px, 7.2vw, 37px);
+        font-size: clamp(25px, 6.8vw, 34px);
         letter-spacing: -1px;
-        margin: 17px 0 11px;
+        margin: 12px 0 8px;
     }
     .tech-hero .hero-copy p {
         font-size: 11px;
-        margin-bottom: 18px;
+        margin-bottom: 14px;
     }
     .tech-hero .hero-details {
         display: none;
@@ -1046,9 +1046,14 @@
         font-size: 7px;
         letter-spacing: 0.8px;
     }
+    /* Khung thấp hơn để danh mục hiện trong màn hình đầu; khung chờ rõ hơn nên không trông như ô trống. */
     .hero-showcase {
-        height: 230px;
-        margin: 0 7px 6px;
+        height: 184px;
+        margin: 0 7px 4px;
+    }
+    .hero-device-skeleton {
+        border-color: #93c5fd4d;
+        background: #adcaff24;
     }
     .hero-device {
         border-radius: 14px;

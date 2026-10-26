@@ -19,7 +19,8 @@ class AuthHardeningMigrationTest {
             db.update("INSERT INTO users(email,password_hash,full_name,role_id,email_verified) VALUES (?,'hash','Migration',(SELECT id FROM roles WHERE name=?),?)",email,role,!email.startsWith("pending@"));
             db.update("INSERT INTO email_verification_tokens(user_id,otp_code,expires_at) SELECT id,'909090',DATEADD('MINUTE',15,CURRENT_TIMESTAMP) FROM users WHERE email=?",email);
         }
-        var migration=Flyway.configure().dataSource(source).locations("filesystem:src/test/resources/db/migration").cleanDisabled(false).load();
+        // Chỉ chạy V31–V33 (auth hardening) để migration mới sau này không làm đổi số lượng đếm bên dưới.
+        var migration=Flyway.configure().dataSource(source).locations("filesystem:src/test/resources/db/migration").target("33").cleanDisabled(false).load();
         try{
             assertThat(migration.migrate().migrationsExecuted).isEqualTo(3);
             assertThat(db.queryForObject("SELECT COUNT(*) FROM users WHERE operator_recovered_at IS NOT NULL", Integer.class)).isZero();
