@@ -84,6 +84,7 @@ public class SecurityConfig {
                         // Khách vãng lai chỉ nhận lựa chọn chi nhánh tối thiểu; không mở API kho vận hành.
                         .requestMatchers(HttpMethod.GET, "/api/v1/storefront/branches").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/storefront/contact").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/storefront/locations").permitAll()
                         // Chỉ public catalog bán chạy; báo cáo doanh thu và lịch sử kho vẫn giữ quyền nội bộ.
                         .requestMatchers(HttpMethod.GET, "/api/v1/storefront/bestsellers").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()

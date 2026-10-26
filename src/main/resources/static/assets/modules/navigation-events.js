@@ -294,7 +294,7 @@ function initializeContactWidget() {
         }
         toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
         panel.addEventListener('click', (event) => {
-            if (event.target.closest('[data-contact-ai]')) setOpen(false);
+            if (event.target.closest('[data-contact-ai], [data-store-map-open]')) setOpen(false);
         });
         toggle.addEventListener('mouseenter', () => {
             if (!inlineSupport.matches && window.matchMedia('(hover: hover) and (pointer: fine)').matches) setOpen(true);

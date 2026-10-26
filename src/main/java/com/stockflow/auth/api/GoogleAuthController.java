@@ -25,7 +25,7 @@ public class GoogleAuthController {
         return ResponseCookie.from(COOKIE,nonce).httpOnly(true).secure(request.isSecure()).sameSite("Strict")
             .path("/api/v1/auth/google").maxAge(age).build();
     }
-    @GetMapping("/config")
+    @GetMapping(" ")
     public ResponseEntity<Configuration> config(HttpServletRequest request) {
         if (!verifier.enabled()) return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new Configuration(false,"",null));
         String nonce=nonces.issue();

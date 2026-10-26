@@ -799,6 +799,11 @@ function renderWarehouses() {
             select.value = __stockflowApp.state.branchId;
             select.disabled = !__stockflowApp.state.warehouses.length;
         });
+        const selectedBranch = __stockflowApp.state.warehouses.find(warehouse => String(warehouse.id) === __stockflowApp.state.branchId);
+        const branchPicker = __stockflowApp.$('#header-branch-picker');
+        __stockflowApp.$('#header-branch-name').textContent = selectedBranch?.name || 'Chưa có chi nhánh';
+        branchPicker.disabled = !__stockflowApp.state.warehouses.length;
+        branchPicker.setAttribute('aria-label', selectedBranch ? 'Chọn chi nhánh phục vụ, hiện tại ' + selectedBranch.name : 'Chưa có chi nhánh đang phục vụ');
         const options = __stockflowApp.state.operatingWarehouses
             .map(
                 (warehouse) =>

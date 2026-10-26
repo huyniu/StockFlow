@@ -12,6 +12,14 @@ const page=content=>({content,total_elements:content.length,total_pages:1,number
 let resetRequests=0;
 const chatRequests=[];
 let chatFailure=false;
+let mapFailure=false, mapEmpty=false, mapRequests=0;
+let mapConfigRequests=0;
+let branchFixtures=null;
+const mapLocations=[
+ {id:1,code:'DEMO-HAN',name:'StockFlow Hà Nội',address:'Khu vực Long Biên, Hà Nội',latitude:21.0456,longitude:105.8919,demo:true,warehouse_id:11},
+ {id:2,code:'DEMO-DAD',name:'StockFlow Đà Nẵng',address:'Khu vực Hải Châu, Đà Nẵng',latitude:16.0471,longitude:108.2068,demo:true,warehouse_id:22},
+ {id:3,code:'DEMO-SGN',name:'StockFlow TP.HCM',address:'Khu vực Thủ Đức, TP.HCM',latitude:10.8494,longitude:106.7537,demo:true,warehouse_id:33},
+];
 let loginRequests=0, orderCreates=0;
 let catalogRequests=0, catalogFailure=false, catalogDelay=0, catalogEmpty=false;
 const catalogQueries=[];
@@ -56,7 +64,10 @@ function fixture(url,method='GET',body={}) {
  }
  if(p.endsWith('/products/specification-options')||p.endsWith('/storefront/bestsellers')||p.endsWith('/wishlist'))return [];
  if(p.includes('/storefront/contact'))return {zalo_url:'https://zalo.me/0968935896'};
- if(p.endsWith('/storefront/branches')||p.endsWith('/warehouses/operating-options'))return [{id:1,name:'Kho Hà Nội',address:'Hà Nội',status:'ACTIVE'}];
+ if(p.endsWith('/storefront/locations'))return mapEmpty?[]:mapLocations;
+ if(p.endsWith('/storefront/map-config')){mapConfigRequests++;throw Error('Key-free maps must not request API configuration');}
+ if(p.endsWith('/storefront/branches'))return branchFixtures??[{id:1,name:'Kho Hà Nội',code:'WH-HAN-01'}];
+ if(p.endsWith('/warehouses/operating-options'))return [{id:1,name:'Kho Hà Nội',address:'Hà Nội',status:'ACTIVE'}];
  if(p.endsWith('/products/1'))return product;
  if(p.endsWith('/products/2'))return tablet;
  if(p.endsWith('/products/3'))return samsungPhone;
@@ -74,6 +85,10 @@ const server=http.createServer(async(req,res)=>{
  if(url.pathname==='/api/v1/diagnostics/rejected'){res.writeHead(409,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'CONFLICT',message:'SKU đã tồn tại.'}));return;}
  if(url.pathname.startsWith('/api/')){
   let text='';for await(const chunk of req)text+=chunk;const body=text?JSON.parse(text):{};
+  if(url.pathname==='/api/v1/storefront/locations'){
+   mapRequests++;
+   if(mapFailure){res.writeHead(503,{'Content-Type':'application/json'});res.end(JSON.stringify({message:'Map unavailable'}));return;}
+  }
   if(url.pathname==='/api/v1/ai/chat' && req.method==='POST'){
    chatRequests.push(body);
    res.writeHead(chatFailure?503:200,{'Content-Type':'application/json'});
@@ -93,7 +108,7 @@ const server=http.createServer(async(req,res)=>{
  res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});res.end(fs.readFileSync(file));
 });
 let browser,socket,id=0,session;const pending=new Map(),exceptions=[];
-function send(method,params={},scoped=true){return new Promise((resolve,reject)=>{const request=++id;const timeout=setTimeout(()=>{pending.delete(request);reject(Error('CDP timeout: '+method));},15000);pending.set(request,{resolve:value=>{clearTimeout(timeout);resolve(value);},reject:error=>{clearTimeout(timeout);reject(error);}});socket.send(JSON.stringify({id:request,method,params,...(scoped&&session?{sessionId:session}:{})}));});}
+function send(method,params={},scoped=true){return new Promise((resolve,reject)=>{const request=++id;const timeout=setTimeout(()=>{pending.delete(request);reject(Error('CDP timeout: '+method));},15000);pending.set(request,{resolve:value=>{clearTimeout(timeout);resolve(value);},reject:error=>{clearTimeout(timeout);reject(error);}});socket.send(JSON.stringify({id:request,method,params,...(scoped&&session?{sessionId:typeof scoped==='string'?scoped:session}:{})}));});}
 async function evaluate(expression){const result=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw Error(JSON.stringify(result.exceptionDetails));return result.result.value;}
 async function until(expression,timeout=10000){const end=Date.now()+timeout;while(Date.now()<end){if(await evaluate(`document.readyState !== 'loading' && document.body && (${expression})`))return;await new Promise(r=>setTimeout(r,80));}throw Error('UI timeout: '+expression+' '+JSON.stringify(await evaluate(`({ready:document.readyState,text:document.body?.innerText.slice(-500)})`))+' '+JSON.stringify(exceptions));}
 async function screenshot(name){const value=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(evidence,name+'.png'),Buffer.from(value.data,'base64'));}
@@ -110,6 +125,84 @@ async function supportTextContrast(selectors,label){
  })()`);
  const luminance=rgb=>rgb.map(v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);}).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
  for(const row of colors){const a=luminance(row.foreground),b=luminance(row.background),ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);assert.ok(ratio>=4.5,`${label} ${row.selector} contrast ${ratio.toFixed(2)}: ${row.text}`);}
+}
+async function verifyStoreMap(base){
+ const choices=[{id:11,code:'WH-HAN-01',name:'Kho Hà Nội'},{id:22,code:'WH-DAD-01',name:'Kho Đà Nẵng'},{id:33,code:'WH-SGN-01',name:'Kho TP.HCM'}];
+ branchFixtures=choices;
+ await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+ const state=()=>evaluate(`(async()=>{const {app}=await import('/assets/modules/context.js');return {branch:app.state.branchId,cart:JSON.stringify([...app.state.cart])};})()`);
+ const close=async()=>{await evaluate(`document.querySelector('#store-map').close()`);await until(`!document.querySelector('#store-map').open`);};
+ const open=async()=>{await evaluate(`document.querySelector('#header-branch-picker').click()`);await until(`document.querySelector('#store-map').open && document.querySelector('#store-map').getAttribute('aria-busy')==='false'`);};
+ for(const width of [320,375,768,1366])for(const theme of ['light','dark']){
+  await viewport(width,850);await send('Page.navigate',{url:base+'/'});
+  await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready' && !document.querySelector('#header-branch-picker').disabled`);
+  await evaluate(`if(document.documentElement.dataset.theme!==${JSON.stringify(theme)})document.querySelector('#theme-toggle').click()`);
+  const before=await state();
+  await open();
+  assert.equal(await evaluate(`document.activeElement.id`),'store-map-title');
+  assert.equal(await evaluate(`document.querySelector('#header-branch-picker').getAttribute('aria-expanded')`),'true');
+  const initial=mapLocations.find(row=>String(row.warehouse_id)===before.branch);
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).origin`),'https://www.google.com');
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).pathname`),'/maps');
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).searchParams.has('key')`),false);
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).searchParams.get('output')`),'embed');
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).searchParams.get('q')`),initial.latitude+','+initial.longitude);
+  assert.equal(await evaluate(`document.querySelector('#store-map-frame').referrerPolicy`),'strict-origin-when-cross-origin');
+  assert.equal(await evaluate(`document.querySelectorAll('#store-map a[href*="openstreetmap"]').length`),0);
+  // External networking stays blocked; the live run separately verifies Google Maps.
+  await evaluate(`document.querySelector('#store-map-frame').srcdoc='<p style="font:16px sans-serif;padding:24px">Bản đồ: kết nối ngoài được tắt trong kiểm thử giao diện.</p>'`);
+  await evaluate(`document.querySelector('#store-map-list [data-warehouse-id="22"]').focus()`);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  await until(`document.querySelector('#store-map-selected').textContent==='StockFlow Đà Nẵng'`);
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).searchParams.get('q')`),'16.0471,108.2068');
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-directions').href).searchParams.get('destination')`),'16.0471,108.2068');
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-external').href).searchParams.get('query')`),'16.0471,108.2068');
+  assert.equal(await evaluate(`document.querySelectorAll('#store-map-list [aria-pressed="true"]').length`),1);
+  assert.deepEqual(await state(),before,'Previewing a map does not change the order branch or cart');
+  await noOverflow('Header branch dialog '+width+' '+theme);
+  const bounds=await evaluate(`(()=>{const r=document.querySelector('#store-map').getBoundingClientRect(),f=document.querySelector('#store-map-frame').getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:innerWidth,height:innerHeight,frameLeft:f.left,frameRight:f.right};})()`);
+  assert.ok(bounds.left>=0&&bounds.right<=bounds.width&&bounds.top>=0&&bounds.bottom<=bounds.height&&bounds.frameLeft>=0&&bounds.frameRight<=bounds.width,'Dialog fits viewport '+JSON.stringify(bounds));
+  await supportTextContrast(['.store-map-heading h2','.store-map-heading p','#store-map-list strong','#store-map-list span','#store-map-list small','#store-map-selected','#store-map-address','#store-map-demo','#store-map-choice'],`Branch dialog ${width} ${theme}`);
+  await screenshot(`store-map-${width}-${theme}`);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await until(`!document.querySelector('#store-map').open && document.activeElement.id==='header-branch-picker'`);
+  assert.deepEqual(await state(),before,'Cancel does not change the selected branch');
+  await open();
+  const target=before.branch==='33'?'22':'33';
+  await evaluate(`document.querySelector('#store-map-list [data-warehouse-id="${target}"]').click();document.querySelector('#store-map-confirm').click()`);
+  await until(`!document.querySelector('#store-map').open && document.querySelector('#shop-warehouse').value==='${target}'`);
+  const after=await state();assert.equal(after.branch,target);assert.equal(after.cart,before.cart);
+  assert.equal(await evaluate(`document.querySelector('#header-branch-name').textContent`),choices.find(row=>String(row.id)===target).name);
+  await send('Page.reload',{ignoreCache:true});
+  await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready' && document.querySelector('#shop-warehouse').value==='${target}'`);
+  assert.equal((await state()).branch,target,'Choice survives reload with the saved cart');
+  console.log(`PASS: header branch dialog, preview/cancel/confirm, real warehouse IDs, persistence, keyboard and contrast ${width} ${theme}`);
+ }
+ mapFailure=true;await send('Page.navigate',{url:base+'/'});await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready'`);await open();
+ await until(`!document.querySelector('#store-map-retry').hidden`);
+ assert.equal(await evaluate(`document.querySelector('#store-map-confirm').disabled`),false,'Customers can choose an active branch even when maps fail');
+ mapFailure=false;await evaluate(`document.querySelector('#store-map-retry').click()`);
+ await until(`document.querySelector('#store-map-frame').hasAttribute('src') && !document.querySelector('#store-map-frame').hidden`);await close();
+ mapEmpty=true;await open();
+ assert.equal(await evaluate(`document.querySelector('#store-map-frame').hasAttribute('src')`),false);
+ assert.equal(await evaluate(`document.querySelector('#store-map-confirm').disabled`),false,'A branch without map coordinates remains selectable');await close();mapEmpty=false;
+ const original=mapLocations[0].name;mapLocations[0].name='<img src=x onerror=alert(1)>';await open();
+ await evaluate(`document.querySelector('#store-map-list [data-warehouse-id="11"]').click()`);
+ assert.equal(await evaluate(`document.querySelector('#store-map-selected').textContent`),mapLocations[0].name);
+ assert.equal(await evaluate(`document.querySelectorAll('#store-map-list img, #store-map-selected img').length`),0);await close();mapLocations[0].name=original;
+ await evaluate(`document.querySelector('#contact-toggle').click();document.querySelector('#contact-panel [data-store-map-open]').click()`);
+ await until(`document.querySelector('#store-map').open`);
+ assert.equal(await evaluate(`document.querySelector('#contact-toggle').getAttribute('aria-expanded')`),'false');
+ await close();await until(`document.activeElement.id==='contact-toggle'`);
+ branchFixtures=[];await send('Page.navigate',{url:base+'/'});await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready'`);
+ await evaluate(`document.querySelector('.shop-footer [data-store-map-open]').click()`);
+ await until(`document.querySelector('#store-map').open && document.querySelector('#store-map').getAttribute('aria-busy')==='false'`);
+ assert.equal(await evaluate(`document.querySelector('#store-map-confirm').disabled`),true);
+ assert.equal(await evaluate(`document.querySelectorAll('#store-map-list button').length`),0);await close();
+ branchFixtures=null;assert.equal(orderCreates,0);assert.equal(mapConfigRequests,0);assert.equal(exceptions.length,0,JSON.stringify(exceptions));
+ console.log('PASS: key-free Google-only URLs, no API configuration, map failure/retry, mapless branches, empty active branches and untrusted labels');
 }
 async function verifyContactAi(base){
  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
@@ -467,6 +560,52 @@ async function verifyScrolledCategoryMenu(base){
  const target=await send('Target.createTarget',{url:'about:blank'},false);session=(await send('Target.attachToTarget',{targetId:target.targetId,flatten:true},false)).sessionId;
  await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBlockedURLs',{urls:['https://*']});
  console.log('Browser connected');
+ if(process.argv.includes('--store-map-live')||process.argv.includes('--store-map-local')||process.argv.includes('--store-map-provider-only')){
+  const providerOnly=process.argv.includes('--store-map-provider-only');
+  const live=process.argv.includes('--store-map-live')||providerOnly;
+  if(providerOnly)branchFixtures=[{id:11,code:'WH-HAN-01',name:'Kho Hà Nội'},{id:22,code:'WH-DAD-01',name:'Kho Đà Nẵng'},{id:33,code:'WH-SGN-01',name:'Kho TP.HCM'}];
+  if(live)await send('Network.setBlockedURLs',{urls:[]});
+  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+  await viewport(1366,1050);await send('Page.navigate',{url:providerOnly?base+'/':'http://localhost:8080/'});
+  await until(`document.querySelector('#catalog-grid')?.dataset.catalogStatus==='ready'`);
+  await evaluate(`document.querySelector('.shop-footer [data-store-map-open]').click()`);
+  await until(`document.querySelectorAll('#store-map-list button').length===3 && document.querySelector('#store-map').getAttribute('aria-busy')==='false'`);
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-external').href).origin`),'https://www.google.com');
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).searchParams.get('output')`),'embed');
+  assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).searchParams.has('key')`),false);
+  if(!live){
+   assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).pathname`),'/maps');
+   await screenshot('google-maps-local-1366');await viewport(375,950);
+   await evaluate(`document.querySelector('#theme-toggle').click();document.querySelector('#store-map-selected').scrollIntoView({block:'center',behavior:'instant'})`);
+   await screenshot('google-maps-local-375');
+   console.log('PASS: localhost key-free Google Maps links and branch chooser; provider not verified in this mode');return;
+  }
+  const points=await evaluate(`(async()=>{const response=await fetch('/api/v1/storefront/locations');return response.json();})()`);
+  for(const point of points){
+   await evaluate(`document.querySelector('#store-map-list [data-warehouse-id="${point.warehouse_id}"]').click()`);
+   assert.equal(await evaluate(`new URL(document.querySelector('#store-map-frame').src).searchParams.get('q')`),point.latitude+','+point.longitude);
+   await new Promise(r=>setTimeout(r,4500));
+   let providerLoaded=false;
+   for(let attempt=1;attempt<=3&&!providerLoaded;attempt++){
+    const targets=(await send('Target.getTargets',{},false)).targetInfos.filter(row=>row.type==='iframe'&&row.url.startsWith('https://www.google.com/maps'));
+    for(const target of targets){
+     const child=(await send('Target.attachToTarget',{targetId:target.targetId,flatten:true},false)).sessionId;
+     const state=await send('Runtime.evaluate',{expression:`(()=>{const text=document.body?.innerText||'';return {google:location.origin==='https://www.google.com'&&location.pathname.startsWith('/maps'),error:/API key|rejected|not authorized|billing|invalid|not enabled/i.test(text),rendered:Boolean(document.querySelector('.gm-style,canvas,[role="region"][aria-label*="Map"],[role="region"][aria-label*="Bản đồ"]')),label:text.slice(0,200)};})()`,returnByValue:true},child);
+     console.log(point.code+' Google map render attempt '+attempt+': '+JSON.stringify(state.result.value));
+     providerLoaded=state.result.value?.google&&!state.result.value?.error&&state.result.value?.rendered;
+    }
+    if(!providerLoaded&&attempt<3){await evaluate(`document.querySelector('#store-map-reload').click()`);await new Promise(r=>setTimeout(r,4000));}
+   }
+   assert.ok(providerLoaded,'Google Maps actually renders for '+point.code);
+   await screenshot('google-maps-key-free-'+point.code+'-1366');
+  }
+  await viewport(375,950);
+  await evaluate(`document.querySelector('#theme-toggle').click();document.querySelector('#store-map-frame').scrollIntoView({block:'center',behavior:'instant'})`);
+  await screenshot('google-maps-key-free-live-375');
+  assert.equal(exceptions.length,0,JSON.stringify(exceptions));
+  console.log('PASS: '+(providerOnly?'fixture app + real provider':'localhost')+' and actual key-free Google Maps renders for all three branches');return;
+ }
+ if(process.argv.includes('--store-map-only')){await verifyStoreMap(base);return;}
  if(process.argv.includes('--contact-ai-only')){await verifyContactAi(base);return;}
  if(process.argv.includes('--header-only')){await verifyStorefrontHeader(base);return;}
  await verifyStorefrontHeader(base);

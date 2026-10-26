@@ -7,6 +7,7 @@ import { initializeRecentlyViewed } from '/assets/modules/recently-viewed.js';
 import { initializeProductCarousels } from '/assets/modules/product-carousel.js';
 import { initializeProductImageViewer } from '/assets/modules/product-image-viewer.js';
 import { initializeAiChat } from '/assets/ai-chat.js';
+import { initializeStoreMap } from '/assets/modules/store-map.js';
 
 try {
     await loadFragments();
@@ -30,6 +31,7 @@ try {
     initializeProductCarousels();
     initializeProductImageViewer();
     initializeAiChat();
+    initializeStoreMap();
     features.at(-1).initializeFeature();
 } catch (error) {
     const status = document.querySelector('#boot-status') || document.body.appendChild(document.createElement('p'));

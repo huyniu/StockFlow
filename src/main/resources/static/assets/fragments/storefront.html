@@ -111,12 +111,16 @@
                     </div>
                     <span id="search-suggestions-status" class="sr-only" role="status" aria-live="polite"></span>
                 </form>
-                <label class="branch-picker">
+                <div class="branch-picker">
                     <span class="branch-picker-label">Chi nhánh phục vụ</span>
-                    <select id="shop-warehouse" data-store-warehouse aria-label="Chọn chi nhánh phục vụ">
+                    <button id="header-branch-picker" class="branch-picker-toggle" type="button" data-store-map-open aria-haspopup="dialog" aria-controls="store-map" aria-expanded="false" disabled>
+                        <span id="header-branch-name">Đang tải chi nhánh…</span>
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+                    </button>
+                    <select id="shop-warehouse" data-store-warehouse aria-label="Chi nhánh phục vụ đã chọn" hidden>
                         <option value="">Đang tải chi nhánh…</option>
                     </select>
-                </label>
+                </div>
                 </div>
                 <div class="shop-header-actions">
                     <button type="button" class="header-button wishlist-header" data-action="open-wishlist" aria-label="Xem sản phẩm yêu thích">
@@ -724,8 +728,40 @@
                     <div class="recently-viewed-heading"><div><h2 id="recently-viewed-title">Sản phẩm đã xem</h2></div><button id="clear-recently-viewed" class="text-button" type="button">Xóa lịch sử xem</button></div>
                     <div id="recently-viewed-products" class="recently-viewed-products"></div>
                 </section>
+                <dialog id="store-map" class="store-map" aria-labelledby="store-map-title" aria-describedby="store-map-intro" aria-busy="false">
+                    <div class="store-map-header">
+                        <div class="store-map-heading">
+                            <h2 id="store-map-title" tabindex="-1">Chọn chi nhánh phục vụ</h2>
+                            <p id="store-map-intro">Xem vị trí rồi chọn chi nhánh để kiểm tra hàng và đặt đơn.</p>
+                        </div>
+                        <button class="icon-button" type="button" data-store-map-close aria-label="Đóng chọn chi nhánh"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button>
+                    </div>
+                    <p id="store-map-status" class="store-map-status" role="status" hidden></p>
+                    <button id="store-map-retry" class="button secondary store-map-retry" type="button" hidden>Thử lại</button>
+                    <div id="store-map-content" class="store-map-content" hidden>
+                        <div id="store-map-list" class="store-map-list" role="group" aria-label="Chọn chi nhánh phục vụ"></div>
+                        <div class="store-map-detail">
+                            <h3 id="store-map-selected"></h3>
+                            <p id="store-map-address"></p>
+                            <p id="store-map-demo" class="store-map-demo" hidden>Vị trí demo, không phải cửa hàng đang hoạt động. Không dùng điểm này để nhận hàng hoặc gửi hàng thực tế.</p>
+                            <p id="store-map-unavailable" class="store-map-demo" hidden>Chi nhánh này chưa có bản đồ công khai. Bạn vẫn có thể chọn chi nhánh để mua sắm.</p>
+                            <iframe id="store-map-frame" title="Google Maps chi nhánh" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                            <div id="store-map-links" class="store-map-links">
+                                <a id="store-map-directions" target="_blank" rel="noopener noreferrer">Chỉ đường trên Google Maps ↗</a>
+                                <a id="store-map-external" target="_blank" rel="noopener noreferrer">Mở Google Maps ↗</a>
+                                <button id="store-map-reload" class="text-button" type="button">Tải lại bản đồ</button>
+                            </div>
+                            <p class="store-map-help">Bản đồ do Google Maps cung cấp. Nếu tải chậm, bạn có thể mở Google Maps ở cửa sổ mới.</p>
+                        </div>
+                    </div>
+                    <div class="store-map-actions">
+                        <span id="store-map-choice" role="status">Chọn một chi nhánh để tiếp tục.</span>
+                        <button id="store-map-confirm" class="button primary" type="button" disabled>Chọn chi nhánh này</button>
+                    </div>
+                </dialog>
                 <footer class="shop-footer shop-footer-expanded">
                     <section id="mobile-support-actions" class="mobile-support-actions" aria-label="Hỗ trợ nhanh"></section>
+                    <button class="text-button" type="button" data-store-map-open>Chi nhánh và bản đồ</button>
                     <div class="shop-footer-grid">
                         <div class="footer-about"><a class="footer-brand" href="/" data-shop-tab="home"><span class="stockflow-logo" role="img" aria-label="StockFlow Tech"><img class="brand-logo-light" src="/assets/stockflow-logo-light.svg" width="500" height="110" alt="" loading="lazy" /><img class="brand-logo-dark" src="/assets/stockflow-logo-dark.svg" width="500" height="110" alt="" loading="lazy" /></span></a><p>Điện thoại, laptop và phụ kiện công nghệ. Khám phá sản phẩm, chọn phiên bản phù hợp và đặt hàng từ chi nhánh bạn chọn.</p><a class="footer-hotline" href="tel:0968935896">☎ 0968 935 896</a><span>Liên hệ tư vấn sản phẩm và hỗ trợ đơn hàng</span></div>
                         <nav aria-label="Khám phá cửa hàng"><h3>Khám phá</h3><button type="button" data-shop-tab="home">Trang chủ</button><button type="button" data-shop-tab="catalog">Tất cả sản phẩm</button><button type="button" data-action="my-orders">Đơn hàng của tôi</button><button type="button" data-action="my-account">Thông tin cá nhân</button></nav>
@@ -761,6 +797,10 @@
                         <span class="contact-channel-icon contact-phone" aria-hidden="true">☎</span>
                         <span>Gọi điện<small>0968 935 896</small></span><span aria-hidden="true">↗</span>
                     </a>
+                    <button type="button" data-store-map-open>
+                        <span class="contact-channel-icon contact-map" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                        <span>Chi nhánh và bản đồ<small>Xem vị trí ngay trên web</small></span><span aria-hidden="true">↗</span>
+                    </button>
                 </div>
                 <button id="contact-toggle" class="contact-toggle" type="button" aria-label="Liên hệ cửa hàng" aria-expanded="false" aria-controls="contact-panel">
                     <svg class="contact-headset" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-3a8 8 0 0 1 16 0v3M4 12H3v6h4v-6H4Zm16 0h1v6h-4v-6h3Zm0 6v1a2 2 0 0 1-2 2h-5m-3-1h3v2h-3Z" /></svg>

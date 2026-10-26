@@ -14,6 +14,7 @@
     "css/brand-logo.css",
     "css/storefront-polish.css",
     "css/aura-background.css",
-    "css/storefront-header.css"
+    "css/storefront-header.css",
+    "css/store-map.css"
   ]
 }
