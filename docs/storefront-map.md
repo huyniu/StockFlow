@@ -36,6 +36,7 @@ Không có migration mới cho lần chuyển sang nhúng miễn key. Nếu Rend
 - V34 tạo bảng `storefront_map_locations` và ba vị trí demo Hà Nội/Đà Nẵng/TP.HCM. Đây là điểm minh họa, không phải cửa hàng thật; không dùng để nhận/gửi hàng thực tế.
 - V35 liên kết theo `warehouse_code` với WH-HAN-01, WH-DAD-01, WH-SGN-01. Dịch vụ đọc tra kho ACTIVE và trả `warehouse_id` thật, không giả định ID kho bằng ID điểm bản đồ.
 - `GET /api/v1/storefront/locations` chỉ trả điểm `visible=true` với `id`, `code`, `name`, `address`, `latitude`, `longitude`, `demo`, `warehouse_id`. Địa chỉ kho nội bộ không được trả ra.
+- `GET /api/v1/storefront/branches` trả tên điểm bản đồ đã liên kết (vd. "StockFlow Hà Nội") thay cho tên kho nội bộ ("Kho Tổng Hà Nội"); kho chưa có điểm bản đồ giữ tên kho. Trang quản trị và API vận hành vẫn dùng tên kho.
 - Danh sách chọn lấy từ API chi nhánh ACTIVE hiện có. Xem trước chỉ đổi bản đồ, xác nhận mới đổi chi nhánh của giỏ hàng. Chưa có chi nhánh ACTIVE thì nút xác nhận bị vô hiệu hóa.
 - Không thay đổi tài khoản/kho, tồn kho, đơn hàng, lịch sử, phân công hoặc địa chỉ kho dùng tính cước. Không sửa migration V32/V34/V35 đã áp dụng, không reset dữ liệu lúc khởi động.
 - Chủ hệ thống hiện sửa tên/địa chỉ công khai/tọa độ/visibility/liên kết kho trong bảng riêng trên đúng database. Chưa thêm màn hình quản trị vị trí. Giữ `demo=true` đến khi xác minh cửa hàng thật.

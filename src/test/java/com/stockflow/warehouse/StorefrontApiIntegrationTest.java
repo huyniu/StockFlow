@@ -67,6 +67,25 @@ class StorefrontApiIntegrationTest {
         assertThat(rows).noneMatch(row -> row.path("id").asLong() == inactive.getId());
     }
 
+    /** Kho có điểm bản đồ đang hiển thị dùng tên chi nhánh cho khách; trang quản trị vẫn giữ tên kho. */
+    @Test
+    void anonymousBranchesUsePublicMapNameWhenLinked() throws Exception {
+        Warehouse linked = warehouse(WarehouseStatus.ACTIVE);
+        String code = "MAP-" + UUID.randomUUID();
+        jdbc.update("INSERT INTO storefront_map_locations (code, name, address, latitude, longitude, warehouse_code) "
+                + "VALUES (?, 'StockFlow Kiểm thử', 'Khu vực kiểm thử', 21.0, 105.8, ?)", code, linked.getCode());
+        try {
+            JsonNode branch = rows(response("/api/v1/storefront/branches", null)).stream()
+                    .filter(row -> row.path("id").asLong() == linked.getId())
+                    .findFirst().orElseThrow();
+            assertThat(branch.path("name").asText()).isEqualTo("StockFlow Kiểm thử");
+            assertThat(warehouses.findById(linked.getId()).orElseThrow().getName()).isEqualTo("Chi nhánh kiểm thử");
+        } finally {
+            // Bảng điểm bản đồ dùng chung giữa các lớp test; StorefrontMapIntegrationTest đếm đúng ba điểm demo.
+            jdbc.update("DELETE FROM storefront_map_locations WHERE code = ?", code);
+        }
+    }
+
     /** Endpoint công khai mới không bỏ yêu cầu JWT của lựa chọn kho vận hành hoặc contract cũ. */
     @ParameterizedTest
     @ValueSource(strings = {"/api/v1/warehouses/order-options", "/api/v1/warehouses/operating-options"})
