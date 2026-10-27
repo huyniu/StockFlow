@@ -578,6 +578,74 @@ async function loadManage() {
         __stockflowApp.renderPager('manage', result);
     }
 
+let directoryRows = new Map();
+
+async function loadWarehouseDirectory() {
+        if (!__stockflowApp.isOperator()) return;
+        const admin = __stockflowApp.hasRole('ADMIN');
+        const columns = admin ? 4 : 3;
+        __stockflowApp.$('#branches-rows').innerHTML = '<tr><td colspan="' + columns + '">Đang tải danh sách kho…</td></tr>';
+        __stockflowApp.$('#branches-count').textContent = '—';
+        try {
+            const rows = await __stockflowApp.api('/warehouses/directory', { channel: 'warehouse-directory' });
+            directoryRows = new Map(rows.map(row => [row.id, row]));
+            __stockflowApp.$('#branches-count').textContent = __stockflowApp.integer(rows.length) + ' kho';
+            __stockflowApp.$('#branches-rows').innerHTML = rows.map(row =>
+                '<tr><td><strong>' + __stockflowApp.escapeHtml(row.name) + '</strong><span class="meta-line mono">' + __stockflowApp.escapeHtml(row.code)
+                + (row.status === 'ACTIVE' ? '' : ' · Ngừng hoạt động') + '</span></td><td>' + __stockflowApp.escapeHtml(row.address)
+                + '</td><td>' + (row.store_name
+                    ? '<strong>' + __stockflowApp.escapeHtml(row.store_name) + '</strong><span class="meta-line">' + __stockflowApp.escapeHtml(row.store_address) + '</span>'
+                    : '<span class="meta-line">Chưa có cửa hàng trên bản đồ</span>')
+                + '</td>' + (admin ? '<td><button type="button" class="button secondary small" data-action="edit-branch" data-id="' + row.id + '">'
+                    + __stockflowApp.icon('edit') + 'Sửa</button></td>' : '') + '</tr>',
+            ).join('') || '<tr><td colspan="' + columns + '">Chưa có kho nào.</td></tr>';
+        } catch (error) {
+            if (error.name !== 'AbortError' && __stockflowApp.isOperator()) {
+                __stockflowApp.$('#branches-rows').innerHTML = '<tr><td colspan="' + columns + '">Chưa tải được danh sách kho. Bấm Làm mới để thử lại.</td></tr>';
+            }
+            throw error;
+        }
+    }
+
+function openBranchEditor(id) {
+        const row = directoryRows.get(id);
+        if (!row || !__stockflowApp.hasRole('ADMIN')) return;
+        const form = __stockflowApp.$('#branch-edit');
+        form.dataset.warehouseId = String(id);
+        __stockflowApp.$('#branch-edit-title').textContent = 'Sửa địa chỉ · ' + row.name;
+        __stockflowApp.$('#branch-edit-code').textContent = 'Mã kho ' + row.code;
+        __stockflowApp.$('#edit-branch-address').value = row.address;
+        const hasStore = Boolean(row.store_name);
+        __stockflowApp.$('#edit-branch-store').hidden = !hasStore;
+        __stockflowApp.$('#edit-branch-no-store').hidden = hasStore;
+        __stockflowApp.$('#edit-branch-store-name').required = hasStore;
+        __stockflowApp.$('#edit-branch-store-address').required = hasStore;
+        __stockflowApp.$('#edit-branch-store-name').value = row.store_name || '';
+        __stockflowApp.$('#edit-branch-store-address').value = row.store_address || '';
+        __stockflowApp.openDialog('branch-edit-dialog');
+    }
+
+async function saveBranch(form) {
+        if (!__stockflowApp.hasRole('ADMIN')) return;
+        const id = Number(form.dataset.warehouseId);
+        const row = directoryRows.get(id);
+        if (!row) return;
+        const address = __stockflowApp.$('#edit-branch-address').value.trim();
+        if (address !== row.address) {
+            await __stockflowApp.api('/warehouses/' + id + '/address', { method: 'PATCH', body: { address } });
+        }
+        if (row.store_name) {
+            const name = __stockflowApp.$('#edit-branch-store-name').value.trim();
+            const storeAddress = __stockflowApp.$('#edit-branch-store-address').value.trim();
+            if (name !== row.store_name || storeAddress !== row.store_address) {
+                await __stockflowApp.api('/warehouses/' + id + '/store-location', { method: 'PATCH', body: { name, address: storeAddress } });
+            }
+        }
+        __stockflowApp.$('#branch-edit-dialog').close();
+        __stockflowApp.notify('success', 'Đã cập nhật địa chỉ ' + row.name + '.', 'HTTP 200 OK');
+        await loadWarehouseDirectory();
+    }
+
 async function loadAdminUsers() {
         if (!__stockflowApp.hasRole('ADMIN')) return;
         __stockflowApp.administeredUsers.clear();
@@ -1693,6 +1761,9 @@ registerFeature({
 "catalogProductRow": () => catalogProductRow,
 "loadManage": () => loadManage,
 "loadAdminUsers": () => loadAdminUsers,
+"loadWarehouseDirectory": () => loadWarehouseDirectory,
+"openBranchEditor": () => openBranchEditor,
+"saveBranch": () => saveBranch,
 "viewAdminUser": () => viewAdminUser,
 "updateAdminRoleFields": () => updateAdminRoleFields,
 "saveAdminUserRole": () => saveAdminUserRole,

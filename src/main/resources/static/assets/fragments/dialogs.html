@@ -611,6 +611,31 @@
                 </div>
             </form>
         </dialog>
+<dialog id="branch-edit-dialog" class="catalog-dialog catalog-dialog-small" aria-labelledby="branch-edit-title">
+            <div class="dialog-header">
+                <div>
+                    <span class="eyebrow">KHO & CHI NHÁNH</span>
+                    <h2 id="branch-edit-title">Sửa địa chỉ</h2>
+                    <p id="branch-edit-code" class="catalog-dialog-description"></p>
+                </div>
+                <button class="icon-button" type="button" data-action="close-dialog" aria-label="Đóng hộp thoại">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <form id="branch-edit" class="stacked-form catalog-form">
+                <label>Địa chỉ kho (nội bộ)<input id="edit-branch-address" name="address" required maxlength="255" /></label>
+                <fieldset id="edit-branch-store" class="stacked-form">
+                    <legend>Cửa hàng khách thấy</legend>
+                    <label>Tên cửa hàng<input id="edit-branch-store-name" name="store_name" maxlength="150" /></label>
+                    <label>Địa chỉ cửa hàng<input id="edit-branch-store-address" name="store_address" maxlength="255" /></label>
+                </fieldset>
+                <p id="edit-branch-no-store" class="subtle" hidden>Kho này chưa có cửa hàng trên bản đồ nên chỉ sửa được địa chỉ kho.</p>
+                <div class="dialog-actions">
+                    <button class="button secondary" type="button" data-action="close-dialog">Hủy</button>
+                    <button class="button primary" type="submit">Lưu thay đổi</button>
+                </div>
+            </form>
+        </dialog>
 <dialog
             id="category-create-dialog"
             class="catalog-dialog catalog-dialog-small"

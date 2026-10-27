@@ -2,10 +2,12 @@ package com.stockflow.warehouse.service;
 
 import com.stockflow.common.exception.ConflictException;
 import com.stockflow.common.exception.ForbiddenException;
+import com.stockflow.common.exception.ResourceNotFoundException;
 import com.stockflow.user.domain.User;
 import com.stockflow.warehouse.domain.Warehouse;
 import com.stockflow.warehouse.domain.WarehouseStatus;
 import com.stockflow.warehouse.dto.CreateWarehouseRequest;
+import com.stockflow.warehouse.dto.UpdateWarehouseAddressRequest;
 import com.stockflow.warehouse.dto.WarehouseOrderOptionResponse;
 import com.stockflow.warehouse.dto.WarehouseResponse;
 import com.stockflow.warehouse.repository.WarehouseRepository;
@@ -57,6 +59,15 @@ public class WarehouseService {
         return warehouseRepository.findOperatingWarehouses(actor.getId(), unrestricted).stream()
                 .map(WarehouseOrderOptionResponse::from)
                 .toList();
+    }
+
+    /** ADMIN đổi địa chỉ kho nội bộ; địa chỉ này không bao giờ xuất hiện trên storefront. */
+    @Transactional
+    public WarehouseResponse updateAddress(Long id, UpdateWarehouseAddressRequest request) {
+        Warehouse warehouse = warehouseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy kho."));
+        warehouse.changeAddress(request.address().trim());
+        return WarehouseResponse.from(warehouse);
     }
 
     /**

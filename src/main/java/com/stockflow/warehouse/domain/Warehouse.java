@@ -89,6 +89,13 @@ public class Warehouse {
     }
 
     /**
+     * Đổi địa chỉ kho nội bộ; mã, tên và trạng thái kho giữ nguyên.
+     */
+    public void changeAddress(String address) {
+        this.address = address;
+    }
+
+    /**
      * Lấy trạng thái kho.
      */
     public WarehouseStatus getStatus() {

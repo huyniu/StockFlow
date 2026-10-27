@@ -97,6 +97,7 @@ async function refreshSection() {
         const loaders = {
             queue: __stockflowApp.loadQueue,
             inventory: __stockflowApp.loadInventory,
+            branches: __stockflowApp.loadWarehouseDirectory,
             ledger: __stockflowApp.loadLedger,
             reports: __stockflowApp.loadReports,
             products: __stockflowApp.loadManage,
@@ -744,7 +745,8 @@ document.addEventListener('click', (event) => {
             __stockflowApp.syncWishlist(); __stockflowApp.openDialog('wishlist-dialog'); await __stockflowApp.loadWishlist();
         });
         else if (action === 'close-wishlist') __stockflowApp.$('#wishlist-dialog').close();
-        else if (action === 'view-admin-user') __stockflowApp.execute(() => __stockflowApp.busy(button, () => __stockflowApp.viewAdminUser(id)));
+        else if (action === 'edit-branch') __stockflowApp.openBranchEditor(id);
+        else if (action === 'view-admin-user')__stockflowApp.execute(() => __stockflowApp.busy(button, () => __stockflowApp.viewAdminUser(id)));
         else if (action === 'toggle-admin-user') __stockflowApp.execute(() => __stockflowApp.busy(button, () => __stockflowApp.toggleAdminUser(id)));
         else if (action === 'use-default-address') __stockflowApp.execute(() => __stockflowApp.prepareDefaultCheckoutAddress(true));
         else if (action === 'different-address') {
@@ -1003,6 +1005,7 @@ document.addEventListener('submit', (event) => {
             'category-edit': () => __stockflowApp.updateCategory(form),
             'brand-create': () => __stockflowApp.createBrand(form),
             'brand-logo-edit': () => __stockflowApp.saveBrandLogo(form),
+            'branch-edit': () => __stockflowApp.saveBranch(form),
             'manage-filter': () => {
                 __stockflowApp.state.pages.manage = 0;
                 return __stockflowApp.loadManage();

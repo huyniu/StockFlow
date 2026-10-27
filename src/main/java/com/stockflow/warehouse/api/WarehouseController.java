@@ -1,8 +1,12 @@
 package com.stockflow.warehouse.api;
 
 import com.stockflow.warehouse.dto.CreateWarehouseRequest;
+import com.stockflow.warehouse.dto.UpdateStoreLocationRequest;
+import com.stockflow.warehouse.dto.UpdateWarehouseAddressRequest;
+import com.stockflow.warehouse.dto.WarehouseDirectoryResponse;
 import com.stockflow.warehouse.dto.WarehouseOrderOptionResponse;
 import com.stockflow.warehouse.dto.WarehouseResponse;
+import com.stockflow.warehouse.service.StorefrontMapService;
 import com.stockflow.warehouse.service.WarehouseService;
 import com.stockflow.user.domain.User;
 import jakarta.validation.Valid;
@@ -15,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,12 +36,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class WarehouseController {
 
     private final WarehouseService warehouseService;
+    private final StorefrontMapService storefrontMapService;
 
     /**
      * Inject service để controller chỉ định nghĩa route, validation và phân quyền.
      */
-    public WarehouseController(WarehouseService warehouseService) {
+    public WarehouseController(WarehouseService warehouseService, StorefrontMapService storefrontMapService) {
         this.warehouseService = warehouseService;
+        this.storefrontMapService = storefrontMapService;
     }
 
     /**
@@ -62,6 +70,33 @@ public class WarehouseController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
     public List<WarehouseOrderOptionResponse> operatingOptions(@AuthenticationPrincipal User actor) {
         return warehouseService.operatingOptions(actor);
+    }
+
+    /** Trang "Kho & chi nhánh": địa chỉ kho nội bộ kèm cửa hàng công khai; CUSTOMER không được truy cập. */
+    @GetMapping("/directory")
+    @Operation(summary = "Xem địa chỉ kho và cửa hàng liên kết (ADMIN, MANAGER, WAREHOUSE_STAFF)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'WAREHOUSE_STAFF')")
+    public List<WarehouseDirectoryResponse> directory() {
+        return storefrontMapService.directory();
+    }
+
+    /** Chỉ ADMIN đổi địa chỉ kho nội bộ. */
+    @PatchMapping("/{id}/address")
+    @Operation(summary = "Đổi địa chỉ kho (ADMIN)")
+    @PreAuthorize("hasRole('ADMIN')")
+    public WarehouseResponse updateAddress(@PathVariable Long id,
+                                           @Valid @RequestBody UpdateWarehouseAddressRequest request) {
+        return warehouseService.updateAddress(id, request);
+    }
+
+    /** Chỉ ADMIN đổi tên/địa chỉ cửa hàng mà khách nhìn thấy cho kho này. */
+    @PatchMapping("/{id}/store-location")
+    @Operation(summary = "Đổi tên và địa chỉ cửa hàng công khai của kho (ADMIN)")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> updateStoreLocation(@PathVariable Long id,
+                                                    @Valid @RequestBody UpdateStoreLocationRequest request) {
+        storefrontMapService.updateStoreLocation(id, request);
+        return ResponseEntity.noContent().build();
     }
 
     /**

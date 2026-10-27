@@ -664,7 +664,7 @@ function clearSession({ preserveCart = false } = {}) {
 function canPortalTab(tab) {
     return (
         __stockflowApp.isOperator() &&
-        (['queue', 'inventory'].includes(tab) ||
+        (['queue', 'inventory', 'branches'].includes(tab) ||
             (['ledger', 'reports'].includes(tab) && __stockflowApp.hasRole('ADMIN', 'MANAGER')) ||
             (['products', 'categories', 'admin', 'users'].includes(tab) && __stockflowApp.hasRole('ADMIN')))
     );
@@ -848,6 +848,7 @@ export function initializeFeature() {
     (PORTAL_TITLES = {
         queue: 'Vận hành đơn hàng',
         inventory: 'Tồn kho & nhập hàng',
+        branches: 'Kho & chi nhánh',
         ledger: 'Sổ cái kiểm toán',
         reports: 'Báo cáo quản trị',
         products: 'Quản lý sản phẩm',

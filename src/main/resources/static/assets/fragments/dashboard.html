@@ -12,6 +12,9 @@
                     <button type="button" class="nav-item" data-portal-tab="inventory">
                         <svg class="icon"><use href="#i-warehouse" /></svg><span>Tồn kho & nhập hàng</span>
                     </button>
+                    <button type="button" class="nav-item" data-portal-tab="branches">
+                        <svg class="icon"><use href="#i-home" /></svg><span>Kho & chi nhánh</span>
+                    </button>
                     <button type="button" class="nav-item" data-portal-tab="ledger" data-roles="ADMIN,MANAGER" hidden>
                         <svg class="icon"><use href="#i-lock" /></svg><span>Sổ cái kiểm toán</span>
                     </button>
@@ -622,6 +625,11 @@
                             </label>
                             <div id="brand-admin-list" class="brand-admin-list"></div>
                         </div>
+                    </section>
+                    <!-- Địa chỉ kho chỉ hiện trong cổng vận hành; khách chỉ thấy tên/địa chỉ cửa hàng qua storefront. -->
+                    <section id="portal-branches" class="portal-panel" hidden aria-labelledby="branches-title">
+                        <div class="section-heading"><div><span class="eyebrow">VẬN HÀNH KHO</span><h1 id="branches-title">Kho & chi nhánh</h1><p>Địa chỉ kho là thông tin nội bộ, chỉ tài khoản vận hành xem được. Địa chỉ cửa hàng là thông tin khách thấy trên bản đồ.</p></div><button type="button" class="button secondary" data-action="refresh">Làm mới</button></div>
+                        <div class="panel"><div class="catalog-list-heading"><h2>Danh sách kho</h2><span id="branches-count">—</span></div><div class="table-wrap"><table><thead><tr><th>Kho</th><th>Địa chỉ kho (nội bộ)</th><th>Cửa hàng (khách thấy)</th><th data-roles="ADMIN" hidden>Thao tác</th></tr></thead><tbody id="branches-rows"></tbody></table></div></div>
                     </section>
                     <section id="portal-users" class="portal-panel" hidden aria-labelledby="admin-users-title">
                         <div class="section-heading"><div><span class="eyebrow">QUẢN TRỊ NGƯỜI DÙNG</span><h1 id="admin-users-title">Quản lý tài khoản</h1><p>Xem thông tin, tìm kiếm và khóa/mở khóa tài khoản.</p></div><button type="button" class="button secondary" data-action="refresh">Làm mới</button></div>
