@@ -3878,6 +3878,26 @@ dialog h2 {
 .catalog-form {
     gap: 18px;
 }
+/* Nhóm "Cửa hàng khách thấy" trong hộp sửa kho: dùng token theme thay cho viền fieldset mặc định. */
+.branch-store-fields {
+    min-width: 0;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface-muted);
+}
+.branch-store-fields legend {
+    /* float đưa legend vào trong khung thay vì nằm cắt ngang đường viền. */
+    float: left;
+    width: 100%;
+    padding: 0;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
 .catalog-form .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
