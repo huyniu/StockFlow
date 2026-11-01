@@ -47,7 +47,7 @@ Flyway V13 completes the **TVs/electrical appliances, accessories, and used good
 <!-- CRUD danh mục giữ cây/ID và bảo vệ SKU; runner nhập tay không hoàn tác xóa/đổi slug khi restart. -->
 The admin category table includes search by name/slug/ID/path and per-row **Edit / Delete** actions. Edits preserve category IDs and hierarchy; deletion is limited to empty leaf categories, including a check for inactive SKUs. Unused brand suggestions are removed transactionally while brands and sales data remain intact. With catalog seeding disabled, restarts preserve manual catalog edits/deletions. A fresh V13 database contains 125 reference categories; the five legacy Tech demo groups are added only when sample catalog seeding is enabled. See [usage, API rules, and verification](docs/category-management.md).
 
-See [the product audit and phased roadmap](docs/storefront-roadmap.md) and [the current handoff](ANTIGRAVITY_HANDOFF.md) for implemented scope, pending business decisions, and acceptance criteria.
+See [the product audit and phased roadmap](docs/storefront-roadmap.md) and [the development plan](HUONG_PHAT_TRIEN.md) for implemented scope, pending business decisions, and acceptance criteria.
 
 The initial technology groups (keyboards/mice, audio, webcams/microphones, hubs/chargers, and desk accessories) remain available alongside the expanded menu. Each sellable configuration is a separate SKU with its own price and warehouse inventory. The store owner chooses which reference categories to stock; no suppliers or marketplace sellers are introduced. See [the technology-store scope](docs/tech-store.md) and [the expanded catalog](docs/catalog-categories-and-brands.md).
 

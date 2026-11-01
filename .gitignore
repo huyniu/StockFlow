@@ -5,3 +5,5 @@ target/
 .env
 
 *.log
+# Ghi chú bàn giao nội bộ, giữ trên máy, không đưa lên repo công khai
+ANTIGRAVITY_HANDOFF.md

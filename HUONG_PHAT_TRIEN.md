@@ -3,7 +3,7 @@
 
 > StockFlow Tech là website bán điện thoại, laptop, thiết bị âm thanh và phụ kiện công nghệ của một cửa hàng sở hữu nhiều kho. Dự án đồng thời phục vụ bài tập lớn và portfolio ứng tuyển Java Backend Developer.
 >
-> Tài liệu này tổng hợp hướng phát triển tiếp theo. Các mục dự kiến chưa phải chức năng đã triển khai; quyết định nghiệp vụ đã chốt trong [ANTIGRAVITY_HANDOFF.md](ANTIGRAVITY_HANDOFF.md) tiếp tục được giữ nguyên.
+> Tài liệu này tổng hợp hướng phát triển tiếp theo. Các mục dự kiến chưa phải chức năng đã triển khai; các quyết định nghiệp vụ đã chốt tiếp tục được giữ nguyên.
 
 ## 1. Định vị sản phẩm
 
@@ -197,4 +197,4 @@ Lệnh Maven trên máy Windows hiện tại:
 
 Kịch bản demo nên đi trọn luồng: ADMIN thêm sản phẩm/ảnh → nhập kho → CUSTOMER xem hàng và đặt đơn → thanh toán → STAFF đóng gói/giao → hoàn tất → xem báo cáo → nhận trả và đối chiếu movement. Thêm một tình huống tranh mua và một tình huống truy cập sai kho để chứng minh tính đúng đắn của backend.
 
-Tài liệu liên quan: [README](README.md), [bàn giao dự án](ANTIGRAVITY_HANDOFF.md), [lộ trình API hiện có](docs/storefront-roadmap.md), [phạm vi StockFlow Tech và kiểm chứng](docs/tech-store.md), [hướng dẫn ảnh](docs/product-images.md), [đo tối ưu SQL](docs/sql-optimization-report.md).
+Tài liệu liên quan: [README](README.md), [lộ trình API hiện có](docs/storefront-roadmap.md), [phạm vi StockFlow Tech và kiểm chứng](docs/tech-store.md), [hướng dẫn ảnh](docs/product-images.md), [đo tối ưu SQL](docs/sql-optimization-report.md).
