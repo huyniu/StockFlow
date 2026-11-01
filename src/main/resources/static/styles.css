@@ -2066,6 +2066,19 @@ button[aria-busy='true'] {
     font-size: 15px;
     font-weight: 650;
 }
+.portal-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12px;
+}
+.portal-header .portal-breadcrumb strong {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+}
 .portal-user {
     text-align: right;
     font-size: 11px;
@@ -2389,16 +2402,20 @@ tbody tr:hover {
     gap: 5px;
     margin: 18px 0;
 }
+/* Token theme thay cho màu cố định: ở giao diện tối, bước chưa tới từng sáng hơn bước đã qua. */
 .timeline-step {
     flex: 1;
     font-size: 8px;
-    color: #a8b0bd;
+    color: var(--muted);
     padding-top: 8px;
-    border-top: 3px solid #e8ebef;
+    border-top: 3px solid var(--line);
+    opacity: 0.7;
 }
 .timeline-step.done {
-    border-top-color: #7086aa;
-    color: #64738a;
+    border-top-color: var(--brand);
+    color: var(--text);
+    font-weight: 600;
+    opacity: 1;
 }
 .shipment-info {
     margin-top: 18px;
