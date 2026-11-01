@@ -347,7 +347,11 @@ class ProductConfigurationArchiveIntegrationTest {
     /** Availability chỉ công khai còn/hết, không cần mở API tồn kho nội bộ cho khách. */
     private boolean availability(long sku) throws Exception {
         JsonNode result = body(mvc.perform(get("/api/v1/products/{id}/availability", sku)).andExpect(status().isOk()));
-        return result.get(0).path("in_stock").asBoolean();
+        // Lọc đúng kho của fixture: database test dùng chung nên kho của lớp khác có thể đứng đầu danh sách.
+        for (JsonNode branch : result) {
+            if (branch.path("warehouse_id").asLong() == warehouse) return branch.path("in_stock").asBoolean();
+        }
+        throw new AssertionError("Không thấy kho kiểm thử " + warehouse + " trong availability.");
     }
 
     /** Clear JPA trước đọc tồn để đối chiếu các bulk update của reserve/dispatch/restock. */
