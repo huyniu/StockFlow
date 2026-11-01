@@ -156,6 +156,26 @@ class OrderQueryIntegrationTest {
                 .containsExactly(confirmed.id());
     }
 
+    /** Tab "Tất cả" ẩn đơn hết hạn trước phân trang; lọc tường minh EXPIRED vẫn trả đơn đó. */
+    @Test
+    void excludeExpiredHidesExpiredOnlyWithoutStatusFilter() throws Exception {
+        jdbc.update("UPDATE orders SET status = 'EXPIRED' WHERE id = ?", pending.id());
+        String warehouse = "?warehouseId=" + firstWarehouse.getId();
+        assertThat(ids(list(manager, warehouse))).containsExactly(confirmed.id(), pending.id());
+        JsonNode active = list(manager, warehouse + "&excludeExpired=true");
+        assertThat(active.path("total_elements").asLong()).isEqualTo(1);
+        assertThat(ids(active)).containsExactly(confirmed.id());
+        assertThat(ids(list(manager, warehouse + "&status=EXPIRED&excludeExpired=true")))
+                .containsExactly(pending.id());
+    }
+
+    /** Danh sách hiện tên người nhận đã chốt khi đặt, để nhân viên không phải mở từng đơn. */
+    @Test
+    void listIncludesRecipientName() throws Exception {
+        JsonNode result = list(manager, "?warehouseId=" + firstWarehouse.getId());
+        assertThat(result.path("content").get(0).path("recipient_name").asText()).isEqualTo("Khách kiểm thử");
+    }
+
     /** Kho ngoài phân công bị chặn 403 trên cả danh sách lẫn API chi tiết hiện có. */
     @Test
     void staffCannotReadAnotherWarehouse() throws Exception {

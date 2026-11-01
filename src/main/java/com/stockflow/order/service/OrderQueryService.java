@@ -41,6 +41,13 @@ public class OrderQueryService {
      */
     public Page<OrderListResponse> listOrders(
             Long actorId, OrderStatus status, Long warehouseId, int page, int size) {
+        return listOrders(actorId, status, warehouseId, false, page, size);
+    }
+
+    /** excludeExpired ẩn đơn hết hạn khi xem "Tất cả"; lọc tường minh status=EXPIRED vẫn trả đủ. */
+    @Transactional(readOnly = true)
+    public Page<OrderListResponse> listOrders(
+            Long actorId, OrderStatus status, Long warehouseId, boolean excludeExpired, int page, int size) {
         User actor = users.findById(actorId)
                 .filter(user -> user.getStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new UnauthorizedException("Tài khoản không còn hoạt động."));
@@ -58,7 +65,7 @@ public class OrderQueryService {
             throw new ForbiddenException("Bạn không được phân công kho này.");
         }
         // Repository vẫn áp dụng EXISTS theo phân công khi đọc, kể cả sau kiểm tra kho tường minh.
-        return orders.findOrders(status, warehouseId, staffId, PageRequest.of(page, size));
+        return orders.findOrders(status, warehouseId, staffId, excludeExpired, PageRequest.of(page, size));
     }
 
     /** Giới hạn dữ liệu mỗi lần đọc và từ chối số trang âm thay vì âm thầm sửa tham số sai. */

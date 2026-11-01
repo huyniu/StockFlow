@@ -13,6 +13,8 @@ public record OrderListResponse(
         Long id,
         @JsonProperty("order_code") String orderCode,
         @JsonProperty("customer_id") Long customerId,
+        // Null với đơn tạo trước V15 (chưa lưu người nhận).
+        @JsonProperty("recipient_name") String recipientName,
         @JsonProperty("warehouse_id") Long warehouseId,
         @JsonProperty("warehouse_name") String warehouseName,
         OrderStatus status,

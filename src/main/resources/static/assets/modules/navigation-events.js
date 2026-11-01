@@ -226,6 +226,9 @@ async function routeFromLocation() {
             await __stockflowApp.activateView('portal', hash[1] === 'orders' ? 'queue' : hash[1] || 'queue', {
                 navigation: 'replace',
             });
+        } else if (hash[0] === 'portal' && !__stockflowApp.state.user) {
+            // Link cổng quản trị khi chưa đăng nhập: mở trang đăng nhập và quay lại đúng tab sau khi đăng nhập.
+            __stockflowApp.openAuth('portal');
         } else if (hash[0] === 'shop') {
             if (!hash[1] || hash[1] === 'catalog') __stockflowApp.restoreCatalogLocation();
             await __stockflowApp.activateView('shop', hash[1] || 'catalog', { navigation: 'replace' });

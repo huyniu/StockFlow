@@ -5,8 +5,10 @@ function renderMyOrders(result) {
         __stockflowApp.$('#orders-rows').innerHTML = result.content
             .map(
                 (order) =>
-                    '<tr><td><strong class="mono">' +
+                    '<tr><td><strong class="mono" title="' +
                     __stockflowApp.escapeHtml(order.order_code) +
+                    '">' +
+                    __stockflowApp.escapeHtml(__stockflowApp.shortOrderCode(order.order_code)) +
                     '</strong><span class="meta-line">' +
                     __stockflowApp.escapeHtml(__stockflowApp.warehouseName(order.warehouse_id)) +
                     ' · #' +
@@ -89,17 +91,21 @@ async function loadQueue() {
                     size: 8,
                     warehouseId: __stockflowApp.$('#queue-warehouse').value,
                     status: __stockflowApp.$('#queue-status').value,
+                    // "Tất cả" ẩn đơn hết hạn; chọn tường minh "Hết hạn" trong ô lọc vẫn xem được.
+                    excludeExpired: !__stockflowApp.$('#queue-status').value,
                 },
             });
             __stockflowApp.$('#queue-rows').innerHTML = result.content
                 .map(
                     (order) =>
-                        '<tr><td><strong class="mono">' +
+                        '<tr><td><strong class="mono" title="' +
                         __stockflowApp.escapeHtml(order.order_code) +
+                        '">' +
+                        __stockflowApp.escapeHtml(__stockflowApp.shortOrderCode(order.order_code)) +
                         '</strong><span class="meta-line">#' +
                         order.id +
-                        ' · Khách #' +
-                        order.customer_id +
+                        ' · ' +
+                        __stockflowApp.escapeHtml(order.recipient_name || 'Khách #' + order.customer_id) +
                         '</span></td><td><strong>' +
                         __stockflowApp.escapeHtml(order.warehouse_name) +
                         '</strong><span class="meta-line">' +
@@ -126,10 +132,10 @@ async function loadQueue() {
 function fulfillmentButton(order) {
         if (!__stockflowApp.isOperator()) return '';
         const step = {
-            CONFIRMED: ['pack', '📦 Đóng gói PACKED'],
-            PACKED: ['ship', '🚚 Giao hàng SHIPPED'],
-            SHIPPED: ['deliver', '✅ Hoàn tất DELIVERED'],
-            DELIVERED: ['return', '↩️ Trả hàng & hoàn kho RETURNED'],
+            CONFIRMED: ['pack', '📦 Đóng gói'],
+            PACKED: ['ship', '🚚 Giao hàng'],
+            SHIPPED: ['deliver', '✅ Hoàn tất'],
+            DELIVERED: ['return', '↩️ Trả hàng & hoàn kho'],
         }[order.status];
         return step
             ? '<button type="button" class="button ' +
@@ -262,9 +268,14 @@ function renderOrder() {
             __stockflowApp.escapeHtml(__stockflowApp.warehouseName(order.warehouse_id)) +
             '</strong></div><div><span>Đặt lúc</span>' +
             __stockflowApp.escapeHtml(__stockflowApp.dateTime(order.created_at)) +
-            '</div><div><span>Thời hạn giữ hàng</span>' +
-            __stockflowApp.escapeHtml(__stockflowApp.dateTime(order.reservation_expires_at)) +
-            '</div><div><span>Cập nhật gần nhất</span>' +
+            '</div>' +
+            // Hạn giữ hàng chỉ còn ý nghĩa khi đơn chờ thanh toán; đơn đã xác nhận hiện mốc này dễ bị hiểu là sắp hủy.
+            (order.status === 'PENDING'
+                ? '<div><span>Thời hạn giữ hàng</span>' +
+                  __stockflowApp.escapeHtml(__stockflowApp.dateTime(order.reservation_expires_at)) +
+                  '</div>'
+                : '') +
+            '<div><span>Cập nhật gần nhất</span>' +
             __stockflowApp.escapeHtml(__stockflowApp.dateTime(order.updated_at)) +
             '</div></div>' +
             __stockflowApp.renderDeliveryDetails(order) +

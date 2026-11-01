@@ -80,7 +80,8 @@ body.auth-page-open #auth-form { gap: 14px; }
 .return-reason { white-space: pre-wrap; }
 .return-images { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px; }
 .return-images img { width: 120px; height: 100px; object-fit: cover; border-radius: 8px; }
-.aftercare-sidebar { display: grid; gap: 8px; margin-block: 16px; }
+.aftercare-sidebar { display: grid; gap: 6px; margin-block: 0 16px; }
+.aftercare-sidebar .nav-caption { margin: 24px 12px 12px; }
 #checkoutSavedAddress { width: 100%; min-width: 0; text-overflow: ellipsis; }
 @media(max-width: 480px) { .saved-address, .return-card { padding: 12px; } .address-actions .button { flex: 1 1 auto; } }
 .color-copy-tools { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }

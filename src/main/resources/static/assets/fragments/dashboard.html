@@ -49,7 +49,16 @@
                         </div>
                     </div>
                 </nav>
-                <div class="aftercare-sidebar"><button class="button secondary" type="button" data-action="open-returns" data-roles="MANAGER,ADMIN" hidden>Đổi / trả hàng</button><button class="button secondary" type="button" data-action="open-change-password">Đổi mật khẩu</button></div>
+                <!-- Hai thao tác mở hộp thoại nhưng hiển thị như mục menu để đồng bộ với điều hướng phía trên. -->
+                <div class="aftercare-sidebar">
+                    <div class="nav-caption">HẬU MÃI & TÀI KHOẢN</div>
+                    <button type="button" class="nav-item" data-action="open-returns" data-roles="MANAGER,ADMIN" hidden>
+                        <svg class="icon"><use href="#i-refresh" /></svg><span>Đổi / trả hàng</span>
+                    </button>
+                    <button type="button" class="nav-item" data-action="open-change-password">
+                        <svg class="icon"><use href="#i-lock" /></svg><span>Đổi mật khẩu</span>
+                    </button>
+                </div>
                 <div class="sidebar-note">
                     <svg class="icon"><use href="#i-lock" /></svg><strong>Lịch sử kho luôn được lưu giữ</strong>
                     <p>Mỗi lần nhập, giữ, xuất và hoàn hàng đều có biến động để truy vết.</p>
@@ -105,7 +114,7 @@
                                 data-queue-status="CONFIRMED"
                                 aria-pressed="false"
                             >
-                                Đã thanh toán<small>Chờ đóng gói</small>
+                                Đã xác nhận<small>Chờ đóng gói</small>
                             </button>
                             <button
                                 type="button"
@@ -113,7 +122,7 @@
                                 data-queue-status="PACKED"
                                 aria-pressed="false"
                             >
-                                Đã đóng gói<small>PACKED</small>
+                                Đã đóng gói<small>Chờ giao</small>
                             </button>
                             <button
                                 type="button"
@@ -121,7 +130,7 @@
                                 data-queue-status="SHIPPED"
                                 aria-pressed="false"
                             >
-                                Đang giao<small>SHIPPED</small>
+                                Đang giao<small>Chờ khách nhận</small>
                             </button>
                             <button
                                 type="button"
@@ -129,7 +138,7 @@
                                 data-queue-status="DELIVERED"
                                 aria-pressed="false"
                             >
-                                Đã giao<small>DELIVERED</small>
+                                Đã giao<small>Hoàn tất</small>
                             </button>
                             <button
                                 type="button"
@@ -137,7 +146,7 @@
                                 data-queue-status="CANCELLED"
                                 aria-pressed="false"
                             >
-                                Đã hủy<small>CANCELLED</small>
+                                Đã hủy<small>Không xử lý</small>
                             </button>
                             <button
                                 type="button"
@@ -145,7 +154,7 @@
                                 data-queue-status="RETURNED"
                                 aria-pressed="false"
                             >
-                                Hoàn hàng<small>RETURNED</small>
+                                Hoàn hàng<small>Đã hoàn kho</small>
                             </button>
                         </div>
                         <div class="panel">
@@ -154,14 +163,14 @@
                                 <label
                                     >Trạng thái<select id="queue-status">
                                         <option value="">Tất cả trạng thái</option>
-                                        <option value="CONFIRMED">Đã thanh toán · CONFIRMED</option>
-                                        <option value="PACKED">Đã đóng gói · PACKED</option>
-                                        <option value="SHIPPED">Đang giao · SHIPPED</option>
-                                        <option value="DELIVERED">Đã giao · DELIVERED</option>
-                                        <option value="PENDING">Chờ thanh toán · PENDING</option>
-                                        <option value="CANCELLED">Đã hủy · CANCELLED</option>
-                                        <option value="EXPIRED">Hết hạn · EXPIRED</option>
-                                        <option value="RETURNED">Đã trả hàng · RETURNED</option>
+                                        <option value="CONFIRMED">Đã xác nhận</option>
+                                        <option value="PACKED">Đã đóng gói</option>
+                                        <option value="SHIPPED">Đang giao</option>
+                                        <option value="DELIVERED">Đã giao</option>
+                                        <option value="PENDING">Chờ thanh toán</option>
+                                        <option value="CANCELLED">Đã hủy</option>
+                                        <option value="EXPIRED">Hết hạn</option>
+                                        <option value="RETURNED">Đã trả hàng</option>
                                     </select></label
                                 >
                                 <button class="button primary" type="submit">Lọc đơn hàng</button>
@@ -183,7 +192,7 @@
                         <div class="queue-layout">
                             <section class="panel">
                                 <div class="panel-heading">
-                                    <h3>Danh sách cần xử lý</h3>
+                                    <h3>Danh sách đơn hàng</h3>
                                     <span id="queue-count" class="badge neutral">—</span>
                                 </div>
                                 <div class="table-scroll">

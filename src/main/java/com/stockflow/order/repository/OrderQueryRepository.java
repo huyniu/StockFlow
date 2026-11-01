@@ -31,6 +31,12 @@ public class OrderQueryRepository {
      */
     public Page<OrderListResponse> findOrders(
             OrderStatus status, Long warehouseId, Long staffId, Pageable pageable) {
+        return findOrders(status, warehouseId, staffId, false, pageable);
+    }
+
+    /** excludeExpired chỉ có tác dụng khi không lọc trạng thái: tab "Tất cả" ẩn đơn hết hạn không còn việc xử lý. */
+    public Page<OrderListResponse> findOrders(
+            OrderStatus status, Long warehouseId, Long staffId, boolean excludeExpired, Pageable pageable) {
         MapSqlParameterSource parameters = new MapSqlParameterSource();
         StringBuilder filter = new StringBuilder("""
                 FROM orders o
@@ -42,6 +48,10 @@ public class OrderQueryRepository {
                     AND o.status = :status
                     """);
             parameters.addValue("status", status.name());
+        } else if (excludeExpired) {
+            filter.append("""
+                    AND o.status <> 'EXPIRED'
+                    """);
         }
         if (warehouseId != null) {
             filter.append("""
@@ -71,6 +81,7 @@ public class OrderQueryRepository {
                 SELECT o.id,
                        o.order_code,
                        o.customer_id,
+                       o.recipient_name,
                        o.warehouse_id,
                        w.name AS warehouse_name,
                        o.status,
@@ -92,6 +103,7 @@ public class OrderQueryRepository {
                     row.getLong("id"),
                     row.getString("order_code"),
                     row.getLong("customer_id"),
+                    row.getString("recipient_name"),
                     row.getLong("warehouse_id"),
                     row.getString("warehouse_name"),
                     OrderStatus.valueOf(row.getString("status")),

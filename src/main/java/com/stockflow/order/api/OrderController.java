@@ -69,9 +69,10 @@ public class OrderController {
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) Long warehouseId,
+            @RequestParam(defaultValue = "false") boolean excludeExpired,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return PageResponse.from(queries.listOrders(user.getId(), status, warehouseId, page, size));
+        return PageResponse.from(queries.listOrders(user.getId(), status, warehouseId, excludeExpired, page, size));
     }
 
     /** Khách xem lịch sử của chính mình theo trang. */

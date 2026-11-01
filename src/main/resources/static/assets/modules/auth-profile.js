@@ -198,7 +198,9 @@ async function authenticate(credentials, register = false, verification = false,
             );
             await __stockflowApp.loadReferences();
             await __stockflowApp.refreshSection();
-            if (returnPath && intent === 'login' && !__stockflowApp.isOperator() && !__stockflowApp.pendingVNPayReturn) {
+            // Khách quay lại trang đang xem; tài khoản vận hành mở link #portal/<tab> thì quay lại đúng tab đó.
+            const portalReturn = intent === 'portal' && __stockflowApp.isOperator() && /^\/#portal\/[a-z]+$/.test(returnPath || '');
+            if (returnPath && ((intent === 'login' && !__stockflowApp.isOperator()) || portalReturn) && !__stockflowApp.pendingVNPayReturn) {
                 window.history.replaceState(null, '', returnPath);
                 await __stockflowApp.routeFromLocation();
             }

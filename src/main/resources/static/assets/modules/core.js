@@ -118,10 +118,15 @@ function statusBadge(status) {
         __stockflowApp.escapeHtml(status) +
         '">' +
         __stockflowApp.escapeHtml(__stockflowApp.STATUS_LABELS[status] || status) +
-        '<small class="status-code">' +
-        __stockflowApp.escapeHtml(status) +
-        '</small></span>'
+        '</span>'
     );
+}
+
+// Mã đơn đầy đủ (SF-<uuid>) khó đọc; danh sách hiện 8 ký tự đầu, mã gốc nằm trong title để tra/sao chép.
+function shortOrderCode(code) {
+    const value = String(code ?? '');
+    const match = /^SF-([0-9a-f]{8})-/i.exec(value);
+    return match ? 'SF-' + match[1].toUpperCase() : value;
 }
 
 function cancelRequests() {
@@ -747,6 +752,7 @@ export function register() {
         "icon": () => icon,
         "dateTime": () => dateTime,
         "statusBadge": () => statusBadge,
+        "shortOrderCode": () => shortOrderCode,
         "ApiError": () => ApiError,
         "cancelRequests": () => cancelRequests,
         "invalidateOrderRefresh": () => invalidateOrderRefresh,
